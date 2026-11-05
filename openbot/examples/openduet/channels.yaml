@@ -1,7 +1,7 @@
 channels:
   - id: openduet
-    name: OpenDuet
-    description: Your brief, and anything that needs you.
+    name: Academic OS
+    description: What to work on now, what's due, and studying.
     permitted_agents: [openduet]
     allowed_groups: [all]
   - id: your-agent

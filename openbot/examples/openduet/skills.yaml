@@ -25,16 +25,105 @@ skills:
   # an administrator grants on /admin/plugins/google-workspace for the brief to have anything to read.
   - slug: morning-brief
     title: Morning brief
-    summary: What needs you today, what can wait, and today's calendar, from your mail and calendar.
+    summary: What's due, what needs you today, and today's classes, from your school mail and calendar.
     instructions: >-
       Call morning_brief. The app shows its result as a card, so do not list the items again. Then
-      say, in at most two short sentences, the single most important thing and offer one concrete
-      next step, such as drafting a reply to the person who is waiting. If the brief lists a source
+      say, in at most two short sentences, the one assignment or test to work on first and why, and
+      offer one concrete next step, such as starting it, a quick quiz for it, or replying to the
+      teacher or counselor who is waiting. If the brief lists a source
       it could not check, say what is missing and that it can be connected on the Connections page;
       never describe a source it could not check as quiet.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/calendar_list_events
+
+  # Academic OS's study skills. They read the student's Classroom notices and calendar through the
+  # same Gmail and Calendar grants as the brief, and the teacher's AI help level comes from the
+  # notice itself (see the TEACHER RULES part of the Bot's prompt).
+  - slug: work-on-now
+    title: What should I work on now?
+    summary: Pick the one assignment to start right now, why, and the first ten minutes of it.
+    instructions: >-
+      Search their mail for Google Classroom notices from the last week (from:classroom.google.com
+      newer_than:7d) and read this week's calendar with calendar_list_events. Open a notice with
+      gmail_read_message when the subject does not give the due date. Rank what is open by due date
+      first, then points and how much work is left, and skip anything a later notice shows was
+      returned or graded. Account for the time they have today before the next class, practice or
+      event. Answer with the one assignment to start now, the reason in a short clause, its AI help
+      level, and a first step they can do in ten minutes. Then call suggest_replies with chips such
+      as "Start it", "Something else" and "Plan my week". If nothing is due, say so plainly and
+      suggest studying for the nearest test. If mail is not connected, say so and where to connect it.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: plan-assignments
+    title: Turn my assignments into tasks
+    summary: Find every open assignment and test and put each on your Tasks tab with a due date and first step.
+    instructions: >-
+      Search their mail for Google Classroom notices from the last two weeks
+      (from:classroom.google.com newer_than:14d) and read the next seven days of their calendar for
+      tests and due dates. Read each notice that announces an assignment, a quiz, a test or missing
+      work. Leave out anything already returned or graded, and merge a notice and a calendar entry
+      that are the same thing. Call add_tasks once with one task for each, most urgent first, up to
+      eight: the title is the class and the assignment, the why starts with the due date and the AI
+      help level and then says what it is worth, the first step is concrete and takes about ten
+      minutes, and the source is the Classroom link. Then say in one sentence how many you added
+      and which one is most urgent. If you find none, say so and what you searched.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: quiz-me
+    title: Quiz me
+    summary: A short practice quiz on a class, a test or your notes, one question at a time.
+    instructions: >-
+      Work out what to quiz on: what they named, or else their nearest upcoming quiz or test from
+      their calendar and Classroom notices, and read the notice for what it covers. If the material
+      belongs to an assignment set to No help, do not quiz on that assignment; say why in one
+      sentence and offer a different class. Ask one question at a time, five questions unless they
+      ask for another number, mixing easy and hard. For multiple choice, write the question and then
+      call suggest_replies with the answer letters or short answers as chips; for short answers, let
+      them type. After each answer, say right or wrong in a few words and why, then ask the next one.
+      At the end give the score and the one topic to review, and offer flashcards for it. Never
+      reveal the answer before they answer.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: flashcards
+    title: Make flashcards
+    summary: Turn a topic, a test's coverage or a vocab list into a deck of flashcards to study.
+    instructions: >-
+      Work out the topic: what they named, or else their nearest upcoming test from the calendar and
+      its Classroom notice. If it belongs to an assignment set to No help, say so in one sentence
+      and offer a different class. Make 12 to 20 cards, each one fact or term, with a short front and
+      a back of at most 20 words, ordered from basics to hardest. Make them with make_page as a page
+      titled with the class and topic, holding a table with the columns Front and Back, and a short
+      text block on how to study them: cover the back, say the answer, then mark the ones you missed.
+      In Chat say one sentence about the deck and offer to quiz them on it.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: explain
+    title: Explain it simply
+    summary: Explain a concept from class in plain words, with one example, then check you got it.
+    instructions: >-
+      Explain the concept they asked about the way a good tutor would to a high school student:
+      start with the idea in one or two plain sentences, then one short example worked step by step,
+      then one quick question that checks they understood. Keep it short enough to read on a phone,
+      and use make_page only if they ask for notes to keep. If the concept is tied to an assignment,
+      follow that assignment's AI help level: under Hints only explain the concept with a different
+      example than the assignment's own problems, and under No help explain nothing about that
+      assignment's questions. If you are not sure of a fact, say so instead of guessing.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
 
   # On the first day Chat sends this request by itself, framed so the Bot does not greet them twice
   # (app/src/components/shell/first-day.tsx, shared/first-day.ts); the skill is what brings the mail

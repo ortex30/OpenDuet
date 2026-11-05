@@ -43,8 +43,19 @@ import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-/** Who is signed in. Every message in the mailbox is to her. */
-export const FAKE_ACCOUNT = "maya@marlowceramics.com";
+/**
+ * Which invented person the fake is. The default is Maya's studio, which the evals and tests use.
+ * `--persona student` (or FAKE_GOOGLE_PERSONA=student) serves Academic OS's demo student instead:
+ * Jordan Rivera, a high school junior, with Classroom notices, teachers and a school calendar.
+ */
+const STUDENT =
+  (flag("persona") ?? process.env.FAKE_GOOGLE_PERSONA ?? "") === "student";
+
+/** Who is signed in. Every message in the mailbox is to them. */
+export const FAKE_ACCOUNT = STUDENT
+  ? "jordan.rivera@students.lakeviewhs.org"
+  : "maya@marlowceramics.com";
+const OWNER_NAME = STUDENT ? "Jordan Rivera" : "Maya Okafor";
 
 /** What a consent grants when the request named no scope, which is what the connector asks for. */
 const DEFAULT_SCOPE = [
@@ -61,11 +72,13 @@ const TOKEN_LIFETIME_SECONDS = 3599;
  * and what late October is in the Pacific. Fixed rather than computed from a zone, because the fake
  * is meant to give the same answer on every machine.
  */
-const STUDIO_OFFSET_MINUTES = -7 * 60;
-const STUDIO_TIME_ZONE = "America/Los_Angeles";
+const STUDIO_OFFSET_MINUTES = STUDENT ? -6 * 60 : -7 * 60;
+const STUDIO_TIME_ZONE = STUDENT ? "America/Chicago" : "America/Los_Angeles";
 
 const MAILBOX = fileURLToPath(
-  new URL("../../../evals/triage/emails.jsonl", import.meta.url),
+  STUDENT
+    ? new URL("./student-mailbox.jsonl", import.meta.url)
+    : new URL("../../../evals/triage/emails.jsonl", import.meta.url),
 );
 
 /** One line of the eval set. `label` and `why` are deliberately not read. */
@@ -304,7 +317,39 @@ function seedCalendar(now: number): FakeEvent[] {
     };
   };
 
-  const events: FakeEvent[] = [
+  /** Academic OS's demo student: today's classes, then the week's tests and due dates. */
+  const allDay = (id: string, summary: string, offsetDays: number): FakeEvent => ({
+    kind: "calendar#event",
+    id,
+    status: "confirmed",
+    summary,
+    start: { date: date(offsetDays) },
+    end: { date: date(offsetDays + 1) },
+    organizer: { email: FAKE_ACCOUNT, self: true },
+    span: [at(24 * offsetDays), at(24 * (offsetDays + 1))],
+  });
+  const student: FakeEvent[] = [
+    timed("period1apush", "AP US History (Mr. Grant)", [8, 0], [8, 50], { location: "Room 214" }),
+    timed("period2chem", "Chemistry (Dr. Okoro)", [8, 55], [9, 45], { location: "Lab 3" }),
+    timed("period3english", "English 11 (Ms. Alvarez)", [9, 50], [10, 40], { location: "Room 108" }),
+    timed("period4precalc", "Precalculus (Mr. Chen)", [10, 45], [11, 35], { location: "Room 301" }),
+    timed("lunch", "Lunch", [11, 40], [12, 15]),
+    timed("period5spanish", "Spanish III (Sra. Morales)", [12, 20], [13, 10], { location: "Room 122" }),
+    timed("studyhall", "Study hall", [13, 15], [14, 5], { location: "Library" }),
+    timed("chemhelp", "Chem lab help session", [14, 45], [15, 15], { location: "Lab 3" }),
+    timed("soccer", "Soccer practice", [15, 30], [17, 30], { location: "Field B" }),
+    timed("debateprep", "Debate club prep", [19, 30], [20, 15], {
+      location: "Google Meet",
+      status: "tentative",
+    }),
+    allDay("precalcquiz", "Precalc quiz: Unit 4 trig identities", 1),
+    allDay("chemlabdue", "Chem lab report due", 1),
+    allDay("apushdbq", "APUSH DBQ essay due", 2),
+    allDay("spanishvocab", "Spanish vocab test: Unidad 5", 3),
+    allDay("englishessay", "English: Gatsby essay due", 6),
+  ];
+
+  const events: FakeEvent[] = STUDENT ? student : [
     {
       kind: "calendar#event",
       id: "kiln2outofservice",
@@ -865,7 +910,7 @@ export function startFakeGoogle(
       labelIds: ["SENT"],
       internalDate: instant,
       headers: [
-        { name: "From", value: `Maya Okafor <${FAKE_ACCOUNT}>` },
+        { name: "From", value: `${OWNER_NAME} <${FAKE_ACCOUNT}>` },
         ...headers.filter(
           (header) =>
             !/^(from|bcc|date|message-id|content-transfer-encoding)$/i.test(
