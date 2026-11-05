@@ -68,7 +68,7 @@ export function TodayHero({
           <p className="type-sub text-duet-ink-2">
             {met
               ? "Goal met today. Anything more is a bonus."
-              : `${formatMinutes(Math.max(0, pace.goalMin - today))} of focus to hit today's goal.`}
+              : `${formatMinutes(Math.max(0, pace.goalMin - today))} to go today.`}
           </p>
           <p
             className={cn(
@@ -84,7 +84,7 @@ export function TodayHero({
           </p>
           {days > 0 && !todayDone ? (
             <p className="type-caption mt-1 text-duet-ink-2">
-              15 minutes today keeps it alive.
+              15 min keeps the streak.
             </p>
           ) : null}
         </div>

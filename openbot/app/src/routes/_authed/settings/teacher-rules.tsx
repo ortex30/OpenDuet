@@ -37,7 +37,7 @@ function TeacherRulesPage() {
 
   return (
     <PageShell
-      description="How much AI help each class allows, from your teachers' Classroom posts."
+      description="How much AI help each class allows."
       // Named as the Settings row that opens it.
       title="Teacher rules"
     >

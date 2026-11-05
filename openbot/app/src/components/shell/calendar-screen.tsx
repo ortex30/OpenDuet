@@ -491,7 +491,7 @@ function planNote(
       removable: false,
     };
   const count = data.blocks.length;
-  const sessions = `${count} ${count === 1 ? "session" : "sessions"}, ${minutesLabel(data.totalMinutes)}, drawn dashed.`;
+  const sessions = `${count} ${count === 1 ? "session" : "sessions"}, ${minutesLabel(data.totalMinutes)}.`;
   // Offered only when none of its sessions is in view, so its dashed blocks are never missed.
   const first = data.blocks.some((block) => dates.includes(block.date))
     ? null
@@ -505,7 +505,7 @@ function planNote(
       }
     : {
         title: "Proposed plan",
-        detail: `${sessions} They go on your calendar when you apply the plan in Chat.`,
+        detail: `${sessions} Dashed until you add it in Chat.`,
         first,
         removable: false,
       };

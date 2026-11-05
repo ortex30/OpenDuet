@@ -69,10 +69,10 @@ export function FlashcardDeck({
     <BuildIn order={0}>
       <DuetCard aria-label={`Flashcards: ${deck.title}`} role="region">
         <BuildIn className="px-4 pt-[18px]" order={0}>
-          <p className="type-sub font-medium text-duet-ink-2 [overflow-wrap:anywhere]">
+          <span className="type-caption inline-flex h-6 items-center rounded-full bg-duet-accent-soft px-2.5 font-semibold text-duet-accent [overflow-wrap:anywhere]">
             {deck.className}
-          </p>
-          <p className="type-row mt-0.5 font-semibold [overflow-wrap:anywhere]">
+          </span>
+          <p className="type-row mt-2 font-semibold [overflow-wrap:anywhere]">
             {deck.title}
           </p>
         </BuildIn>
@@ -124,7 +124,7 @@ function DeckBody({
     round.cards.every((card) => round.marks[card] != null);
   const current = round.cards[round.at] ?? 0;
   const card = deck.cards[current] ?? { front: "", back: "" };
-  const side = round.flipped ? "Answer" : "Prompt";
+  const side = round.flipped ? "Answer" : "Term";
   const text = round.flipped ? card.back : card.front;
   const marked = round.marks[current] ?? null;
 
@@ -203,8 +203,8 @@ function DeckBody({
           </p>
           <p className="type-sub mt-1 text-duet-ink-2">
             {again.length > 0
-              ? "Go through the ones you marked Again while they're fresh."
-              : "You knew every card in this round."}
+              ? "Run the Again ones once more."
+              : "You knew them all."}
           </p>
         </div>
         {/* One above the other, the next step first, as the quiz's results end. */}
@@ -214,9 +214,7 @@ function DeckBody({
               onClick={() => show(freshRound(count, again), null, "face")}
               primary
             >
-              {again.length === 1
-                ? "Review that one again"
-                : `Review the ${again.length} again`}
+              {`Review ${again.length}`}
             </SmallPill>
           ) : null}
           <SmallPill
@@ -239,8 +237,8 @@ function DeckBody({
           "flex min-h-[176px] w-full flex-col rounded-[18px] px-5 pt-4 pb-3 text-left transition-[background-color,box-shadow,transform] duration-[var(--duet-dur-swap)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40 active:scale-[0.99] motion-reduce:active:scale-100",
           // The answer side lifts onto the card's own white, so the two sides read as two faces.
           round.flipped
-            ? "bg-duet-card shadow-[inset_0_0_0_1px_var(--duet-hair)]"
-            : "bg-duet-tile",
+            ? "bg-duet-pop-b-soft shadow-[inset_0_0_0_2px_var(--duet-pop-b)]"
+            : "bg-[image:var(--duet-face-gradient)] text-white",
         )}
         data-side={round.flipped ? "answer" : "prompt"}
         onClick={flip}
@@ -249,7 +247,7 @@ function DeckBody({
         type="button"
       >
         <span className="flex min-h-6 items-center justify-between gap-3">
-          <span className="type-caption font-medium text-duet-ink-2">
+          <span className={cn("type-caption font-medium", round.flipped ? "text-duet-pop-b" : "text-white/80")}>
             {side}
           </span>
           {marked ? (
@@ -291,8 +289,8 @@ function DeckBody({
         >
           {text}
         </motion.span>
-        <span aria-hidden className="type-caption text-right text-duet-ink-3">
-          {round.flipped ? "Tap to see the prompt" : "Tap to reveal the answer"}
+        <span aria-hidden className={cn("type-caption text-right", round.flipped ? "text-duet-ink-3" : "text-white/70")}>
+          Tap to flip
         </span>
       </button>
       {/* Its buttons stand in the hint's place, so the row never changes height under a thumb. */}
@@ -305,8 +303,8 @@ function DeckBody({
             </SmallPill>
           </>
         ) : (
-          <p className="type-sub flex flex-1 items-center justify-center text-center text-duet-ink-2">
-            Think of the answer, then flip the card.
+          <p className="type-sub flex flex-1 items-center justify-center text-center text-duet-ink-3">
+            Know it? Flip to check.
           </p>
         )}
       </div>

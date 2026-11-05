@@ -37,6 +37,12 @@ export function staleSentence(plan: Pick<StudyPlan, "staleReason">): string {
 }
 
 /** The plan's blocks by day: days in order, and each day's blocks by start time. */
+/** "Lab 6 report: Reaction Rates" → "Lab 6 report": enough to know which one, in a one-line list. */
+function shortTitle(title: string): string {
+  const cut = title.split(/[:(]/)[0]?.trim() ?? title;
+  return cut.length > 0 ? cut : title;
+}
+
 export function blocksByDay(
   blocks: readonly StudyBlock[],
 ): { date: string; blocks: StudyBlock[] }[] {
@@ -87,7 +93,7 @@ export function StudyPlanCard({
   /** True while an answer is on its way. */
   busy: boolean;
   error: string | null;
-  /** Drawn beside "Added to your Calendar tab", such as a link to the Calendar tab. */
+  /** Drawn beside "On your calendar", such as a link to the Calendar tab. */
   calendarLink?: ReactNode;
   /** Drawn under the sessions while the plan waits for an answer, such as a link to see it laid over the calendar. */
   previewLink?: ReactNode;
@@ -132,12 +138,17 @@ export function StudyPlanCard({
     <BuildIn order={0}>
       <DuetCard aria-label="Study plan" role="region">
         <BuildIn className="px-4 pt-[18px]" order={0}>
-          <p className="type-row font-semibold">Study plan</p>
-          <p className="type-sub text-duet-ink-2 tabular-nums">
-            {plan.blocks.length > 0
-              ? `${plural(plan.blocks.length, "session", "sessions")} · ${formatMinutes(minutes)}`
-              : "No sessions fit in the time you have."}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="type-row font-semibold">Your plan</p>
+            {plan.blocks.length > 0 ? (
+              <span className="type-caption inline-flex h-6 shrink-0 items-center rounded-full bg-duet-pop-a-soft px-2.5 font-semibold text-duet-pop-a tabular-nums">
+                {`${plural(plan.blocks.length, "session", "sessions")} · ${formatMinutes(minutes)}`}
+              </span>
+            ) : null}
+          </div>
+          {plan.blocks.length === 0 ? (
+            <p className="type-sub text-duet-ink-2">Nothing fit in that time.</p>
+          ) : null}
           {plan.reason ? (
             <p className="type-sub mt-2 text-duet-ink-2 [overflow-wrap:anywhere]">
               {plan.reason}
@@ -173,21 +184,18 @@ export function StudyPlanCard({
         {plan.remaining.length > 0 || warnings.length > 0 ? (
           <BuildIn className="px-4 pt-3" order={after}>
             <ul className="flex flex-col gap-1.5">
-              {plan.remaining.map((item) => (
-                <li
-                  className="type-sub flex gap-2 text-duet-ink-2"
-                  key={`${item.assignmentId}:${item.title}`}
-                >
+              {plan.remaining.length > 0 ? (
+                <li className="type-sub flex gap-2 text-duet-ink-2">
                   <DuetIcon
                     className="mt-0.5 shrink-0 text-duet-status-needs"
                     name="clock"
                     size={16}
                   />
                   <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {`Didn't fit: ${formatMinutes(item.minutes)} of ${item.title}`}
+                    {`Didn't fit: ${plan.remaining.map((item) => shortTitle(item.title)).join(", ")}`}
                   </span>
                 </li>
-              ))}
+              ) : null}
               {warnings.map((warning) => (
                 <li
                   className="type-sub flex gap-2 text-duet-ink-2"
@@ -217,7 +225,7 @@ export function StudyPlanCard({
                   tabIndex={-1}
                 >
                   <DuetIcon name="check" size={16} stroke={2.6} />
-                  Added to your Calendar tab
+                  On your calendar
                 </p>
                 {calendarLink ?? null}
               </div>
@@ -285,7 +293,7 @@ export function StudyPlanCard({
                     onDiscard();
                   }}
                 >
-                  Not now
+                  Skip
                 </SmallPill>
                 <SmallPill
                   disabled={
@@ -297,7 +305,7 @@ export function StudyPlanCard({
                   }}
                   primary
                 >
-                  Apply plan
+                  Add to calendar
                 </SmallPill>
               </div>
             </>
@@ -328,7 +336,7 @@ function BlockRow({
           className="type-body flex h-[1lh] shrink-0 items-center"
         >
           <span
-            className="size-2.5 rounded-full"
+            className="size-3 rounded-full"
             data-class-color={schoolClass?.color ?? "none"}
             style={{
               backgroundColor: schoolClass

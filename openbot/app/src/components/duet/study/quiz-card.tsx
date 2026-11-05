@@ -3,7 +3,7 @@ import type {
   QuizPublic,
   QuizResult,
 } from "@openbot/shared/study";
-import { useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react";
 import { SmallPill } from "@/components/shell/suggestion-card";
 import { cn } from "@/lib/utils";
 import { BuildIn } from "../build-in";
@@ -11,6 +11,13 @@ import { DuetIcon } from "../icons";
 import { DuetCard, Rule } from "../kit";
 
 const LETTERS = ["A", "B", "C", "D"] as const;
+/* Each answer has its own colour: a soft tint at rest, the full colour once chosen. */
+const POP = [
+  { soft: "bg-duet-pop-a-soft", ink: "text-duet-pop-a", full: "bg-duet-pop-a", ring: "var(--duet-pop-a)" },
+  { soft: "bg-duet-pop-b-soft", ink: "text-duet-pop-b", full: "bg-duet-pop-b", ring: "var(--duet-pop-b)" },
+  { soft: "bg-duet-pop-c-soft", ink: "text-duet-pop-c", full: "bg-duet-pop-c", ring: "var(--duet-pop-c)" },
+  { soft: "bg-duet-pop-d-soft", ink: "text-duet-pop-d", full: "bg-duet-pop-d", ring: "var(--duet-pop-d)" },
+] as const;
 
 /**
  * A practice quiz in the chat, a question at a time, then how it went.
@@ -48,10 +55,10 @@ export function QuizCard({
     <BuildIn order={0}>
       <DuetCard aria-label={`Quiz: ${quiz.title}`} role="region">
         <BuildIn className="px-4 pt-[18px]" order={0}>
-          <p className="type-sub font-medium text-duet-ink-2 [overflow-wrap:anywhere]">
+          <span className="type-caption inline-flex h-6 items-center rounded-full bg-duet-accent-soft px-2.5 font-semibold text-duet-accent [overflow-wrap:anywhere]">
             {quiz.className}
-          </p>
-          <p className="type-row mt-0.5 font-semibold [overflow-wrap:anywhere]">
+          </span>
+          <p className="type-row mt-2 font-semibold [overflow-wrap:anywhere]">
             {quiz.title}
           </p>
         </BuildIn>
@@ -143,7 +150,7 @@ function QuizQuestions({
       <BuildIn className="px-4 pt-4" order={1}>
         <div className="flex items-baseline justify-between gap-3">
           <p className="type-caption shrink-0 font-medium text-duet-ink-2 tabular-nums">
-            {`Question ${index + 1} of ${questions.length}`}
+            {`${index + 1} / ${questions.length}`}
           </p>
           <p className="type-caption min-w-0 truncate text-duet-ink-2">
             {question.topic}
@@ -155,10 +162,10 @@ function QuizQuestions({
          */}
         <div
           aria-hidden
-          className="mt-2 h-1 overflow-hidden rounded-full bg-duet-tile"
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-duet-tile"
         >
           <div
-            className="h-full rounded-full bg-duet-ink transition-transform duration-[var(--duet-dur-swap)] motion-reduce:transition-none"
+            className="h-full rounded-full bg-[image:var(--duet-face-gradient)] transition-transform duration-[var(--duet-dur-swap)] motion-reduce:transition-none"
             data-quiz-progress={(index + 1) / questions.length}
             style={{
               transform: `translateX(${((index + 1) / questions.length - 1) * 100}%)`,
@@ -173,14 +180,15 @@ function QuizQuestions({
           <div className="mt-3 flex flex-col gap-2">
             {question.choices.map((choice, choiceIndex) => {
               const on = chosen === choiceIndex;
+              const pop = POP[choiceIndex % POP.length] ?? POP[0];
               return (
                 <label
                   className={cn(
-                    "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[16px] px-3 py-2 transition-[background-color,box-shadow] has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-duet-accent/40",
-                    on
-                      ? "bg-duet-accent-soft shadow-[inset_0_0_0_1.5px_var(--duet-accent)]"
-                      : "shadow-[inset_0_0_0_1px_var(--duet-hair)] hover:bg-duet-tile",
+                    "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[16px] px-3 py-2 transition-[background-color,box-shadow,transform] has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-duet-accent/40 active:scale-[0.99]",
+                    pop.soft,
+                    on ? "shadow-[inset_0_0_0_2px_var(--pop)]" : "hover:brightness-[0.97]",
                   )}
+                  style={{ "--pop": pop.ring } as CSSProperties}
                   // Choices never reorder within a question, so their place is who they are.
                   // biome-ignore lint/suspicious/noArrayIndexKey: the index is the answer itself.
                   key={choiceIndex}
@@ -197,20 +205,18 @@ function QuizQuestions({
                   <span
                     aria-hidden
                     className={cn(
-                      "type-caption grid size-7 shrink-0 place-items-center rounded-full font-semibold transition-colors",
-                      on
-                        ? "bg-duet-accent text-duet-on-accent"
-                        : "bg-duet-tile text-duet-ink-2",
+                      "type-caption grid size-7 shrink-0 place-items-center rounded-full font-bold transition-colors",
+                      on ? cn(pop.full, "text-white") : cn("bg-duet-card", pop.ink),
                     )}
                   >
                     {LETTERS[choiceIndex] ?? ""}
                   </span>
-                  <span className="type-body min-w-0 flex-1 [overflow-wrap:anywhere]">
+                  <span className="type-body min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">
                     {choice}
                   </span>
                   {on ? (
                     <DuetIcon
-                      className="shrink-0 text-duet-accent"
+                      className={cn("shrink-0", pop.ink)}
                       name="check"
                       size={18}
                       stroke={2.4}
@@ -239,7 +245,7 @@ function QuizQuestions({
             }}
             primary
           >
-            {submitting ? "Checking…" : "Check my work"}
+            {submitting ? "Checking…" : "Check"}
           </SmallPill>
         ) : (
           <SmallPill disabled={chosen === null} onClick={() => go(1)} primary>
@@ -276,7 +282,7 @@ function QuizResults({
     <>
       <BuildIn className="px-4 pt-4" order={1}>
         <p
-          className="type-display font-semibold tabular-nums outline-none"
+          className="type-display font-bold tabular-nums outline-none bg-[image:var(--duet-face-gradient)] bg-clip-text text-transparent w-fit"
           ref={score}
           tabIndex={-1}
         >
@@ -285,8 +291,8 @@ function QuizResults({
         </p>
         <p className="type-sub mt-0.5 text-duet-ink-2">
           {perfect
-            ? "Every answer right. Try a new set to check it sticks."
-            : "Now you know what to practice next."}
+            ? "Perfect score."
+            : `${attempt.total - attempt.correct} to look at.`}
         </p>
       </BuildIn>
       <BuildIn order={2}>
@@ -303,7 +309,7 @@ function QuizResults({
         {attempt.reviewTaskAdded ? (
           <p className="type-sub flex items-center gap-2 text-duet-ink-2">
             <DuetIcon className="shrink-0" name="tasks" size={16} />
-            <span>A 10-minute review task was added to Tasks.</span>
+            <span>Review task added.</span>
           </p>
         ) : null}
         {error ? (
@@ -317,12 +323,12 @@ function QuizResults({
           <div className="mt-3 flex flex-col gap-2">
             {explain ? (
               <SmallPill onClick={explain} primary>
-                Explain what I missed
+                Explain
               </SmallPill>
             ) : null}
             {onRetry ? (
               <SmallPill onClick={onRetry} primary={!explain}>
-                Quiz me again
+                Try again
               </SmallPill>
             ) : null}
           </div>
@@ -345,7 +351,7 @@ function ResultRow({ number, result }: { number: number; result: QuizResult }) {
     >
       <div className="flex items-center justify-between gap-3">
         <p className="type-caption min-w-0 truncate font-medium text-duet-ink-2">
-          {`Question ${number} · ${result.topic}`}
+          {`${number}. ${result.topic}`}
         </p>
         <span
           className={cn(
@@ -368,7 +374,7 @@ function ResultRow({ number, result }: { number: number; result: QuizResult }) {
       </p>
       {result.correct ? null : (
         <p className="type-sub mt-1 text-duet-ink-2 [overflow-wrap:anywhere]">
-          {`You chose: ${choiceText(result, result.selected)}`}
+          {`You said ${choiceText(result, result.selected)}`}
         </p>
       )}
       <p
@@ -377,7 +383,7 @@ function ResultRow({ number, result }: { number: number; result: QuizResult }) {
           result.correct ? "mt-1" : "mt-0.5",
         )}
       >
-        {`Answer: ${choiceText(result, result.correctIndex)}`}
+        <span className="font-semibold text-duet-status-done">{choiceText(result, result.correctIndex)}</span>
       </p>
       {result.explanation ? (
         <p className="type-sub mt-1 text-duet-ink-2 [overflow-wrap:anywhere]">

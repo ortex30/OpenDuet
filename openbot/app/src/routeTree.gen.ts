@@ -22,6 +22,7 @@ import { Route as AuthedAppBotRouteImport } from './routes/_authed/_app/bot'
 import { Route as AuthedAppCalendarRouteImport } from './routes/_authed/_app/calendar'
 import { Route as AuthedAppCapabilitiesRouteImport } from './routes/_authed/_app/capabilities'
 import { Route as AuthedAppCoachRouteImport } from './routes/_authed/_app/coach'
+import { Route as AuthedAppDemoCardsRouteImport } from './routes/_authed/_app/demo-cards'
 import { Route as AuthedAppInboxRouteImport } from './routes/_authed/_app/inbox'
 import { Route as AuthedAppLearnRouteImport } from './routes/_authed/_app/learn'
 import { Route as AuthedAppMakeRouteImport } from './routes/_authed/_app/make'
@@ -153,6 +154,11 @@ const AuthedAppCapabilitiesRoute = AuthedAppCapabilitiesRouteImport.update({
 const AuthedAppCoachRoute = AuthedAppCoachRouteImport.update({
   id: '/coach',
   path: '/coach',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
+const AuthedAppDemoCardsRoute = AuthedAppDemoCardsRouteImport.update({
+  id: '/demo-cards',
+  path: '/demo-cards',
   getParentRoute: () => AuthedAppRoute,
 } as any)
 const AuthedAppInboxRoute = AuthedAppInboxRouteImport.update({
@@ -543,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AuthedAppCalendarRoute
   '/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
   '/coach': typeof AuthedAppCoachRoute
+  '/demo-cards': typeof AuthedAppDemoCardsRoute
   '/inbox': typeof AuthedAppInboxRoute
   '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
@@ -622,6 +629,7 @@ export interface FileRoutesByTo {
   '/bot': typeof AuthedAppBotRoute
   '/calendar': typeof AuthedAppCalendarRoute
   '/coach': typeof AuthedAppCoachRoute
+  '/demo-cards': typeof AuthedAppDemoCardsRoute
   '/inbox': typeof AuthedAppInboxRoute
   '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
@@ -706,6 +714,7 @@ export interface FileRoutesById {
   '/_authed/_app/calendar': typeof AuthedAppCalendarRoute
   '/_authed/_app/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
   '/_authed/_app/coach': typeof AuthedAppCoachRoute
+  '/_authed/_app/demo-cards': typeof AuthedAppDemoCardsRoute
   '/_authed/_app/inbox': typeof AuthedAppInboxRoute
   '/_authed/_app/learn': typeof AuthedAppLearnRoute
   '/_authed/_app/make': typeof AuthedAppMakeRouteWithChildren
@@ -791,6 +800,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/capabilities'
     | '/coach'
+    | '/demo-cards'
     | '/inbox'
     | '/learn'
     | '/make'
@@ -870,6 +880,7 @@ export interface FileRouteTypes {
     | '/bot'
     | '/calendar'
     | '/coach'
+    | '/demo-cards'
     | '/inbox'
     | '/learn'
     | '/make'
@@ -953,6 +964,7 @@ export interface FileRouteTypes {
     | '/_authed/_app/calendar'
     | '/_authed/_app/capabilities'
     | '/_authed/_app/coach'
+    | '/_authed/_app/demo-cards'
     | '/_authed/_app/inbox'
     | '/_authed/_app/learn'
     | '/_authed/_app/make'
@@ -1121,6 +1133,13 @@ declare module '@tanstack/react-router' {
       path: '/coach'
       fullPath: '/coach'
       preLoaderRoute: typeof AuthedAppCoachRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
+    '/_authed/_app/demo-cards': {
+      id: '/_authed/_app/demo-cards'
+      path: '/demo-cards'
+      fullPath: '/demo-cards'
+      preLoaderRoute: typeof AuthedAppDemoCardsRouteImport
       parentRoute: typeof AuthedAppRoute
     }
     '/_authed/_app/inbox': {
@@ -1744,6 +1763,7 @@ interface AuthedAppRouteChildren {
   AuthedAppCalendarRoute: typeof AuthedAppCalendarRoute
   AuthedAppCapabilitiesRoute: typeof AuthedAppCapabilitiesRouteWithChildren
   AuthedAppCoachRoute: typeof AuthedAppCoachRoute
+  AuthedAppDemoCardsRoute: typeof AuthedAppDemoCardsRoute
   AuthedAppInboxRoute: typeof AuthedAppInboxRoute
   AuthedAppLearnRoute: typeof AuthedAppLearnRoute
   AuthedAppMakeRoute: typeof AuthedAppMakeRouteWithChildren
@@ -1785,6 +1805,7 @@ const AuthedAppRouteChildren: AuthedAppRouteChildren = {
   AuthedAppCalendarRoute: AuthedAppCalendarRoute,
   AuthedAppCapabilitiesRoute: AuthedAppCapabilitiesRouteWithChildren,
   AuthedAppCoachRoute: AuthedAppCoachRoute,
+  AuthedAppDemoCardsRoute: AuthedAppDemoCardsRoute,
   AuthedAppInboxRoute: AuthedAppInboxRoute,
   AuthedAppLearnRoute: AuthedAppLearnRoute,
   AuthedAppMakeRoute: AuthedAppMakeRouteWithChildren,

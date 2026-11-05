@@ -130,13 +130,12 @@ export function CoachScreen() {
       </header>
 
       {!state.profile.setupDone ? (
-        <div className="mb-3 flex items-center gap-3 rounded-[24px] bg-duet-accent px-4 py-3 text-duet-on-accent">
+        <div className="mb-3 flex items-center gap-3 rounded-[24px] bg-[image:var(--duet-face-gradient)] px-4 py-3 text-white">
           <span aria-hidden className="text-2xl">
             👋
           </span>
           <p className="type-sub min-w-0 flex-1 font-medium">
-            This is a demo week. Make it yours: your name, classes, goal and
-            bedtime.
+            Demo week. Add your classes to make it yours.
           </p>
           <CoachButton
             className="bg-duet-on-accent text-duet-accent shadow-none"

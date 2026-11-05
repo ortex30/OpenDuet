@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DuetIcon, type DuetIconName } from "./icons";
 
@@ -168,24 +168,33 @@ export function Topic({
 
 /** Three dots in a grey bubble while the Bot writes. The words are for screen readers. */
 export function TypingDots({ label = "Thinking" }: { label?: string }) {
+  // Three little globes circling, in the grey bubble where the three dots were.
   return (
     <div
-      className="inline-flex h-[42px] w-fit items-center gap-1.5 self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble px-4"
+      className="inline-flex h-[42px] w-fit items-center self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble px-4"
       // `status`, not `alert`: progress, not an interruption.
       role="status"
     >
       <span className="sr-only">{label}</span>
-      {[0, 1, 2].map((dot) => (
-        <span
-          aria-hidden
-          className="duet-typing-dot size-2 rounded-full bg-duet-ink-2"
-          key={dot}
-          style={{ animationDelay: `${dot * 160}ms` }}
-        />
-      ))}
+      <span aria-hidden className="duet-orbit">
+        {ORBS.map((orb, index) => (
+          <span
+            className="duet-orb"
+            key={orb}
+            style={
+              {
+                "--orb": `var(${orb})`,
+                "--delay": `${(-index * 1.6) / 3}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </span>
     </div>
   );
 }
+
+const ORBS = ["--duet-pop-a", "--duet-accent", "--duet-pop-d"] as const;
 
 /**
  * A small grey label over a section of rows: "Needs you", "Can wait", "Earlier". Section headers

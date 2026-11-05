@@ -272,15 +272,8 @@ export function TeacherRulesView({
     <>
       <div className="mt-6 flex max-w-prose flex-col gap-2">
         <p className="type-sub text-pretty text-duet-ink-2">
-          No help pauses AI quizzes and flashcards for a class while that
-          assignment is open. Planning your time always works.
-        </p>
-        <p className="type-sub text-pretty text-duet-ink-2">
-          You can make a rule stricter. Only a teacher or an admin can loosen
-          one.
-          {rules.canLoosen
-            ? " You're an admin, so you can loosen one too."
-            : ""}
+          No help turns off AI quizzes and flashcards for that assignment.
+          {rules.canLoosen ? "" : " Only a teacher can loosen a rule."}
         </p>
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1">

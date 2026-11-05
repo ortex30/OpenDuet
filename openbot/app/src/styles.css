@@ -80,6 +80,16 @@
   --duet-accent: #6430ab;
   --duet-accent-soft: #f0ebfa;
   --duet-on-accent: #ffffff;
+  /* Pop: the quiz's four answers and the study cards' faces. Bright, school-notebook colours. */
+  --duet-pop-a: #2f6fed;
+  --duet-pop-a-soft: #e6eefe;
+  --duet-pop-b: #15a36b;
+  --duet-pop-b-soft: #e3f7ee;
+  --duet-pop-c: #f08a0c;
+  --duet-pop-c-soft: #fff1e0;
+  --duet-pop-d: #e3407a;
+  --duet-pop-d-soft: #fde7ef;
+  --duet-face-gradient: linear-gradient(135deg, #6a3df0 0%, #b04ce8 55%, #ff7bb0 100%);
   /* How work stands: ready for review, needs you, working, couldn't finish. Only on status. */
   --duet-status-done: #147a3a;
   --duet-status-done-soft: #e6f4ea;
@@ -205,6 +215,15 @@
   --duet-tile: #26262b;
   --duet-accent: #b49ae8;
   --duet-accent-soft: #2a2140;
+  --duet-pop-a: #7faaff;
+  --duet-pop-a-soft: #1b2a4a;
+  --duet-pop-b: #4fd39b;
+  --duet-pop-b-soft: #16352a;
+  --duet-pop-c: #ffb15c;
+  --duet-pop-c-soft: #3d2a12;
+  --duet-pop-d: #ff7fab;
+  --duet-pop-d-soft: #3f1b2a;
+  --duet-face-gradient: linear-gradient(135deg, #5a2fd6 0%, #9a3fd0 55%, #e0679a 100%);
   /* Dark text on the light lilac: white on it was 2.4:1. */
   --duet-on-accent: #1a1033;
   --duet-status-done: #4ade80;
@@ -319,6 +338,14 @@ body {
   --color-duet-accent: var(--duet-accent);
   --color-duet-accent-soft: var(--duet-accent-soft);
   --color-duet-on-accent: var(--duet-on-accent);
+  --color-duet-pop-a: var(--duet-pop-a);
+  --color-duet-pop-a-soft: var(--duet-pop-a-soft);
+  --color-duet-pop-b: var(--duet-pop-b);
+  --color-duet-pop-b-soft: var(--duet-pop-b-soft);
+  --color-duet-pop-c: var(--duet-pop-c);
+  --color-duet-pop-c-soft: var(--duet-pop-c-soft);
+  --color-duet-pop-d: var(--duet-pop-d);
+  --color-duet-pop-d-soft: var(--duet-pop-d-soft);
   --color-duet-status-done: var(--duet-status-done);
   --color-duet-status-done-soft: var(--duet-status-done-soft);
   --color-duet-status-needs: var(--duet-status-needs);
@@ -513,6 +540,42 @@ body {
     background-image: none;
     color: inherit;
   }
+}
+
+/*
+ * Thinking orbs: three little globes circling one another while the Bot writes, in place of the
+ * three dots. Each orbits on a tilted ring, shrinks and dims as it passes behind, so the three
+ * read as a small spinning solar system.
+ */
+.duet-orbit {
+  position: relative;
+  width: 44px;
+  height: 22px;
+}
+.duet-orb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #fff 0%, var(--orb) 38%, color-mix(in oklab, var(--orb) 60%, #000) 100%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+  animation: duet-orbit 1.6s linear infinite;
+  animation-delay: var(--delay);
+}
+@keyframes duet-orbit {
+  0% { transform: translate(14px, 0) scale(1); opacity: 1; z-index: 2; }
+  25% { transform: translate(0, 6px) scale(1.12); opacity: 1; z-index: 3; }
+  50% { transform: translate(-14px, 0) scale(0.9); opacity: 0.85; z-index: 1; }
+  75% { transform: translate(0, -6px) scale(0.68); opacity: 0.55; z-index: 0; }
+  100% { transform: translate(14px, 0) scale(1); opacity: 1; z-index: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .duet-orb { animation: none; }
+  .duet-orb:nth-child(1) { transform: translate(-12px, 0); }
+  .duet-orb:nth-child(3) { transform: translate(12px, 0); }
 }
 
 /* The film's typing dots: each rises a little and brightens, one after another. */

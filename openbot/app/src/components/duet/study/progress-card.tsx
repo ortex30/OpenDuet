@@ -1,4 +1,5 @@
 import type { ProgressSummary, ProgressTopic } from "@openbot/shared/study";
+import { cn } from "@/lib/utils";
 import { type ReactNode, useState } from "react";
 import { BuildIn } from "../build-in";
 import { DuetCard, Rule, SectionLabel } from "../kit";
@@ -50,7 +51,7 @@ export function ProgressCard({ summary }: { summary: ProgressSummary }) {
               {scope}
             </p>
           ) : null}
-          <p className="type-row mt-0.5 font-semibold">Practice so far</p>
+          <p className="type-row mt-0.5 font-semibold">How you're doing</p>
           {empty ? (
             <p className="type-sub mt-1 text-duet-ink-2">
               No practice quizzes yet. Ask for a quiz, and how you did shows up
@@ -76,7 +77,7 @@ export function ProgressCard({ summary }: { summary: ProgressSummary }) {
             {topics.length > 0 ? (
               <BuildIn order={2}>
                 <section className="mt-4">
-                  <SectionLabel>Topics, weakest first</SectionLabel>
+                  <SectionLabel>Work on these</SectionLabel>
                   <Folded
                     items={topics}
                     keyOf={(topic) => `${topic.classId}:${topic.topic}`}
@@ -91,7 +92,7 @@ export function ProgressCard({ summary }: { summary: ProgressSummary }) {
             {summary.recentMisses.length > 0 ? (
               <BuildIn order={3}>
                 <section className="mt-4">
-                  <SectionLabel>Missed lately</SectionLabel>
+                  <SectionLabel>Recent misses</SectionLabel>
                   <Folded
                     items={summary.recentMisses}
                     keyOf={(miss) => `${miss.quizId}:${miss.question}`}
@@ -122,12 +123,20 @@ export function ProgressCard({ summary }: { summary: ProgressSummary }) {
   );
 }
 
+const STAT_TONE: Record<string, string> = {
+  Quiz: "bg-duet-pop-a-soft text-duet-pop-a",
+  Quizzes: "bg-duet-pop-a-soft text-duet-pop-a",
+  Question: "bg-duet-pop-c-soft text-duet-pop-c",
+  Questions: "bg-duet-pop-c-soft text-duet-pop-c",
+  Correct: "bg-duet-pop-b-soft text-duet-pop-b",
+};
+
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     // The term comes first for a screen reader ("Quizzes, 3"); the number reads first by eye.
-    <div className="flex min-w-0 flex-col-reverse rounded-[14px] bg-duet-tile px-3 py-2.5">
-      <dt className="type-caption truncate text-duet-ink-2">{label}</dt>
-      <dd className="type-display font-semibold tabular-nums">{value}</dd>
+    <div className={cn("flex min-w-0 flex-col-reverse rounded-[14px] px-3 py-2.5", STAT_TONE[label] ?? "bg-duet-tile")}>
+      <dt className="type-caption truncate opacity-80">{label}</dt>
+      <dd className="type-display font-bold tabular-nums">{value}</dd>
     </div>
   );
 }
