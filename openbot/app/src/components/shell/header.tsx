@@ -8,6 +8,7 @@ import {
 import { type ComponentProps, useState } from "react";
 import { DuetIcon } from "@/components/duet/icons";
 import { MicOrb } from "@/components/duet/mic-orb";
+import { useAvatarColour } from "@/lib/avatar-preference";
 import { currentUserQueryOptions } from "@/lib/auth/queries";
 import { appConfig } from "@/lib/generated/application-config";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,8 @@ export function ShellHeader({
 /** Its own component, so a keystroke in Chat re-renders the orb and not the whole header. */
 function ChatOrb({ size }: { size: number }) {
   const { state, keystrokes } = useChatOrb();
-  return <MicOrb keystrokes={keystrokes} size={size} state={state} />;
+  const colour = useAvatarColour();
+  return <MicOrb colour={colour} keystrokes={keystrokes} size={size} state={state} />;
 }
 
 /**

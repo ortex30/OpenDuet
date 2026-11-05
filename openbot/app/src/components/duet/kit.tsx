@@ -1,6 +1,8 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useAvatarColour } from "@/lib/avatar-preference";
 import { DuetIcon, type DuetIconName } from "./icons";
+import { MicOrb } from "./mic-orb";
 
 /**
  * The pieces the film's app is built from (launch-film/film/src/duet/app.tsx), as web components:
@@ -168,33 +170,24 @@ export function Topic({
 
 /** Three dots in a grey bubble while the Bot writes. The words are for screen readers. */
 export function TypingDots({ label = "Thinking" }: { label?: string }) {
-  // Three little globes circling, in the grey bubble where the three dots were.
+  // The coach's own orb, working: its colours swirl faster and its eyes look up, as in the header.
+  const colour = useAvatarColour();
   return (
     <div
-      className="inline-flex h-[42px] w-fit items-center self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble px-4"
+      className="inline-flex h-[42px] w-fit items-center gap-2 self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble pr-4 pl-2"
       // `status`, not `alert`: progress, not an interruption.
       role="status"
     >
       <span className="sr-only">{label}</span>
-      <span aria-hidden className="duet-orbit">
-        {ORBS.map((orb, index) => (
-          <span
-            className="duet-orb"
-            key={orb}
-            style={
-              {
-                "--orb": `var(${orb})`,
-                "--delay": `${(-index * 1.6) / 3}s`,
-              } as CSSProperties
-            }
-          />
-        ))}
+      <span aria-hidden className="grid size-9 place-items-center">
+        <MicOrb colour={colour} size={34} state="thinking" />
+      </span>
+      <span aria-hidden className="duet-thinking-word type-sub font-medium text-duet-ink-2">
+        {label}
       </span>
     </div>
   );
 }
-
-const ORBS = ["--duet-pop-a", "--duet-accent", "--duet-pop-d"] as const;
 
 /**
  * A small grey label over a section of rows: "Needs you", "Can wait", "Earlier". Section headers

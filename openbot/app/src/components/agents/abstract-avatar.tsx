@@ -1,3 +1,4 @@
+import { useAvatarColour } from "@/lib/avatar-preference";
 import { MicOrb } from "@/components/duet/mic-orb";
 import type { OrbColour } from "@/components/duet/mic-orb-draw";
 import { isTenantBot } from "@/lib/agents/primary-bot";
@@ -43,6 +44,7 @@ export function AbstractAvatar({
   size?: number;
 }) {
   const own = isTenantBot(id);
+  const ownColour = useAvatarColour();
   return (
     <span
       role="img"
@@ -52,7 +54,7 @@ export function AbstractAvatar({
     >
       {/* The drawing carries its own role; hidden so the coworker is announced once, by name. */}
       <span aria-hidden="true" className="contents">
-        <MicOrb colour={own ? "ocean" : orbColourFor(id)} size={size} still />
+        <MicOrb colour={own ? ownColour : orbColourFor(id)} size={size} still />
       </span>
     </span>
   );

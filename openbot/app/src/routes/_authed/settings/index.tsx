@@ -1,3 +1,7 @@
+import { cn } from "@/lib/utils";
+import { MicOrb } from "@/components/duet/mic-orb";
+import { ORB_COLOURS } from "@/components/duet/mic-orb-draw";
+import { ORB_COLOUR_LABEL, setAvatarColour, useAvatarColour } from "@/lib/avatar-preference";
 import { useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
@@ -63,6 +67,40 @@ const PLACES: readonly {
  * What a person never needed is gone: the components gallery and the message list's emphasis in the
  * old sidebar were developer surfaces, and keyboard shortcuts only show where there is a keyboard.
  */
+function AvatarPicker() {
+  const chosen = useAvatarColour();
+  return (
+    <div
+      aria-label="Coach colour"
+      className="mt-3 grid grid-cols-4 gap-2"
+      role="radiogroup"
+    >
+      {ORB_COLOURS.map((colour) => {
+        const on = colour === chosen;
+        return (
+          <button
+            aria-checked={on}
+            aria-label={ORB_COLOUR_LABEL[colour]}
+            className={cn(
+              "flex flex-col items-center gap-1.5 rounded-[18px] px-2 py-3 transition-[background-color,box-shadow,transform] active:scale-[0.97]",
+              on
+                ? "bg-duet-accent-soft shadow-[inset_0_0_0_2px_var(--duet-accent)]"
+                : "bg-duet-card shadow-duet-card hover:bg-duet-tile",
+            )}
+            key={colour}
+            onClick={() => setAvatarColour(colour)}
+            role="radio"
+            type="button"
+          >
+            <MicOrb colour={colour} size={44} still />
+            <span className="type-caption font-medium">{ORB_COLOUR_LABEL[colour]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function RouteComponent() {
   const { preference, setPreference } = useTheme();
   const { data: user } = useQuery(currentUserQueryOptions());
@@ -73,6 +111,10 @@ function RouteComponent() {
       description={`How ${product} looks and works for you.`}
       title="Settings"
     >
+      <PageSection title="Your coach">
+        <p className="type-sub mt-1 text-duet-ink-2">Pick a colour for your coach's orb.</p>
+        <AvatarPicker />
+      </PageSection>
       <PageSection title="Appearance">
         <div className="mt-3">
           <Segmented
