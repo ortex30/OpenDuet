@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { GrantedTool } from "@openbot/toolkit/granted-tool";
 import { eq } from "drizzle-orm";
-import type { AuditInitiator } from "../audit";
+import type { AuditInitiator, AuditStore } from "../audit";
 import type { Database } from "../db/client";
 import { users } from "../db/schema";
 import { createProactiveStore } from "../proactive/store";
@@ -11,6 +11,19 @@ import { offerTools } from "./offers";
 import { createPageStore, type PageStore, pageTools } from "./pages";
 import { replyTools } from "./replies";
 import { currentRunChannelId } from "./run-channel";
+import type {
+  RulesService,
+  SchoolService,
+  StudyContext,
+  StudyStore,
+  StudyToolDeps,
+} from "./study/contracts";
+import { guardTeacherRules } from "./study/guard";
+import { planTools } from "./study/plan-tools";
+import { quizTools } from "./study/quiz-tools";
+import { createRulesService } from "./study/rules";
+import { createSchoolService } from "./study/school";
+import { createStudyStore } from "./study/store";
 import type { TaskIntake } from "./task-store";
 import {
   type TaskSink,
@@ -128,6 +141,29 @@ export function createTaskIntake(deps: {
   };
 }
 
+/** Academic OS's study records, the classes read from Classroom notices, and the teacher's rules. */
+export type Study = {
+  store: StudyStore;
+  school: SchoolService;
+  rules: RulesService;
+};
+
+/**
+ * The study pieces, made once and shared by the tools and /api/openduet/study, so both read one
+ * store. Making them reads nothing, so a server or a test can build them without a database.
+ */
+export function createStudy(deps: {
+  database: Database;
+  callTool: CallTool;
+}): Study {
+  const store = createStudyStore(deps.database);
+  return {
+    store,
+    school: createSchoolService({ store, callTool: deps.callTool }),
+    rules: createRulesService({ store }),
+  };
+}
+
 /**
  * OpenDuet's tools, assembled once and handed per run to the Bot that runs it.
  *
@@ -156,6 +192,10 @@ export function createOpenDuetTools(deps: {
    * Bot sets it (openduet/run-channel.ts); a test passes its own.
    */
   runChannel?: () => string | null;
+  /** What the study tools read and save. The same pieces answer /api/openduet/study. */
+  study?: Study;
+  /** Where a study tool a teacher's rule paused is recorded. Absent, nothing is recorded. */
+  auditStore?: AuditStore;
 }): (
   actorId: string,
   botId: string,
@@ -177,6 +217,21 @@ export function createOpenDuetTools(deps: {
     });
   const proactive = createProactiveStore(deps.database);
   const pages = deps.pages ?? createPageStore(deps.database);
+  const study = deps.study ?? createStudy(deps);
+  // make_quiz and make_flashcards meet the teacher's rule first; planning and progress never do.
+  const studyTools = (context: StudyContext) => {
+    const toolDeps: StudyToolDeps = {
+      ...context,
+      ...study,
+      callTool: deps.callTool,
+    };
+    return guardTeacherRules([...quizTools(toolDeps), ...planTools(toolDeps)], {
+      ...context,
+      school: study.school,
+      rules: study.rules,
+      auditStore: deps.auditStore,
+    });
+  };
   return (actorId, botId, initiator) => [
     ...openduetTools({
       actorId,
@@ -222,5 +277,6 @@ export function createOpenDuetTools(deps: {
       save: (input) => pages.save(actorId, botId, input),
       initiator,
     }),
+    ...studyTools({ actorId, botId, initiator }),
   ];
 }

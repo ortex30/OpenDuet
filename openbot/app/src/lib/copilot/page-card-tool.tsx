@@ -103,12 +103,18 @@ export const CARD_ENTRANCE = { seconds: 0.24, rise: 8, scale: 0.98 } as const;
  * the finished tool line, under the words as they stream; when the turn ends the line makes way and
  * the card rises into its place, the row's height following it so nothing below jumps. A card
  * already on screen, or one read back from history, is drawn as it is.
+ *
+ * Shared with the other cards that sit under the Bot's words; each names its own tool, so the line
+ * that holds its place says what that tool did.
  */
-function HeldUntilReplied({
+export function HeldUntilReplied({
   title,
+  tool = PAGE_TOOL,
   children,
 }: {
   title: string;
+  /** The tool whose finished line holds the card's place. */
+  tool?: string;
   children: ReactNode;
 }) {
   const held = useReplyHold();
@@ -140,7 +146,7 @@ function HeldUntilReplied({
   if (!shown)
     return (
       <div data-card-held="" ref={line}>
-        <ToolLine detail={title} label={readToolName(PAGE_TOOL).label} />
+        <ToolLine detail={title} label={readToolName(tool).label} />
       </div>
     );
   if (!wasHeld) return children;

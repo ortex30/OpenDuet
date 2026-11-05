@@ -15,6 +15,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { PageContent, PageKind } from "../../openduet/page-content";
+import type { StudyKind } from "../../openduet/study/contracts";
 import { agents, channels, users } from "./core";
 import { jsonb } from "./json";
 import { proactiveSuggestions } from "./proactive";
@@ -179,6 +180,57 @@ export const openduetChannels = pgTable(
     check(
       "openduet_channels_colour_check",
       sql`${table.colour} IN (${oneOf(CHANNEL_COLOURS)})`,
+    ),
+  ],
+);
+
+/**
+ * Academic OS's study records, every kind in one table: the student's classes as read from their
+ * Classroom notices, their teacher-rule overrides, quizzes and the attempts that answer them,
+ * flashcard decks and study plans (openduet/study/contracts.ts names the kinds, store.ts reads and
+ * writes them). One table rather than one per kind, because each kind is a small JSON document read
+ * whole by its owner, and none needs a column another kind lacks.
+ *
+ * `bot_id` has no foreign key, unlike openduet_pages': a student's practice history and applied
+ * plans must outlive the Bot that made them, and a cascade would take them with a deleted Bot.
+ * `kind` and `status` have no CHECK, so a new kind or plan state needs no constraint migration; the
+ * code that writes them validates them.
+ *
+ * `class_id`, `ref_id`, `status` and the `starts_at`/`ends_at` span are the only parts queried by
+ * value, which is why they are columns rather than fields inside `data`.
+ */
+export const openduetStudyRecords = pgTable(
+  "openduet_study_records",
+  {
+    id: text("id").primaryKey(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    botId: text("bot_id"),
+    kind: text("kind").$type<StudyKind>().notNull(),
+    classId: text("class_id"),
+    refId: text("ref_id"),
+    status: text("status"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("openduet_study_records_owner_kind_created_idx").on(
+      table.ownerUserId,
+      table.kind,
+      table.createdAt,
+    ),
+    index("openduet_study_records_owner_kind_starts_idx").on(
+      table.ownerUserId,
+      table.kind,
+      table.startsAt,
     ),
   ],
 );

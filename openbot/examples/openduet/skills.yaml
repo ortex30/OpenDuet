@@ -78,17 +78,18 @@ skills:
 
   - slug: quiz-me
     title: Quiz me
-    summary: A short practice quiz on a class, a test or your notes, one question at a time.
+    summary: A short practice quiz on a class or an upcoming test, graded as you go.
     instructions: >-
       Work out what to quiz on: what they named, or else their nearest upcoming quiz or test from
-      their calendar and Classroom notices, and read the notice for what it covers. If the material
-      belongs to an assignment set to No help, do not quiz on that assignment; say why in one
-      sentence and offer a different class. Ask one question at a time, five questions unless they
-      ask for another number, mixing easy and hard. For multiple choice, write the question and then
-      call suggest_replies with the answer letters or short answers as chips; for short answers, let
-      them type. After each answer, say right or wrong in a few words and why, then ask the next one.
-      At the end give the score and the one topic to review, and offer flashcards for it. Never
-      reveal the answer before they answer.
+      their calendar and Classroom notices, and read the notice for what it covers. Then call
+      make_quiz once, with the class's exact name from the notice, the assignment when the quiz is
+      for one, a title naming the topic, and five questions unless they ask for another number,
+      mixing easy and hard, each with four plausible choices, the index of the right one, a
+      one-sentence explanation and its topic. The card runs the quiz and grades it, so never write
+      the questions, choices or answers in the chat; say one short sentence about the quiz. If
+      make_quiz is refused because of a teacher's rule, say so in one sentence and offer to plan
+      their time or quiz them on a different class. If it is refused for any other reason, fix what
+      it says and call it again.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
@@ -99,16 +100,37 @@ skills:
     summary: Turn a topic, a test's coverage or a vocab list into a deck of flashcards to study.
     instructions: >-
       Work out the topic: what they named, or else their nearest upcoming test from the calendar and
-      its Classroom notice. If it belongs to an assignment set to No help, say so in one sentence
-      and offer a different class. Make 12 to 20 cards, each one fact or term, with a short front and
-      a back of at most 20 words, ordered from basics to hardest. Make them with make_page as a page
-      titled with the class and topic, holding a table with the columns Front and Back, and a short
-      text block on how to study them: cover the back, say the answer, then mark the ones you missed.
-      In Chat say one sentence about the deck and offer to quiz them on it.
+      its Classroom notice. Then call make_flashcards once with the class's exact name, the
+      assignment when the deck is for one, a title naming the topic, and 12 to 20 cards, each one
+      fact or term with a short front and a back of at most 20 words, ordered from basics to
+      hardest. The card shows the deck, so never list the cards in the chat; say one sentence about
+      the deck. If make_flashcards is refused because of a teacher's rule, say so in one sentence and
+      offer to plan their time or help with a different class.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
+
+  - slug: plan-my-time
+    title: Plan my study time
+    summary: Fit your homework and test prep around your classes and practice, then add it to your Calendar tab.
+    instructions: >-
+      Find out how much time they have and when they can start, from what they said; if they said
+      neither, plan 120 minutes for today from now. Call propose_study_plan with those minutes, the
+      start time, the number of days (1 for today or tonight, up to 7 for the week), startDay when
+      it starts on a later day (tomorrow, or a weekday such as saturday; never a guessed date), the
+      assignments to do first when they named any, and a one-sentence reason. The card shows the sessions with an
+      Apply button, so never list them in the chat. Say in one sentence what the plan covers and
+      what did not fit, and remind them that nothing is on their Calendar tab until they press
+      Apply. If it is refused, fix what it says and call it again.
+
+  - slug: how-am-i-doing
+    title: How am I doing?
+    summary: Your practice quiz results by topic, and what to review next.
+    instructions: >-
+      Call show_progress, with the class when they named one. The card shows the numbers, so say in
+      one or two short sentences which topic to review first and offer a quiz or flashcards on it.
+      If they have not taken any quizzes yet, say so and offer a short quiz on their next test.
 
   - slug: explain
     title: Explain it simply

@@ -11,10 +11,14 @@ import { ComputerTools } from "./computer-tools";
 import { EscalationTool } from "./escalation-tool";
 import { GalleryTools } from "./gallery-tools";
 import { GENERATIVE_UI_DESIGN_SKILL } from "./generative-ui";
+import { FlashcardsCardTool } from "./flashcards-card-tool";
 import { HandoffTool } from "./handoff-tool";
 import { MorningBriefTool } from "./morning-brief-tool";
 import { OfferTaskTool } from "./offer-task-tool";
 import { PageCardTool } from "./page-card-tool";
+import { ProgressCardTool } from "./progress-card-tool";
+import { QuizCardTool } from "./quiz-card-tool";
+import { StudyPlanCardTool } from "./study-plan-card-tool";
 import { TaskCardTool } from "./task-card-tool";
 import { ReplyChipsTool } from "./reply-chips-tool";
 import { SandboxedTools } from "./sandboxed-tools";
@@ -95,6 +99,14 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         <ReplyChipsTool />
         {/* What the Bot made, drawn as a card that opens it. See page-card-tool.tsx. */}
         <PageCardTool />
+        {/*
+          Academic OS's study cards: a quiz, flashcards, practice so far and a study plan, each
+          under the Bot's words like a page, and a teacher's No help drawn as whose rule it is.
+        */}
+        <QuizCardTool />
+        <FlashcardsCardTool />
+        <ProgressCardTool />
+        <StudyPlanCardTool />
         {/* A task a check-in offers, drawn as the card with Start and Hide. See offer-task-tool.tsx. */}
         <OfferTaskTool />
         {/* A task started from Chat, drawn as a card that opens it. See task-card-tool.tsx. */}

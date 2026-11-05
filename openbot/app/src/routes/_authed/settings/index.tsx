@@ -49,6 +49,7 @@ const PLACES: readonly {
   { label: "Capabilities", icon: "box", to: "/capabilities" },
   { label: "Routines", icon: "repeat", to: "/routines" },
   { label: "Approval rules", icon: "shieldCheck", to: "/settings/approvals" },
+  { label: "Teacher rules", icon: "shield", to: "/settings/teacher-rules" },
   { label: "Notifications", icon: "bell", to: "/settings/notifications" },
   { label: "Passwords", icon: "key", to: "/settings/passwords" },
   { label: "Admin", icon: "shieldLock", to: "/admin", adminOnly: true },

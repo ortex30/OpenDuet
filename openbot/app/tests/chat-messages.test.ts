@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { frameChannelHello } from "@openbot/shared/channel-hello";
+import { teacherRuleText } from "@openbot/shared/study";
 import type { Message, ToolCall } from "@ag-ui/core";
 import {
   repliesLast,
@@ -1423,4 +1424,249 @@ test("a page revised twice in one turn draws only its latest card", () => {
       .filter((i) => i.kind === "tool")
       .map((i) => i.id),
   ).toEqual(["save-2"]);
+});
+
+describe("repliesLast and Academic OS's study cards", () => {
+  const call = (name: string, id: string): ToolCall => ({
+    id,
+    type: "function",
+    function: { name, arguments: "{}" },
+  });
+  const ids = (messages: Message[]) =>
+    repliesLast(toVisibleChatItems(messages)).map((item) => item.id);
+  const ADVICE =
+    "This is the teacher's rule, not an error: tell the student in one short sentence, offer to plan their time or help with a different class, and don't retry or quiz them on it another way.";
+  /** The server's refusal under a teacher's No help (server/src/openduet/study/guard.ts). */
+  const noHelp = (classId: string, className: string) =>
+    `Refused. ${teacherRuleText(
+      {
+        classId,
+        className,
+        level: "none",
+        assignment: "DBQ essay",
+        teacher: "Mr. Grant",
+        source: "notice",
+      },
+      `Mr. Grant set ${className} to No help while "DBQ essay" is open, so nothing was made. ${ADVICE}`,
+    )}`;
+
+  test("draws each study card under the Bot's words, in the order made, above the chips", () => {
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Help me study chem, then plan." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            call("make_quiz", "call-quiz"),
+            call("make_flashcards", "call-deck"),
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          toolCallId: "call-quiz",
+          // As the thread stores a server tool's text: encoded once more.
+          content: JSON.stringify(
+            JSON.stringify({ kind: "quiz", id: "quiz-1", count: 5 }),
+          ),
+        },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "call-deck",
+          content: JSON.stringify({ kind: "deck", id: "deck-1", count: 8 }),
+        },
+        {
+          id: "a2",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            call("show_progress", "call-progress"),
+            call("propose_study_plan", "call-plan"),
+            call("suggest_replies", "call-chips"),
+          ],
+        },
+        {
+          id: "t3",
+          role: "tool",
+          toolCallId: "call-progress",
+          content: JSON.stringify({ kind: "progress", summary: {} }),
+        },
+        {
+          id: "t4",
+          role: "tool",
+          toolCallId: "call-plan",
+          content: JSON.stringify({ kind: "plan", id: "plan-1", blocks: 4 }),
+        },
+        { id: "t5", role: "tool", toolCallId: "call-chips", content: "Shown." },
+        { id: "a3", role: "assistant", content: "Here's your week." },
+        { id: "u2", role: "user", content: "Thanks." },
+      ]),
+    ).toEqual([
+      "u1",
+      "a3",
+      "call-quiz",
+      "call-deck",
+      "call-progress",
+      "call-plan",
+      "call-chips",
+      "u2",
+    ]);
+  });
+
+  test("leaves out a study call refused for a class it got wrong, and what the Bot said before its retry", () => {
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Quiz me on bio." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [call("make_quiz", "call-1")],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          toolCallId: "call-1",
+          content:
+            "Refused. \"Bio\" isn't one of the student's classes. Use one of: AP US History, Chemistry.",
+        },
+        {
+          id: "a2",
+          role: "assistant",
+          content: "Chemistry it is.",
+          toolCalls: [call("make_quiz", "call-2")],
+        },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "call-2",
+          content: JSON.stringify({ kind: "quiz", id: "quiz-1" }),
+        },
+        {
+          id: "a3",
+          role: "assistant",
+          content: "Here's your quiz.",
+          toolCalls: [call("make_flashcards", "call-3")],
+        },
+        {
+          id: "t3",
+          role: "tool",
+          toolCallId: "call-3",
+          content:
+            "Error: Invalid input for tool make_flashcards: Type validation failed",
+        },
+      ]),
+    ).toEqual(["u1", "a3", "call-2"]);
+  });
+
+  test("keeps a teacher's No help and the Bot's sentence about it, so the card can say whose rule it was", () => {
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Quiz me for the DBQ." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [call("make_quiz", "call-1")],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          toolCallId: "call-1",
+          content: JSON.stringify(noHelp("apush1", "AP US History")),
+        },
+        {
+          id: "a2",
+          role: "assistant",
+          content:
+            "Mr. Grant set AP US History to No help while the DBQ is open. Want me to plan your time for it?",
+        },
+        { id: "u2", role: "user", content: "Sure." },
+      ]),
+    ).toEqual(["u1", "a2", "call-1", "u2"]);
+  });
+
+  test("draws one notice per rule in a turn, however many study tools it paused", () => {
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Quiz me and make flashcards." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            call("make_quiz", "call-1"),
+            call("make_flashcards", "call-2"),
+            call("make_quiz", "call-3"),
+          ],
+        },
+        {
+          id: "t1",
+          role: "tool",
+          toolCallId: "call-1",
+          content: noHelp("apush1", "AP US History"),
+        },
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "call-2",
+          content: noHelp("apush1", "AP US History"),
+        },
+        // Another class's rule is another notice.
+        {
+          id: "t3",
+          role: "tool",
+          toolCallId: "call-3",
+          content: noHelp("gov2", "AP Government"),
+        },
+        { id: "a2", role: "assistant", content: "Both are No help for now." },
+      ]),
+    ).toEqual(["u1", "a2", "call-2", "call-3"]);
+  });
+
+  test("still leaves out what only looks like a teacher's rule", () => {
+    const marked = noHelp("apush1", "AP US History");
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Make me a page and a quiz." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            call("make_page", "call-page"),
+            call("make_quiz", "call-quiz"),
+          ],
+        },
+        // A page is never paused by a teacher's rule, so its refusal is a refusal like any other.
+        { id: "t1", role: "tool", toolCallId: "call-page", content: marked },
+        // The runtime's own error is not the server's refusal, whatever it carries.
+        {
+          id: "t2",
+          role: "tool",
+          toolCallId: "call-quiz",
+          content: `Error: Invalid input for tool make_quiz: ${marked.slice("Refused. ".length)}`,
+        },
+        { id: "a2", role: "assistant", content: "Neither worked." },
+      ]),
+    ).toEqual(["u1", "a2"]);
+  });
+
+  test("keeps a study call still in flight at the end of its turn", () => {
+    expect(
+      ids([
+        { id: "u1", role: "user", content: "Plan my week." },
+        {
+          id: "a1",
+          role: "assistant",
+          content: "",
+          toolCalls: [call("propose_study_plan", "call-1")],
+        },
+        { id: "a2", role: "assistant", content: "Working out your week." },
+      ]),
+    ).toEqual(["u1", "a2", "call-1"]);
+  });
 });

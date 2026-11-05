@@ -1,0 +1,332 @@
+/*
+ * Rebound's calendar rules (its app/globals.css, lines 361 to 607), scoped to the calendar, and the
+ * tokens its timeline reads, mapped onto OpenDuet's so the calendar reads as part of this app in light
+ * and dark. app/src/styles.css is left alone: tests/visual-system.test.ts pins its tokens.
+ *
+ * NOTHING HERE SETS LAYOUT ON .academic-calendar ITSELF. This file is not in a cascade layer, and
+ * unlayered CSS outranks every Tailwind utility however specific, so a `min-height` written here
+ * would silently beat the `min-h-*` the screen gives the calendar. Layout stays in class names.
+ */
+
+.academic-calendar {
+  /* The shadcn names the timeline's utilities read (bg-card, text-primary...), as OpenDuet's roles. */
+  --background: var(--duet-surface);
+  --foreground: var(--duet-ink);
+  --card: var(--duet-card);
+  --card-foreground: var(--duet-ink);
+  --popover: var(--duet-card);
+  --popover-foreground: var(--duet-ink);
+  /* Today's date, the selected item and the focus ring take the one accent, as they do in the app. */
+  --primary: var(--duet-accent);
+  --primary-foreground: var(--duet-on-accent);
+  --muted: var(--duet-tile);
+  --muted-foreground: var(--duet-ink-2);
+  --border: var(--duet-hair);
+  --ring: var(--duet-accent);
+  /*
+   * Rebound's own tokens, which OpenDuet has none of. --chip-ink is every chip's text before its hue is
+   * mixed in, so it is the app's ink. The now line keeps Rebound's brick: a calm signal, not an alarm.
+   */
+  --chip-ink: var(--duet-ink);
+  --calendar-now: #cd5e5a;
+  --calendar-event-border: rgb(255 255 255 / 0.82);
+  --calendar-motion-control: var(--duet-dur-tap);
+  --calendar-motion-layout: var(--duet-dur-swap);
+  --calendar-motion-panel: var(--duet-dur-enter);
+  --calendar-ease-standard: var(--duet-ease-out);
+  --calendar-ease-enter: var(--duet-ease-out);
+  /* Rebound docked an assistant panel beside its calendar; Academic OS has none. */
+  --app-assistant-width: 0px;
+  --shell-layer-popover: 70;
+}
+
+.dark .academic-calendar {
+  --calendar-now: color-mix(in oklab, #cd5e5a 85%, white);
+  --calendar-event-border: rgb(255 255 255 / 0.2);
+}
+
+/* Rebound's warm ink, used only by the notice a refused drag shows: a warning, so the status colour. */
+.academic-calendar .text-warm {
+  color: var(--duet-status-needs);
+}
+
+.academic-calendar .shell-layer-popover {
+  z-index: var(--shell-layer-popover);
+}
+
+/*
+ * A block from a plan that is only proposed: dashed, over a lighter fill, so it reads as a suggestion
+ * beside what is decided. Its title also starts "Proposed: " (calendar-data.ts), so this is never the
+ * only way to tell.
+ */
+.academic-calendar [data-calendar-item-id^="proposed:"] {
+  border: 1.5px dashed color-mix(in oklab, currentColor 70%, transparent);
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--card) 38%, transparent),
+    color-mix(in oklab, var(--card) 38%, transparent)
+  );
+}
+
+/*
+ * The hours stay over the days while a week scrolls sideways, as it always does in a phone's column.
+ * Rebound gives the hours column and every day's heading the same z-index, and the headings come
+ * later, so the heading passing under the corner drew its date over it.
+ */
+.academic-calendar div:has(> [data-calendar-time-gutter-header="true"]) {
+  z-index: 31;
+}
+
+/* From here down, Rebound's rules as it wrote them, each scoped to the calendar. */
+
+.academic-calendar .app-scroll-region {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reclaim reference treatment: solid fill, no border, an 8px radius, and a
+   small neutral shadow. Color comes from the fill, never a cap, stripe, or
+   outline. */
+.academic-calendar .reclaim-calendar-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(37 38 49 / 0.12);
+  scroll-margin-block: 48px 92px;
+  transition:
+    transform 130ms ease,
+    box-shadow 130ms ease,
+    filter 130ms ease;
+}
+
+.academic-calendar .reclaim-calendar-card:hover {
+  transform: translateY(-1px) scale(1.01);
+  filter: saturate(1.05);
+  box-shadow: 0 6px 14px rgb(37 38 49 / 0.16);
+}
+
+.academic-calendar .reclaim-calendar-card[aria-pressed="true"] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--primary) 38%, transparent),
+    0 1px 3px rgb(37 38 49 / 0.12);
+}
+
+/* The block detail panel scales up out of the block that opened it. Nothing
+   starts from scale(0): the panel is already 96% of its size on the first
+   frame, so it reads as arriving rather than as being conjured. */
+.academic-calendar .calendar-detail-popover {
+  transform-origin: var(--popover-origin, 50% 50%);
+  animation: calendar-popover-in 170ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes calendar-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Below md the panel is a bottom sheet, so it enters along the edge it is
+   anchored to instead of scaling from a point that no longer exists. */
+@media (max-width: 767px) {
+  .academic-calendar .calendar-detail-popover {
+    animation: calendar-sheet-in 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}
+
+@keyframes calendar-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academic-calendar .calendar-detail-popover {
+    animation: calendar-popover-fade 140ms ease both;
+  }
+}
+
+@keyframes calendar-popover-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Committed time (class, practice, debate) shares the same two-intensity fill
+   as flexible work — Reclaim's tint tiers answer "where am I in time" for
+   every chip — so commitments only quiet their hover: they never lift or
+   saturate, because they cannot be moved. */
+.academic-calendar .calendar-commitment-card:hover {
+  transform: none;
+  filter: none;
+  box-shadow: 0 4px 10px rgb(37 38 49 / 0.1);
+}
+
+/* Finished work stops competing with what is still open: the fill drains out
+   and the title rules through. Missed work stays legible but recessive. */
+.academic-calendar .calendar-card-done .calendar-card-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in oklab, currentColor 55%, transparent);
+}
+
+/* Time already spent: past chips wash toward the ground and mute their type,
+   so "where am I in time" reads from tint alone. The gradient overlays
+   whatever course fill the chip carries (inline background-color included);
+   the descendant color reaches chip text past any inline foreground.
+   Composes with .calendar-card-done's line-through. */
+.academic-calendar .calendar-card-past {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--card) 58%, transparent),
+    color-mix(in oklab, var(--card) 58%, transparent)
+  );
+}
+
+.academic-calendar .calendar-card-past,
+.academic-calendar .calendar-card-past * {
+  color: color-mix(in oklab, var(--foreground) 62%, var(--card));
+}
+
+/* Night keeps a lighter wash so past chips recede without going illegible. */
+.dark .academic-calendar .calendar-card-past {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--card) 46%, transparent),
+    color-mix(in oklab, var(--card) 46%, transparent)
+  );
+}
+
+/* Long fixed commitments stay behind flexible lanes, but read as actual
+   rounded calendar blocks instead of an empty wash. */
+.academic-calendar .calendar-busy-wash {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background-color: color-mix(in oklab, var(--muted) 72%, var(--card));
+  border-color: color-mix(in oklab, var(--border) 86%, var(--foreground));
+  box-shadow: 0 1px 3px rgb(37 38 49 / 0.08);
+  scroll-margin-block: 48px 92px;
+  transition:
+    background-color 130ms ease,
+    border-color 130ms ease,
+    box-shadow 130ms ease;
+}
+
+.academic-calendar .calendar-busy-wash:hover {
+  background-color: color-mix(in oklab, var(--muted) 84%, var(--card));
+  border-color: color-mix(in oklab, var(--border) 70%, var(--foreground));
+}
+
+.academic-calendar .calendar-busy-wash[aria-pressed="true"] {
+  background-color: color-mix(in oklab, var(--primary) 8%, var(--card));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--primary) 34%, transparent),
+    0 1px 3px rgb(37 38 49 / 0.08);
+}
+
+.academic-calendar .calendar-busy-wash-label {
+  position: sticky;
+  top: 44px;
+  left: 0;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 8px;
+  color: color-mix(in oklab, var(--foreground) 82%, var(--muted-foreground));
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.academic-calendar .calendar-busy-wash-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.academic-calendar .calendar-busy-wash-copy strong,
+.academic-calendar .calendar-busy-wash-copy time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.academic-calendar .calendar-busy-wash-copy strong {
+  font-weight: 650;
+}
+
+.academic-calendar .calendar-busy-wash-copy time {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .academic-calendar .calendar-busy-wash {
+  background-color: color-mix(in oklab, var(--muted) 72%, var(--card));
+  border-color: var(--border);
+}
+
+.dark .academic-calendar .calendar-busy-wash-label {
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academic-calendar .calendar-busy-wash,
+  .academic-calendar .reclaim-calendar-card,
+  .academic-calendar .reclaim-calendar-card:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* The now line's dot exhales one soft ring every 3s so "you are here" is
+   findable in a dense week without the line itself ever pulsing. The ring is
+   drawn on a pseudo element so the dot keeps its own card-colored halo. */
+.academic-calendar .calendar-now-dot {
+  position: relative;
+}
+
+.academic-calendar .calendar-now-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  animation: now-breathe 3s ease-out infinite;
+}
+
+@keyframes now-breathe {
+  0% {
+    box-shadow: 0 0 0 0
+      color-mix(in oklab, var(--calendar-now) 45%, transparent);
+    opacity: 1;
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px
+      color-mix(in oklab, var(--calendar-now) 45%, transparent);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academic-calendar .calendar-now-dot::after {
+    animation: none;
+  }
+}

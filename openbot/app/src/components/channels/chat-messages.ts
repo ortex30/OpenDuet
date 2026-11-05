@@ -2,6 +2,13 @@ import type { ActivityMessage, Message, ToolCall } from "@ag-ui/core";
 import { classifyAttachment } from "@/lib/channels/attachments";
 import { asText, REFUSAL_MARKER } from "@/lib/plugins/tool-result";
 import { readChannelHello } from "@/lib/channels/channel-hello";
+import {
+  FLASHCARDS_TOOL,
+  PLAN_TOOL,
+  PROGRESS_TOOL,
+  QUIZ_TOOL,
+  readTeacherRuleBlock,
+} from "@openbot/shared/study";
 import { readTaskFrame } from "@openbot/shared/task-brief";
 
 /**
@@ -619,6 +626,17 @@ const OFFER_TASK = "offer_task";
 const START_TASK = "start_task";
 
 /**
+ * Academic OS's study cards (server/src/openduet/study): a quiz, flashcards, practice so far and a
+ * study plan, each drawn by its own renderer and placed the way a page is.
+ */
+const STUDY_CARDS = new Set<string>([
+  QUIZ_TOOL,
+  FLASHCARDS_TOOL,
+  PROGRESS_TOOL,
+  PLAN_TOOL,
+]);
+
+/**
  * How the runtime answers for a tool when it rejected the call's arguments before the tool ran, such
  * as a reply too long for a chip. Not encoded, unlike a tool's own text.
  */
@@ -653,8 +671,9 @@ export function repliesHeld(result: string | undefined): boolean {
 }
 
 /**
- * Page cards, offered and started tasks, and reply chips moved to the end of their turn, under the
- * Bot's last words in it: the cards first, in the order they were made, then the chips.
+ * Page cards, study cards, offered and started tasks, and reply chips moved to the end of their
+ * turn, under the Bot's last words in it: the cards first, in the order they were made, then the
+ * chips.
  *
  * WHEREVER IN THE TURN THE BOT CALLED FOR THEM. A model that asks its question and then calls the
  * tool puts the chips under the question by itself, but one that calls first and asks after is just
@@ -681,12 +700,16 @@ export function repliesHeld(result: string | undefined): boolean {
  * still took the thread's gap, so every retry pushed the card further from the Bot's line. So is
  * whatever the Bot said between a refused call and its retry ("Two slides it is."): that is the Bot
  * talking about the retry, which the person never sees. Said after a refusal it never retried, it
- * stays.
+ * stays. A study card refused for a class name the model got wrong goes the same way.
+ *
+ * EXCEPT A TEACHER'S NO HELP. That refusal is the card: it says whose rule paused the quiz, and the
+ * Bot's sentence after it is about the rule, not a retry, so both stay. One notice per rule in a
+ * turn, the last, however many study tools the rule paused.
  */
 export function repliesLast(
   items: readonly VisibleChatItem[],
 ): VisibleChatItem[] {
-  /** A finished call whose answer is not a page: a refusal, or the runtime's own error. */
+  /** A finished call whose answer is not a card: a refusal, or the runtime's own error. */
   const refused = (result: string | undefined) => {
     if (result === undefined) return false;
     try {
@@ -698,16 +721,33 @@ export function repliesLast(
       return true;
     }
   };
-  const pageId = (item: VisibleChatItem): string | undefined => {
+  /** The teacher's rule a study tool was refused under, or null for anything else. */
+  const teacherRule = (item: VisibleChatItem) => {
     if (
       item.kind !== "tool" ||
-      item.toolCall.function.name !== MAKE_PAGE ||
-      !item.result
+      item.result === undefined ||
+      !STUDY_CARDS.has(item.toolCall.function.name)
     )
-      return;
+      return null;
+    const answer = asText(item.result);
+    return answer.startsWith(REFUSAL_MARKER)
+      ? readTeacherRuleBlock(answer)
+      : null;
+  };
+  /** What a card stands for, so a turn draws one card for it: the latest. */
+  const cardId = (item: VisibleChatItem): string | undefined => {
+    if (item.kind !== "tool" || !item.result) return;
+    const tool = item.toolCall.function.name;
+    const rule = teacherRule(item);
+    if (rule) return `teacher-rule:${rule.classId}:${rule.assignment ?? ""}`;
+    if (tool !== MAKE_PAGE && !STUDY_CARDS.has(tool)) return;
     try {
       let value = JSON.parse(item.result);
       if (typeof value === "string") value = JSON.parse(value);
+      if (tool !== MAKE_PAGE)
+        return typeof value?.id === "string"
+          ? `${tool}:${value.id}`
+          : undefined;
       const id = value?.page?.id ?? value?.id;
       return typeof id === "string" ? id : undefined;
     } catch {
@@ -717,14 +757,14 @@ export function repliesLast(
   let ordered: VisibleChatItem[] = [];
   let pages: VisibleChatItem[] = [];
   let replies: { item: VisibleChatItem; ready: boolean }[] = [];
-  /** The Bot's words since a refused call in this turn, dropped if it calls again. */
-  let sinceRefusal: Set<VisibleChatItem> | null = null;
+  /** The Bot's words since each card tool's refused call in this turn, dropped if it calls it again. */
+  const sinceRefusal = new Map<string, Set<VisibleChatItem>>();
   const close = () => {
     const last = replies.filter((reply) => reply.ready).at(-1);
     ordered.push(...pages, ...(last ? [last.item] : []));
     pages = [];
     replies = [];
-    sinceRefusal = null;
+    sinceRefusal.clear();
   };
   for (const item of items) {
     if (
@@ -735,23 +775,26 @@ export function repliesLast(
       pages.push(item);
       continue;
     }
-    if (item.kind === "tool" && item.toolCall.function.name === MAKE_PAGE) {
-      if (sinceRefusal) {
-        const retried = sinceRefusal;
-        ordered = ordered.filter((said) => !retried.has(said));
-      }
-      if (refused(item.result)) {
-        sinceRefusal = new Set();
+    if (
+      item.kind === "tool" &&
+      (item.toolCall.function.name === MAKE_PAGE ||
+        STUDY_CARDS.has(item.toolCall.function.name))
+    ) {
+      const tool = item.toolCall.function.name;
+      const retried = sinceRefusal.get(tool);
+      if (retried) ordered = ordered.filter((said) => !retried.has(said));
+      sinceRefusal.delete(tool);
+      if (refused(item.result) && !teacherRule(item)) {
+        sinceRefusal.set(tool, new Set());
         continue;
       }
-      sinceRefusal = null;
-      const id = pageId(item);
-      if (id) pages = pages.filter((previous) => pageId(previous) !== id);
+      const id = cardId(item);
+      if (id) pages = pages.filter((previous) => cardId(previous) !== id);
       pages.push(item);
       continue;
     }
     if (item.kind === "text" && item.role === "assistant")
-      sinceRefusal?.add(item);
+      for (const said of sinceRefusal.values()) said.add(item);
     if (
       item.kind === "tool" &&
       item.toolCall.function.name === SUGGEST_REPLIES

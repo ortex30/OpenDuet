@@ -3,6 +3,12 @@ import {
   RESEARCH_ROLE_LABELS,
   researchRoleOfTool,
 } from "@openbot/shared/research";
+import {
+  FLASHCARDS_TOOL,
+  PLAN_TOOL,
+  PROGRESS_TOOL,
+  QUIZ_TOOL,
+} from "@openbot/shared/study";
 
 /**
  * A tool call, named the way the person watching would name it.
@@ -158,6 +164,23 @@ const OWN_TOOLS: Record<string, { running: string; done: string }> = {
   remember_personal_fact: {
     running: "Saving to memory",
     done: "Saved to memory",
+  },
+  // server/src/openduet/study. Drawn as their cards once done; these are the moments before.
+  [QUIZ_TOOL]: {
+    running: "Writing your quiz",
+    done: "Wrote your quiz",
+  },
+  [FLASHCARDS_TOOL]: {
+    running: "Making flashcards",
+    done: "Made flashcards",
+  },
+  [PROGRESS_TOOL]: {
+    running: "Checking your practice",
+    done: "Checked your practice",
+  },
+  [PLAN_TOOL]: {
+    running: "Planning your study time",
+    done: "Planned your study time",
   },
 };
 

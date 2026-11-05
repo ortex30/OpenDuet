@@ -262,6 +262,7 @@ import {
   createChannelHello,
   createDuetChannelStore,
 } from "./openduet/channels";
+import type { CallTool } from "./openduet/brief";
 import { createComputerCheck } from "./openduet/computer-check";
 import { createPageStore } from "./openduet/pages";
 import { withRunChannels } from "./openduet/run-channel";
@@ -278,7 +279,12 @@ import { createTaskStore } from "./openduet/task-store";
 import { createTaskReplyContext } from "./openduet/task-reply-context";
 import { createTaskThreads, createTaskTurn } from "./openduet/task-threads";
 import type { TaskStarter } from "./openduet/tasks";
-import { createOpenDuetTools, createTaskIntake } from "./openduet/wiring";
+import {
+  createOpenDuetTools,
+  createStudy,
+  createTaskIntake,
+  createUpNext,
+} from "./openduet/wiring";
 import { reportIntelligenceEntitlement } from "./intelligence-entitlement-check";
 import { createSelfHostBanner } from "./self-host-banner";
 import { createTeamBots } from "./team-bots/team-bots";
@@ -1420,7 +1426,7 @@ const wakeUpStore = createWakeUpStore(database, { auditStore: bootAuditStore });
 
 /**
  * OpenDuet's own tools: the morning brief, read through the plugin store as the person, reply chips,
- * the pages it makes and the tasks it starts. See openduet/wiring.ts.
+ * the pages it makes, the tasks it starts, and Academic OS's study tools. See openduet/wiring.ts.
  */
 const openDuetPages = createPageStore(database);
 const openDuetTasks = createTaskStore(database);
@@ -1429,14 +1435,24 @@ const openDuetStartTask: TaskStarter = ({ ownerUserId, agentId, task }) =>
   proactiveEngine.startAsked(ownerUserId, agentId, task);
 const openDuetDirectChannel = async (ownerUserId: string, agentId: string) =>
   channelStore.direct(await actorFor(ownerUserId), agentId);
+const openDuetCallTool: CallTool = (input) => pluginStore.callTool(input);
+// One set of study records, classes and teacher rules, for the tools and /api/openduet/study.
+const openDuetStudy = createStudy({ database, callTool: openDuetCallTool });
+// The Bot onboarding's checklist and the study routes read the person's Google through.
+const openDuetPrimaryBot = primaryBotIdOf(
+  tenantPackage.agents.map((agent) => agent.id),
+  tenantPackage.tenantId,
+);
 const openDuetTools = createOpenDuetTools({
   database,
   pages: openDuetPages,
   startTask: openDuetStartTask,
-  callTool: (input) => pluginStore.callTool(input),
+  callTool: openDuetCallTool,
   complete: chooseSkills,
   model: runtimeModel.defaultModel,
   directChannel: openDuetDirectChannel,
+  study: openDuetStudy,
+  auditStore: bootAuditStore,
 });
 /*
  * A task's report, read from its conversation as the runtime holds it (openduet/task-report.ts).
@@ -2740,10 +2756,7 @@ const app = createApp(
         modelCheckAtBoot,
         entitlements: () => selfHostBannerIntelligence.getRuntimeEntitlements(),
         plugins: pluginStore,
-        primaryBot: primaryBotIdOf(
-          tenantPackage.agents.map((agent) => agent.id),
-          tenantPackage.tenantId,
-        ),
+        primaryBot: openDuetPrimaryBot,
         computer: Boolean(config.computer),
         computerCheck: createComputerCheck({
           provider: computerProvider,
@@ -2760,6 +2773,15 @@ const app = createApp(
       intake: openDuetIntake,
       report: openDuetReport,
       channels: openDuetChannels,
+      study: {
+        ...openDuetStudy,
+        callTool: openDuetCallTool,
+        upNext: createUpNext({
+          database,
+          directChannel: openDuetDirectChannel,
+        }),
+        primaryBot: openDuetPrimaryBot,
+      },
     },
     responsibilities: {
       store: responsibilityStore,

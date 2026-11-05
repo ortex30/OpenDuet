@@ -116,6 +116,8 @@ import {
 } from "./openduet/channels";
 import { createPageRoutes, type PageStore } from "./openduet/pages";
 import { createSetupRoutes, type SetupSources } from "./openduet/setup";
+import type { StudyRouteDeps } from "./openduet/study/contracts";
+import { createStudyRoutes } from "./openduet/study/routes";
 import type { TaskReportReader } from "./openduet/task-report";
 import {
   createTaskRoutes,
@@ -465,6 +467,8 @@ export function createApp(
       report?: TaskReportReader;
       /** The drawer's channels. See openduet/channels.ts. */
       channels?: DuetChannelStore;
+      /** Academic OS's quizzes, plans, calendar and teacher rules. See openduet/study/routes.ts. */
+      study?: StudyRouteDeps;
     };
   },
   /**
@@ -1703,6 +1707,11 @@ export function createApp(
     app.route(
       "/api/openduet/pages",
       createPageRoutes(coworker.openduet.pages, requireUser),
+    );
+  if (coworker?.openduet?.study)
+    app.route(
+      "/api/openduet/study",
+      createStudyRoutes(coworker.openduet.study, requireUser),
     );
   /*
    * Signed in, unlike `/api/capabilities`, which anybody can read. The checklist names what this

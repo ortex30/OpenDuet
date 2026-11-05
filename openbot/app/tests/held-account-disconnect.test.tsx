@@ -18,6 +18,7 @@ import {
 } from "@tanstack/react-router";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { appConfig } from "@/lib/generated/application-config";
 import type {
   PluginConnections,
   PluginServer,
@@ -43,6 +44,9 @@ afterAll(async () => {
   await settleReactWork();
   GlobalRegistrator.unregister();
 });
+
+/** The product's name as brand.yaml sets it, which the page's sentences use. */
+const PRODUCT = appConfig.brand.productName;
 
 const originalFetch = global.fetch;
 let connected: boolean;
@@ -202,7 +206,7 @@ test("Disconnect ends the account, says so, and the row offers Connect again", a
 
   expect(
     await view.findByText(
-      "Disconnected. OpenDuet can't use your Google account any more.",
+      `Disconnected. ${PRODUCT} can't use your Google account any more.`,
     ),
   ).toBeTruthy();
   expect(deletes).toEqual(["/api/plugins/servers/google-workspace/connection"]);
@@ -221,7 +225,7 @@ test("when Google did not confirm it, the person is told the one step left", asy
 
   expect(
     await view.findByText(
-      "Disconnected here. Google didn't confirm it, so also remove OpenDuet in your Google account's third-party access settings.",
+      `Disconnected here. Google didn't confirm it, so also remove ${PRODUCT} in your Google account's third-party access settings.`,
     ),
   ).toBeTruthy();
 });

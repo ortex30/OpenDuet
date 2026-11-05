@@ -45,6 +45,8 @@ export const REFUSED_EVENT_TYPES = [
   "credential.rotation_refused",
   /** A revoked person still holding a bookmark, or an address outside the deployment. */
   "session.refused",
+  /** A study tool a teacher's No help paused for that class: nothing was made. */
+  "openduet.tool_refused",
 ] as const;
 
 /**

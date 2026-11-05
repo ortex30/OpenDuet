@@ -9,16 +9,17 @@ import { needsInputCount } from "@/lib/tasks/groups";
 import { taskListQueryOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
-export type ShellTab = "chat" | "tasks" | "make";
+export type ShellTab = "chat" | "tasks" | "calendar" | "make";
 
 const TABS: {
   id: ShellTab;
-  to: "/" | "/tasks" | "/make";
+  to: "/" | "/tasks" | "/calendar" | "/make";
   icon: DuetIconName;
   label: string;
 }[] = [
   { id: "chat", to: "/", icon: "chat", label: "Chat" },
   { id: "tasks", to: "/tasks", icon: "tasks", label: "Tasks" },
+  { id: "calendar", to: "/calendar", icon: "calendar", label: "Calendar" },
   { id: "make", to: "/make", icon: "sparkle", label: "Make" },
 ];
 
@@ -36,14 +37,19 @@ export function tabForPath(pathname: string): ShellTab | null {
   if (/^\/channels\/[^/]+$/.test(path)) return "chat";
   // A task opens over the Tasks list, so the list's tab stays current under it.
   if (path === "/tasks" || /^\/tasks\/[^/]+$/.test(path)) return "tasks";
+  if (path === "/calendar") return "calendar";
   if (path === "/make" || /^\/make\/[^/]+$/.test(path)) return "make";
   return null;
 }
 
 /**
- * The floating pill at the foot of the app: Chat, Tasks and Make, the current one on a grey
+ * The floating pill at the foot of the app: Chat, Tasks, Calendar and Make, the current one on a grey
  * capsule. Tasks carries the number of things waiting on the person, counted the way its Needs input
  * group lists them (`needsInputCount`), so the badge and the screen never disagree.
+ *
+ * A label that does not fit its tab is cut with an ellipsis rather than pushing past it: with four
+ * tabs each is about 82px, and at 200% text "Calendar" is far wider than that ("Tasks" just is).
+ * The link's name stays whole for a screen reader.
  *
  * The capsule slides from the tab left to the one chosen (one element, moved by transform), so the
  * eye follows the change instead of finding the capsule gone from one place and drawn in another.
@@ -70,14 +76,14 @@ export function TabBar({ current }: { current: ShellTab }) {
             /*
              * What is announced is what is drawn: the tab `current` names carries aria-current. The
              * router sets it on its own active link too, so its matching is made to agree: exact for
-             * Chat ("/" would match all three), and Tasks and Make also over a task or a page open on
+             * Chat ("/" would match every tab), and Tasks and Make also over a task or a page open on
              * them.
              */
             activeOptions={{ exact: tab.id === "chat" }}
             aria-current={on ? "page" : undefined}
             aria-label={badge ? `${tab.label}, ${badge} waiting` : tab.label}
             className={cn(
-              "relative isolate flex flex-1 flex-col items-center justify-center gap-px rounded-[27px] transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40",
+              "relative isolate flex min-w-0 flex-1 flex-col items-center justify-center gap-px rounded-[27px] transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40",
               on ? "text-duet-ink" : "text-duet-ink-2 hover:text-duet-ink",
             )}
             key={tab.id}
@@ -95,7 +101,7 @@ export function TabBar({ current }: { current: ShellTab }) {
             <DuetIcon name={tab.icon} size={20} stroke={on ? 2.1 : 1.9} />
             <span
               className={cn(
-                "type-caption",
+                "type-caption max-w-full truncate px-1",
                 on ? "font-semibold" : "font-medium",
               )}
             >
