@@ -21,6 +21,7 @@ import { Route as AuthedAppApprovalsRouteImport } from './routes/_authed/_app/ap
 import { Route as AuthedAppBotRouteImport } from './routes/_authed/_app/bot'
 import { Route as AuthedAppCalendarRouteImport } from './routes/_authed/_app/calendar'
 import { Route as AuthedAppCapabilitiesRouteImport } from './routes/_authed/_app/capabilities'
+import { Route as AuthedAppCoachRouteImport } from './routes/_authed/_app/coach'
 import { Route as AuthedAppInboxRouteImport } from './routes/_authed/_app/inbox'
 import { Route as AuthedAppMakeRouteImport } from './routes/_authed/_app/make'
 import { Route as AuthedAppMemoryRouteImport } from './routes/_authed/_app/memory'
@@ -146,6 +147,11 @@ const AuthedAppCalendarRoute = AuthedAppCalendarRouteImport.update({
 const AuthedAppCapabilitiesRoute = AuthedAppCapabilitiesRouteImport.update({
   id: '/capabilities',
   path: '/capabilities',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
+const AuthedAppCoachRoute = AuthedAppCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
   getParentRoute: () => AuthedAppRoute,
 } as any)
 const AuthedAppInboxRoute = AuthedAppInboxRouteImport.update({
@@ -530,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/bot': typeof AuthedAppBotRoute
   '/calendar': typeof AuthedAppCalendarRoute
   '/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
+  '/coach': typeof AuthedAppCoachRoute
   '/inbox': typeof AuthedAppInboxRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
@@ -606,7 +613,11 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthedAppActivityRoute
   '/approvals': typeof AuthedAppApprovalsRoute
   '/bot': typeof AuthedAppBotRoute
+<<<<<<< HEAD
   '/calendar': typeof AuthedAppCalendarRoute
+=======
+  '/coach': typeof AuthedAppCoachRoute
+>>>>>>> origin/features/experience
   '/inbox': typeof AuthedAppInboxRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
@@ -689,6 +700,7 @@ export interface FileRoutesById {
   '/_authed/_app/bot': typeof AuthedAppBotRoute
   '/_authed/_app/calendar': typeof AuthedAppCalendarRoute
   '/_authed/_app/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
+  '/_authed/_app/coach': typeof AuthedAppCoachRoute
   '/_authed/_app/inbox': typeof AuthedAppInboxRoute
   '/_authed/_app/make': typeof AuthedAppMakeRouteWithChildren
   '/_authed/_app/memory': typeof AuthedAppMemoryRoute
@@ -772,6 +784,7 @@ export interface FileRouteTypes {
     | '/bot'
     | '/calendar'
     | '/capabilities'
+    | '/coach'
     | '/inbox'
     | '/make'
     | '/memory'
@@ -848,7 +861,11 @@ export interface FileRouteTypes {
     | '/activity'
     | '/approvals'
     | '/bot'
+<<<<<<< HEAD
     | '/calendar'
+=======
+    | '/coach'
+>>>>>>> origin/features/experience
     | '/inbox'
     | '/make'
     | '/memory'
@@ -930,6 +947,7 @@ export interface FileRouteTypes {
     | '/_authed/_app/bot'
     | '/_authed/_app/calendar'
     | '/_authed/_app/capabilities'
+    | '/_authed/_app/coach'
     | '/_authed/_app/inbox'
     | '/_authed/_app/make'
     | '/_authed/_app/memory'
@@ -1090,6 +1108,13 @@ declare module '@tanstack/react-router' {
       path: '/capabilities'
       fullPath: '/capabilities'
       preLoaderRoute: typeof AuthedAppCapabilitiesRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
+    '/_authed/_app/coach': {
+      id: '/_authed/_app/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof AuthedAppCoachRouteImport
       parentRoute: typeof AuthedAppRoute
     }
     '/_authed/_app/inbox': {
@@ -1705,6 +1730,7 @@ interface AuthedAppRouteChildren {
   AuthedAppBotRoute: typeof AuthedAppBotRoute
   AuthedAppCalendarRoute: typeof AuthedAppCalendarRoute
   AuthedAppCapabilitiesRoute: typeof AuthedAppCapabilitiesRouteWithChildren
+  AuthedAppCoachRoute: typeof AuthedAppCoachRoute
   AuthedAppInboxRoute: typeof AuthedAppInboxRoute
   AuthedAppMakeRoute: typeof AuthedAppMakeRouteWithChildren
   AuthedAppMemoryRoute: typeof AuthedAppMemoryRoute
@@ -1744,6 +1770,7 @@ const AuthedAppRouteChildren: AuthedAppRouteChildren = {
   AuthedAppBotRoute: AuthedAppBotRoute,
   AuthedAppCalendarRoute: AuthedAppCalendarRoute,
   AuthedAppCapabilitiesRoute: AuthedAppCapabilitiesRouteWithChildren,
+  AuthedAppCoachRoute: AuthedAppCoachRoute,
   AuthedAppInboxRoute: AuthedAppInboxRoute,
   AuthedAppMakeRoute: AuthedAppMakeRouteWithChildren,
   AuthedAppMemoryRoute: AuthedAppMemoryRoute,

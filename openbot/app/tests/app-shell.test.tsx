@@ -31,9 +31,9 @@ import { Route as PagesRoute } from "@/routes/_authed/_app/pages.index";
 import { settleReactWork } from "./settle-react-work";
 
 /**
- * The film's shell: the tab bar at the foot of Chat, Tasks, Calendar and Make, and the drawer that
- * opens on Everything, then the person's channels, New channel and Archived, with every page
- * OpenBot's sidebar listed under Manage and Settings.
+ * The film's shell: the tab bar at the foot of Chat, Tasks and Make, and the drawer that opens on
+ * Everything, then the person's channels, New channel and Archived, with every page OpenBot's
+ * sidebar listed under Manage and Settings.
  */
 
 beforeAll(() => GlobalRegistrator.register({ url: "http://localhost:3010" }));
@@ -107,15 +107,13 @@ const pending = (id: string) => ({
   },
 });
 
-test("the paths of the four tabs, and no tab for the pages the menu opens", () => {
+test("the paths of the three tabs, and no tab for the pages the menu opens", () => {
   expect(tabForPath("/")).toBe("chat");
   expect(tabForPath("/tasks")).toBe("tasks");
   expect(tabForPath("/tasks/")).toBe("tasks");
-  expect(tabForPath("/calendar")).toBe("calendar");
-  expect(tabForPath("/calendar/")).toBe("calendar");
-  // Nothing opens over the calendar, so a deeper path is not its tab.
-  expect(tabForPath("/calendar/2026-11-04")).toBeNull();
   expect(tabForPath("/make")).toBe("make");
+  expect(tabForPath("/coach")).toBe("coach");
+  expect(tabForPath("/coach/")).toBe("coach");
   // Something open over the grid is still the Make tab, and a task open over Tasks still Tasks.
   expect(tabForPath("/make/page-1")).toBe("make");
   expect(tabForPath("/make/page-1/more")).toBeNull();
@@ -135,7 +133,7 @@ test("the paths of the four tabs, and no tab for the pages the menu opens", () =
   expect(tabForPath("/channels/abc/more")).toBeNull();
 });
 
-test("the tab bar draws Chat, Tasks, Calendar and Make, the current one marked", async () => {
+test("the tab bar draws Chat, Tasks, Coach and Make, the current one marked", async () => {
   inbox = { requests: [], questions: [] };
   serving();
   const view = draw(<TabBar current="tasks" />, undefined, "/tasks");
@@ -144,13 +142,13 @@ test("the tab bar draws Chat, Tasks, Calendar and Make, the current one marked",
   expect(links.map((link) => link.textContent)).toEqual([
     "Chat",
     "Tasks",
-    "Calendar",
+    "Coach",
     "Make",
   ]);
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
     "/",
     "/tasks",
-    "/calendar",
+    "/coach",
     "/make",
   ]);
   // Make's glyph is the spark, not Pages' sheet of paper.
@@ -160,19 +158,6 @@ test("the tab bar draws Chat, Tasks, Calendar and Make, the current one marked",
   expect(within(nav).getByRole("link", { current: "page" }).textContent).toBe(
     "Tasks",
   );
-});
-
-test("on the calendar, its tab is current, and its label is cut to fit rather than pushed past it", async () => {
-  inbox = { requests: [], questions: [] };
-  serving();
-  const view = draw(<TabBar current="calendar" />, undefined, "/calendar");
-  const nav = await view.findByRole("navigation", { name: "Main" });
-  const tab = within(nav).getByRole("link", { current: "page" });
-  expect(tab.getAttribute("aria-label")).toBe("Calendar");
-  // Four tabs leave each about 82px, and "Calendar" at 200% text is wider: the link may shrink
-  // and its label ends in an ellipsis, while the link's name stays whole.
-  expect(tab.className).toContain("min-w-0");
-  expect(tab.querySelector("span.truncate")?.textContent).toBe("Calendar");
 });
 
 test("/inbox, where earlier notifications and links point, goes to Tasks", () => {
@@ -836,7 +821,6 @@ const MANAGE = [
   ["Capabilities", "/capabilities"],
   ["Routines", "/routines"],
   ["Approval rules", "/settings/approvals"],
-  ["Teacher rules", "/settings/teacher-rules"],
   ["Admin", "/admin"],
 ];
 

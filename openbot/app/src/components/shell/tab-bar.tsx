@@ -9,17 +9,29 @@ import { needsInputCount } from "@/lib/tasks/groups";
 import { taskListQueryOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
+<<<<<<< HEAD
 export type ShellTab = "chat" | "tasks" | "calendar" | "make";
 
 const TABS: {
   id: ShellTab;
   to: "/" | "/tasks" | "/calendar" | "/make";
+=======
+export type ShellTab = "chat" | "tasks" | "coach" | "make";
+
+const TABS: {
+  id: ShellTab;
+  to: "/" | "/tasks" | "/coach" | "/make";
+>>>>>>> origin/features/experience
   icon: DuetIconName;
   label: string;
 }[] = [
   { id: "chat", to: "/", icon: "chat", label: "Chat" },
   { id: "tasks", to: "/tasks", icon: "tasks", label: "Tasks" },
+<<<<<<< HEAD
   { id: "calendar", to: "/calendar", icon: "calendar", label: "Calendar" },
+=======
+  { id: "coach", to: "/coach", icon: "activity", label: "Coach" },
+>>>>>>> origin/features/experience
   { id: "make", to: "/make", icon: "sparkle", label: "Make" },
 ];
 
@@ -37,7 +49,11 @@ export function tabForPath(pathname: string): ShellTab | null {
   if (/^\/channels\/[^/]+$/.test(path)) return "chat";
   // A task opens over the Tasks list, so the list's tab stays current under it.
   if (path === "/tasks" || /^\/tasks\/[^/]+$/.test(path)) return "tasks";
+<<<<<<< HEAD
   if (path === "/calendar") return "calendar";
+=======
+  if (path === "/coach") return "coach";
+>>>>>>> origin/features/experience
   if (path === "/make" || /^\/make\/[^/]+$/.test(path)) return "make";
   return null;
 }
