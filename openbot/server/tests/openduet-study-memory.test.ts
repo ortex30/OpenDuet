@@ -89,8 +89,12 @@ describe("mistakes", () => {
       },
       now,
     );
-    expect(items).toHaveLength(1);
-    expect(items[0]?.fixedAt).toBeUndefined();
+    expect(items).toEqual([
+      {
+        note: "Thinks mass changes acceleration due to gravity",
+        at: now.toISOString(),
+      },
+    ]);
   });
   test("fixed closes every open note", () => {
     const items = nextMisconceptions(
