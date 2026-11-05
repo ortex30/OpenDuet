@@ -620,11 +620,8 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthedAppActivityRoute
   '/approvals': typeof AuthedAppApprovalsRoute
   '/bot': typeof AuthedAppBotRoute
-<<<<<<< HEAD
   '/calendar': typeof AuthedAppCalendarRoute
-=======
   '/coach': typeof AuthedAppCoachRoute
->>>>>>> origin/features/experience
   '/inbox': typeof AuthedAppInboxRoute
   '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
@@ -871,11 +868,8 @@ export interface FileRouteTypes {
     | '/activity'
     | '/approvals'
     | '/bot'
-<<<<<<< HEAD
     | '/calendar'
-=======
     | '/coach'
->>>>>>> origin/features/experience
     | '/inbox'
     | '/learn'
     | '/make'
