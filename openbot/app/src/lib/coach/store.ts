@@ -85,6 +85,15 @@ export function updateCoach(
   return earned;
 }
 
+/**
+ * Stamp what the state has already earned without celebrating it, for the first open of a seeded
+ * week or one saved before a badge existed.
+ */
+export function syncAchievements(now = new Date()): void {
+  const state = read();
+  if (newlyEarned(state, now).length) updateCoach((s) => s, now);
+}
+
 /* ---------------------------------------------------------------- Actions ---------------------- */
 
 export function logSession(

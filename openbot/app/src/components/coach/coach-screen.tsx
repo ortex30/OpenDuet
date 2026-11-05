@@ -16,7 +16,7 @@ import {
 } from "@/lib/coach/model";
 import { catchUpInstruction } from "@/lib/coach/plan";
 import { type Achievement, pacing, todaysCheckIn } from "@/lib/coach/progress";
-import { useCoachState } from "@/lib/coach/store";
+import { syncAchievements, useCoachState } from "@/lib/coach/store";
 import { FocusOverlay } from "./focus-timer";
 import { HandOffSheet } from "./hand-off";
 import { CoachButton } from "./kit";
@@ -86,6 +86,8 @@ export function CoachScreen() {
   const onEarned = useCallback((list: Achievement[]) => {
     if (list.length) setEarned(list);
   }, []);
+
+  useEffect(() => syncAchievements(), []);
 
   useEffect(() => {
     if (!earned.length) return;
