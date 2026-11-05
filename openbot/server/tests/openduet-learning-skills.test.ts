@@ -41,7 +41,8 @@ test("the package loads with every learning skill on Academic OS's own Bot", () 
 
 test("the Bot's prompt tells it to save practice to study memory", () => {
   const bot = tenant.agents.find((agent) => agent.id === tenant.tenantId);
-  const prompt = (bot?.configuration as { systemPrompt?: string }).systemPrompt;
+  if (!bot) throw new Error("no Academic OS Bot");
+  const prompt = (bot.configuration as { systemPrompt?: string }).systemPrompt;
   expect(prompt).toContain("record_study");
   expect(prompt).toContain("study_memory");
 });

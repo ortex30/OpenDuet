@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
+import { PERSON_INITIATOR } from "../src/audit";
 import type { AuthenticatedActor } from "../src/auth/guards";
 import { createDatabase } from "../src/db/client";
 import { agents, users } from "../src/db/schema/core";
@@ -27,7 +28,7 @@ const days = (count: number) => {
   clock = new Date(clock.getTime() + count * 24 * 60 * 60 * 1000);
 };
 const store = createStudyStore(database, { now: () => clock });
-const initiator = { kind: "user" as const, id: owner };
+const initiator = PERSON_INITIATOR;
 const tools = studyTools({ actorId: owner, botId: bot, initiator, store });
 const tool = (name: string) => {
   const found = tools.find((candidate) => candidate.name === name);
@@ -54,14 +55,12 @@ beforeAll(async () => {
     { id: owner, email: `${owner}@example.test` },
     { id: other, email: `${other}@example.test` },
   ]);
-  await database
-    .insert(agents)
-    .values({
-      id: bot,
-      name: "Academic OS",
-      type: "built_in",
-      configuration: {},
-    });
+  await database.insert(agents).values({
+    id: bot,
+    name: "Academic OS",
+    type: "built_in",
+    configuration: {},
+  });
 });
 afterAll(async () => {
   await database
