@@ -109,14 +109,17 @@ export const LEVEL_WORDS: Record<MasteryLevel, string> = {
   strong: "Strong",
 };
 
-/** What each session button asks the Bot for: the learning skills in skills.yaml, by their titles. */
+/**
+ * What each session button asks the Bot for: the learning skills in skills.yaml, by their titles.
+ * The first line becomes the task's title (server/src/openduet/task-store.ts, `titleFrom`).
+ */
 export const STUDY_ASKS = {
   review:
-    "Review what's due: run my spaced review on the topics my study memory says are due today, one question at a time.",
+    "Review what's due.\nRun my spaced review on the topics my study memory says are due today, one question at a time.",
   mistakes:
-    "Fix my mistakes: go over the open misunderstandings in my study memory, one at a time, until they're fixed.",
+    "Fix my mistakes.\nGo over the open misunderstandings in my study memory, one at a time, until they're fixed.",
   start:
-    "Quiz me on my nearest test, one question at a time, and save how I did to my study memory.",
+    "Quiz me on my nearest test.\nOne question at a time, and save how I did to my study memory.",
   subject: (subject: string) =>
-    `Review ${subject}: quiz me one question at a time on my weakest ${subject} topics from my study memory.`,
+    `Practice ${subject}.\nQuiz me one question at a time on my weakest ${subject} topics from my study memory.`,
 } as const;

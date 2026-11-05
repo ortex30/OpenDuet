@@ -275,3 +275,40 @@ test("the Learn tab can mark mistakes fixed and forget a topic, only its owner's
     "Ablative case",
   );
 });
+
+test("the demo seed replays two weeks of practice into a believable memory", async () => {
+  const { seedStudyDemo } = await import("../scripts/seed-study-demo");
+  const overview = await seedStudyDemo(
+    database,
+    other,
+    bot,
+    new Date("2026-11-05T13:00:00Z"),
+  );
+  expect(overview.totals.topics).toBe(11);
+  expect(overview.subjects.map((subject) => subject.subject).sort()).toEqual([
+    "AP US History",
+    "Chemistry",
+    "English 11",
+    "Precalculus",
+    "Spanish III",
+  ]);
+  // Some topics are strong, some due today, and the open mistakes are the unfixed ones.
+  expect(overview.totals.strong).toBeGreaterThan(0);
+  expect(overview.totals.due).toBeGreaterThan(0);
+  expect(overview.mistakes.map((mistake) => mistake.topic).sort()).toEqual([
+    "Collision theory",
+    "Double-angle formulas",
+    "Mandatos (usted commands)",
+    "Verifying identities",
+  ]);
+  const compromise = overview.topics.find(
+    (topic) => topic.topic === "Missouri Compromise",
+  );
+  expect(compromise?.fixedMistakes).toBe(1);
+  expect(compromise?.level).toBe("getting-there");
+  const identities = overview.topics.find(
+    (topic) => topic.topic === "Pythagorean identities",
+  );
+  // Box 4 after three right answers, and practiced 8 days ago, so it is back for review today.
+  expect(identities).toMatchObject({ box: 4, level: "strong", due: true });
+});

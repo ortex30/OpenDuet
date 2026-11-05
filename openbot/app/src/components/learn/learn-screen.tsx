@@ -191,17 +191,19 @@ function LearnBody({
           </div>
           <DuetCard className="divide-y divide-duet-hair-2">
             {overview.due.slice(0, 8).map((topic) => (
-              <div className="flex items-center gap-3 px-4 py-3" key={topic.id}>
-                <BoxDots box={topic.box} />
-                <div className="min-w-0 flex-1">
+              <div className="px-4 py-3" key={topic.id}>
+                <div className="flex items-start justify-between gap-2">
                   <p className="type-body font-medium [overflow-wrap:anywhere]">
                     {topic.topic}
                   </p>
-                  <p className="type-sub text-duet-ink-2">
+                  <LevelPill level={topic.level} />
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <BoxDots box={topic.box} />
+                  <p className="type-label min-w-0 text-duet-ink-2">
                     {topic.subject} · last time {RESULT_WORDS[topic.lastResult]}
                   </p>
                 </div>
-                <LevelPill level={topic.level} />
               </div>
             ))}
           </DuetCard>
@@ -319,16 +321,19 @@ function SubjectCard({
 function TopicRow({ topic }: { topic: StudyTopic }) {
   const forget = useMutation(forgetTopicMutationOptions(queryClient));
   return (
-    <li className="flex items-center gap-3 py-2.5">
-      <BoxDots box={topic.box} />
+    <li className="flex items-center gap-2 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="type-body [overflow-wrap:anywhere]">{topic.topic}</p>
-        <p className="type-label text-duet-ink-2">
-          {topic.correctCount} right · {topic.partlyCount} partly ·{" "}
-          {topic.missedCount} missed · {nextReview(topic)}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="type-body [overflow-wrap:anywhere]">{topic.topic}</p>
+          <LevelPill level={topic.level} />
+        </div>
+        <div className="mt-1 flex items-center gap-2">
+          <BoxDots box={topic.box} />
+          <p className="type-label min-w-0 text-duet-ink-2">
+            {record(topic)} · {nextReview(topic)}
+          </p>
+        </div>
       </div>
-      <LevelPill level={topic.level} />
       <button
         aria-label={`Forget ${topic.topic}`}
         className="grid size-9 shrink-0 place-items-center rounded-full text-duet-ink-3 hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 disabled:opacity-50"
@@ -339,6 +344,19 @@ function TopicRow({ topic }: { topic: StudyTopic }) {
         <DuetIcon name="trash" size={16} />
       </button>
     </li>
+  );
+}
+
+/** "2 right, 1 missed": only the counts that are not zero. */
+function record(topic: StudyTopic): string {
+  return (
+    [
+      topic.correctCount ? `${topic.correctCount} right` : "",
+      topic.partlyCount ? `${topic.partlyCount} partly` : "",
+      topic.missedCount ? `${topic.missedCount} missed` : "",
+    ]
+      .filter(Boolean)
+      .join(", ") || "not tried"
   );
 }
 
