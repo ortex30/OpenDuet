@@ -10,6 +10,7 @@ import { buildMorningBrief, type CallTool, openduetTools } from "./brief";
 import { offerTools } from "./offers";
 import { createPageStore, type PageStore, pageTools } from "./pages";
 import { replyTools } from "./replies";
+import { createStudyStore, type StudyStore, studyTools } from "./study-memory";
 import { currentRunChannelId } from "./run-channel";
 import type { TaskIntake } from "./task-store";
 import {
@@ -146,6 +147,8 @@ export function createOpenDuetTools(deps: {
   ) => Promise<{ id: string; threadId: string }>;
   /** Where `make_page` saves. The same store answers /api/openduet/pages. */
   pages?: PageStore;
+  /** Where `record_study` saves. The same store answers /api/openduet/study. */
+  study?: StudyStore;
   /**
    * Where `start_task` opens a task and starts it: the proactive engine's `startAsked`, which runs
    * started suggestions too. Absent, the tool is not held.
@@ -177,6 +180,7 @@ export function createOpenDuetTools(deps: {
     });
   const proactive = createProactiveStore(deps.database);
   const pages = deps.pages ?? createPageStore(deps.database);
+  const study = deps.study ?? createStudyStore(deps.database);
   return (actorId, botId, initiator) => [
     ...openduetTools({
       actorId,
@@ -222,5 +226,6 @@ export function createOpenDuetTools(deps: {
       save: (input) => pages.save(actorId, botId, input),
       initiator,
     }),
+    ...studyTools({ actorId, botId, initiator, store: study }),
   ];
 }

@@ -115,6 +115,7 @@ import {
   type DuetChannelStore,
 } from "./openduet/channels";
 import { createPageRoutes, type PageStore } from "./openduet/pages";
+import { createStudyRoutes, type StudyStore } from "./openduet/study-memory";
 import { createSetupRoutes, type SetupSources } from "./openduet/setup";
 import type { TaskReportReader } from "./openduet/task-report";
 import {
@@ -458,6 +459,8 @@ export function createApp(
      */
     openduet?: {
       pages: PageStore;
+      /** The study memory the Learn tab reads. See openduet/study-memory.ts. */
+      study?: StudyStore;
       setup?: SetupSources;
       tasks?: TaskStore;
       intake?: TaskIntake;
@@ -1703,6 +1706,11 @@ export function createApp(
     app.route(
       "/api/openduet/pages",
       createPageRoutes(coworker.openduet.pages, requireUser),
+    );
+  if (coworker?.openduet?.study)
+    app.route(
+      "/api/openduet/study",
+      createStudyRoutes(coworker.openduet.study, requireUser),
     );
   /*
    * Signed in, unlike `/api/capabilities`, which anybody can read. The checklist names what this
