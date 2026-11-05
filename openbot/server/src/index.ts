@@ -264,6 +264,7 @@ import {
 } from "./openduet/channels";
 import { createComputerCheck } from "./openduet/computer-check";
 import { createPageStore } from "./openduet/pages";
+import { createStudyStore } from "./openduet/study-memory";
 import { withRunChannels } from "./openduet/run-channel";
 import {
   createSetupSources,
@@ -1423,6 +1424,7 @@ const wakeUpStore = createWakeUpStore(database, { auditStore: bootAuditStore });
  * the pages it makes and the tasks it starts. See openduet/wiring.ts.
  */
 const openDuetPages = createPageStore(database);
+const openDuetStudy = createStudyStore(database);
 const openDuetTasks = createTaskStore(database);
 // Read when a task starts, long after the engine below is made.
 const openDuetStartTask: TaskStarter = ({ ownerUserId, agentId, task }) =>
@@ -1432,6 +1434,7 @@ const openDuetDirectChannel = async (ownerUserId: string, agentId: string) =>
 const openDuetTools = createOpenDuetTools({
   database,
   pages: openDuetPages,
+  study: openDuetStudy,
   startTask: openDuetStartTask,
   callTool: (input) => pluginStore.callTool(input),
   complete: chooseSkills,
@@ -2723,6 +2726,7 @@ const app = createApp(
     proactive: { store: proactiveStore, engine: proactiveEngine },
     openduet: {
       pages: openDuetPages,
+      study: openDuetStudy,
       tasks: openDuetTasks,
       // The checklist onboarding ends on. Facts and verdicts about this configuration, never values.
       setup: createSetupSources({

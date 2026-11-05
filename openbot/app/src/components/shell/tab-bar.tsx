@@ -9,16 +9,17 @@ import { needsInputCount } from "@/lib/tasks/groups";
 import { taskListQueryOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
-export type ShellTab = "chat" | "tasks" | "make";
+export type ShellTab = "chat" | "tasks" | "learn" | "make";
 
 const TABS: {
   id: ShellTab;
-  to: "/" | "/tasks" | "/make";
+  to: "/" | "/tasks" | "/learn" | "/make";
   icon: DuetIconName;
   label: string;
 }[] = [
   { id: "chat", to: "/", icon: "chat", label: "Chat" },
   { id: "tasks", to: "/tasks", icon: "tasks", label: "Tasks" },
+  { id: "learn", to: "/learn", icon: "bulb", label: "Learn" },
   { id: "make", to: "/make", icon: "sparkle", label: "Make" },
 ];
 
@@ -36,6 +37,7 @@ export function tabForPath(pathname: string): ShellTab | null {
   if (/^\/channels\/[^/]+$/.test(path)) return "chat";
   // A task opens over the Tasks list, so the list's tab stays current under it.
   if (path === "/tasks" || /^\/tasks\/[^/]+$/.test(path)) return "tasks";
+  if (path === "/learn") return "learn";
   if (path === "/make" || /^\/make\/[^/]+$/.test(path)) return "make";
   return null;
 }

@@ -112,6 +112,7 @@ test("the paths of the three tabs, and no tab for the pages the menu opens", () 
   expect(tabForPath("/tasks")).toBe("tasks");
   expect(tabForPath("/tasks/")).toBe("tasks");
   expect(tabForPath("/make")).toBe("make");
+  expect(tabForPath("/learn")).toBe("learn");
   // Something open over the grid is still the Make tab, and a task open over Tasks still Tasks.
   expect(tabForPath("/make/page-1")).toBe("make");
   expect(tabForPath("/make/page-1/more")).toBeNull();
@@ -131,7 +132,7 @@ test("the paths of the three tabs, and no tab for the pages the menu opens", () 
   expect(tabForPath("/channels/abc/more")).toBeNull();
 });
 
-test("the tab bar draws Chat, Tasks and Make, the current one marked", async () => {
+test("the tab bar draws Chat, Tasks, Learn and Make, the current one marked", async () => {
   inbox = { requests: [], questions: [] };
   serving();
   const view = draw(<TabBar current="tasks" />, undefined, "/tasks");
@@ -140,15 +141,17 @@ test("the tab bar draws Chat, Tasks and Make, the current one marked", async () 
   expect(links.map((link) => link.textContent)).toEqual([
     "Chat",
     "Tasks",
+    "Learn",
     "Make",
   ]);
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
     "/",
     "/tasks",
+    "/learn",
     "/make",
   ]);
   // Make's glyph is the spark, not Pages' sheet of paper.
-  expect(links[2]?.querySelector("svg path")?.getAttribute("d")).toMatch(
+  expect(links[3]?.querySelector("svg path")?.getAttribute("d")).toMatch(
     /^M10\.6 3\.6/,
   );
   expect(within(nav).getByRole("link", { current: "page" }).textContent).toBe(
