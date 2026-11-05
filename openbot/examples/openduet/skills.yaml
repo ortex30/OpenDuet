@@ -397,3 +397,164 @@ skills:
       save_bot once, at the end. It is not a way to show a draft: it puts a card in front of the
       person and nothing is created unless they press the button.
     tools: []
+
+  # Academic OS's learning skills. They share one study memory (server/src/openduet/study-memory.ts):
+  # `record_study` saves how each topic went after any practice, and `study_memory` reads it back, so
+  # review is spaced, mistakes are revisited and the Learn tab fills in. Both are held by every Bot,
+  # like make_page, so they are not named under `tools:`. Each skill follows the assignment's teacher
+  # AI help level, read from its Classroom notice (see the TEACHER RULES part of the Bot's prompt).
+  - slug: review
+    title: Review what's due
+    summary: A short spaced-review session on the topics your study memory says are due today.
+    instructions: >-
+      Call study_memory with view "due". If nothing is due, say so in a few words and offer the
+      weakest topic instead (study_memory view "weakest"); if the memory is empty, offer a quick quiz
+      on their nearest test to start it. Otherwise review up to five due topics, most overdue first,
+      mixing classes rather than doing one class in a row. For each topic ask one fresh question that
+      makes them recall the idea, not recognize it: ask them to state, apply or explain it, and never
+      reuse a question word for word. When a topic has an open mistake, aim the question straight at
+      that misunderstanding. Ask one question at a time and wait. After each answer say right, partly
+      or not quite in a few words and give the one-line reason. When they are done, call record_study
+      once with one entry per topic reviewed (activity "review"), the misconception for anything
+      missed, and fixed true for any open mistake they now got right. End with one short sentence:
+      how many they got, and the one topic coming back soonest.
+    tools:
+      - google-workspace/gmail_search_messages
+
+  - slug: my-mistakes
+    title: Fix my mistakes
+    summary: Go back over the misunderstandings from earlier practice and fix them for good.
+    instructions: >-
+      Call study_memory with view "mistakes". If there are none, say so in a few words and offer a
+      review instead. Otherwise take the most recent open mistake first, up to three in a session.
+      For each one: name the misunderstanding in plain words without blaming, explain the right idea
+      in one or two sentences with a fresh example, then ask one question that would catch the same
+      mistake again. If they get it right, ask a second, slightly harder one; if they get both right,
+      it is fixed. If not, explain it another way, with a picture in words or an analogy, and try one
+      more question. Then call record_study once with an entry per topic worked (activity "review"):
+      fixed true where they got both right, and the misconception again where they did not. End in one
+      sentence with how many are fixed.
+
+  - slug: tutor
+    title: Walk me through it
+    summary: Step-by-step tutoring on a problem, one hint at a time, so you solve it yourself.
+    instructions: >-
+      Get the problem: what they typed or attached, or ask for it in one short question. Work out
+      which assignment it belongs to and find that assignment's AI help level in their Classroom mail.
+      No help: do not touch it; say so in a sentence and offer to tutor them on a similar practice
+      problem you make up for the same skill. Hints only, and whenever you cannot tell: never solve any
+      step of their problem; ask what they know and what the question wants, then give one hint or one
+      guiding question at a time, and when they make a mistake point at where it is and ask what they
+      notice, never fix it for them. Full help: still go one step at a time, asking them to try each
+      step first; show a step only after they have tried twice, then have them do the next one. In
+      every case, keep each message to one step, check their thinking before moving on, and when they
+      reach the answer ask them to say in one sentence why it works. Then call record_study once for
+      the skill the problem practiced (activity "tutor"): correct if they solved it with at most one
+      hint, partly if they needed more, missed if you had to show most of it, with the misconception
+      when one came up.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: teach-back
+    title: Teach it back to me
+    summary: Explain a topic in your own words and find out exactly which parts you really know.
+    instructions: >-
+      Pick the topic: what they named, or else their nearest test and its Classroom notice. Before they
+      start, privately list the three to five key ideas a complete explanation must have, and do not
+      show the list. Ask them to explain the topic to you as if you were a classmate who missed the
+      class, by typing or with the mic, in their own words. When they finish, say which key ideas they
+      got in plain words, then name the single most important missing or wrong idea and ask one
+      question that leads them to it rather than telling them. Let them try once more. Then show a
+      short scorecard as one line, such as "4 of 5 ideas: missing why the rate goes up with
+      temperature." Call record_study once with one entry per key idea (activity "teach-back"):
+      correct if they explained it, partly if it was vague, missed if absent or wrong, with the
+      misconception for anything wrong. Teach-back on a test topic is studying and always allowed, but
+      if the topic is the subject of an assignment set to No help, do not discuss that assignment's
+      questions.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: check-my-work
+    title: Check my work
+    summary: Find the first place your solution goes wrong, without fixing it for you.
+    instructions: >-
+      Get their work: typed steps or an attached photo or file. Find which assignment it is for and
+      that assignment's AI help level in their Classroom mail. No help: do not check, mark or comment on
+      any of it; say plainly that the teacher set it to no AI help, and offer to make a similar practice
+      problem to check instead. Otherwise read every step and find the first one that goes wrong.
+      Say which step it is and what kind of error it is (a sign, a formula, a unit, a misread question,
+      a reasoning gap), and ask them to look at that step again. Never write the corrected step or the
+      final answer, and never redo the work, under any level. If every step is right, say so and name
+      the one thing they did best. Then call record_study once for the skill the work practiced
+      (activity "check-work"): correct if it was all right, partly if one slip, missed if the method
+      was wrong, with the misconception when the error came from a misunderstanding rather than a slip.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: writing-feedback
+    title: Feedback on my writing
+    summary: Rubric-style feedback on an essay or lab report draft, with your three biggest fixes.
+    instructions: >-
+      Get the draft: pasted or attached. Find the assignment and its AI help level in their Classroom
+      mail, and read the notice for what the teacher asked for and how it is graded. No help: do not
+      read, comment on or edit any of it; say plainly that the teacher set it to no AI help, and offer
+      only to plan their time. Hints only: give feedback but never write, rewrite or suggest wording
+      for any sentence they will turn in. Full help: you may show what a stronger sentence does by
+      writing one about a different topic, never a replacement for theirs. Make the feedback with
+      make_page as a page titled with the class and assignment. It holds a table with the columns
+      Area, Rating and Why, covering what the assignment asks for (for an essay: thesis, evidence,
+      analysis, organization and clarity; for a lab report: data, graph, conclusion and reasoning),
+      each rated Strong, Getting there or Needs work, and a reason that quotes at most a few of their
+      own words. Then a checklist of their three biggest fixes, most important first, each a question
+      or an instruction to them, never new wording. Then one text block on what is already working. In
+      Chat say one sentence about the biggest fix and that the page has the rest. Call record_study
+      with one entry per area rated (activity "writing"): Strong correct, Getting there partly, Needs
+      work missed, with the subject as the class.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: study-guide
+    title: Make a study guide
+    summary: A one-page study guide for a test, built from what the teacher said it covers.
+    instructions: >-
+      Find the test: what they named, or else their nearest quiz or test from the calendar and
+      Classroom notices. Read the notice for exactly what it covers. Call study_memory with view
+      "subject" for that class to see which of those topics they already know and which are weak or
+      have open mistakes. Make the guide with make_page as a page titled with the class and the test.
+      It holds, in order: a short text block saying when the test is and what it covers; a checklist of
+      every topic it covers, weakest first by study memory, so they can tick each off as they study
+      it; a table with the columns Idea and
+      What to remember, for the key formulas, terms or facts, at most 12 rows; a bullets block of the
+      common traps, including any open mistakes study memory has for this class; and a list of five
+      practice questions from easy to hard, followed by a heading "Answers (cover these first)" and a
+      list of short answers. In Chat say one sentence about the guide and offer to quiz them on the
+      weakest topic. If the test belongs to an assignment set to No help, say so and do not make it.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: reading-check
+    title: Check my reading
+    summary: A quick conversation to check you understood a chapter or reading, and remember it.
+    instructions: >-
+      Find what they read: what they named, or the reading or novel in their Classroom notices. Ask
+      four questions, one at a time, waiting for each answer: one that checks what happened or what
+      the main point was; one about why a character or author did something; one that gives a short
+      line or moment from the reading and asks what it shows; and one that connects it to a theme,
+      to today or to their own life. After each answer, say what they got right in a few words and add
+      the one detail that makes it stronger. Never summarize the reading for them before they answer,
+      and if they have not read it yet, say so kindly and offer to check in after. If the reading is
+      tied to a written assignment set to Hints only or No help, discuss the reading itself but never
+      draft, outline or suggest a thesis for that assignment. End with one sentence naming the idea
+      worth remembering for class, then call record_study once with one entry per question (activity
+      "reading"), the subject the class and the topic the reading and what the question was about,
+      such as "Gatsby: the green light".
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message

@@ -484,6 +484,13 @@
       "when": 1793856969464,
       "tag": "0068_openduet_study_records",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793859302383,
+      "tag": "0069_study_memory",
+      "breakpoints": true
     }
   ]
 }

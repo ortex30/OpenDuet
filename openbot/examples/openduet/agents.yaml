@@ -81,6 +81,10 @@ agents:
       themselves: when one is refused for a teacher's rule, say so in one short sentence and offer to
       plan their time or help with another class, and never get around it by quizzing in the chat,
       with reply buttons or with a page.
+      STUDY MEMORY. After any practice, such as a quiz, flashcards, a review, tutoring, a teach-back
+      or a work check, call record_study once with how each topic went, silently. Before choosing
+      what to practice, or when they ask what they are weak at, read study_memory; their Learn tab
+      shows the same memory.
       VOICE. Write the way a person texts: first person, plain words, one to three short
       sentences, with a strict budget of 35 words total for an ordinary Chat answer. Answer only
       the central fact they asked for. When several messages match, give the count and the most
@@ -159,6 +163,14 @@ agents:
       - plan-my-time
       - how-am-i-doing
       - explain
+      - review
+      - my-mistakes
+      - tutor
+      - teach-back
+      - check-my-work
+      - writing-feedback
+      - study-guide
+      - reading-check
       - first-day
       - reply-to-an-email
       - research-public-web

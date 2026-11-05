@@ -23,6 +23,7 @@ import { Route as AuthedAppCalendarRouteImport } from './routes/_authed/_app/cal
 import { Route as AuthedAppCapabilitiesRouteImport } from './routes/_authed/_app/capabilities'
 import { Route as AuthedAppCoachRouteImport } from './routes/_authed/_app/coach'
 import { Route as AuthedAppInboxRouteImport } from './routes/_authed/_app/inbox'
+import { Route as AuthedAppLearnRouteImport } from './routes/_authed/_app/learn'
 import { Route as AuthedAppMakeRouteImport } from './routes/_authed/_app/make'
 import { Route as AuthedAppMemoryRouteImport } from './routes/_authed/_app/memory'
 import { Route as AuthedAppReachabilityRouteImport } from './routes/_authed/_app/reachability'
@@ -157,6 +158,11 @@ const AuthedAppCoachRoute = AuthedAppCoachRouteImport.update({
 const AuthedAppInboxRoute = AuthedAppInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
+const AuthedAppLearnRoute = AuthedAppLearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
   getParentRoute: () => AuthedAppRoute,
 } as any)
 const AuthedAppMakeRoute = AuthedAppMakeRouteImport.update({
@@ -538,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
   '/coach': typeof AuthedAppCoachRoute
   '/inbox': typeof AuthedAppInboxRoute
+  '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
   '/reachability': typeof AuthedAppReachabilityRoute
@@ -619,6 +626,7 @@ export interface FileRoutesByTo {
   '/coach': typeof AuthedAppCoachRoute
 >>>>>>> origin/features/experience
   '/inbox': typeof AuthedAppInboxRoute
+  '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
   '/reachability': typeof AuthedAppReachabilityRoute
@@ -702,6 +710,7 @@ export interface FileRoutesById {
   '/_authed/_app/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
   '/_authed/_app/coach': typeof AuthedAppCoachRoute
   '/_authed/_app/inbox': typeof AuthedAppInboxRoute
+  '/_authed/_app/learn': typeof AuthedAppLearnRoute
   '/_authed/_app/make': typeof AuthedAppMakeRouteWithChildren
   '/_authed/_app/memory': typeof AuthedAppMemoryRoute
   '/_authed/_app/reachability': typeof AuthedAppReachabilityRoute
@@ -786,6 +795,7 @@ export interface FileRouteTypes {
     | '/capabilities'
     | '/coach'
     | '/inbox'
+    | '/learn'
     | '/make'
     | '/memory'
     | '/reachability'
@@ -867,6 +877,7 @@ export interface FileRouteTypes {
     | '/coach'
 >>>>>>> origin/features/experience
     | '/inbox'
+    | '/learn'
     | '/make'
     | '/memory'
     | '/reachability'
@@ -949,6 +960,7 @@ export interface FileRouteTypes {
     | '/_authed/_app/capabilities'
     | '/_authed/_app/coach'
     | '/_authed/_app/inbox'
+    | '/_authed/_app/learn'
     | '/_authed/_app/make'
     | '/_authed/_app/memory'
     | '/_authed/_app/reachability'
@@ -1122,6 +1134,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AuthedAppInboxRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
+    '/_authed/_app/learn': {
+      id: '/_authed/_app/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof AuthedAppLearnRouteImport
       parentRoute: typeof AuthedAppRoute
     }
     '/_authed/_app/make': {
@@ -1732,6 +1751,7 @@ interface AuthedAppRouteChildren {
   AuthedAppCapabilitiesRoute: typeof AuthedAppCapabilitiesRouteWithChildren
   AuthedAppCoachRoute: typeof AuthedAppCoachRoute
   AuthedAppInboxRoute: typeof AuthedAppInboxRoute
+  AuthedAppLearnRoute: typeof AuthedAppLearnRoute
   AuthedAppMakeRoute: typeof AuthedAppMakeRouteWithChildren
   AuthedAppMemoryRoute: typeof AuthedAppMemoryRoute
   AuthedAppReachabilityRoute: typeof AuthedAppReachabilityRoute
@@ -1772,6 +1792,7 @@ const AuthedAppRouteChildren: AuthedAppRouteChildren = {
   AuthedAppCapabilitiesRoute: AuthedAppCapabilitiesRouteWithChildren,
   AuthedAppCoachRoute: AuthedAppCoachRoute,
   AuthedAppInboxRoute: AuthedAppInboxRoute,
+  AuthedAppLearnRoute: AuthedAppLearnRoute,
   AuthedAppMakeRoute: AuthedAppMakeRouteWithChildren,
   AuthedAppMemoryRoute: AuthedAppMemoryRoute,
   AuthedAppReachabilityRoute: AuthedAppReachabilityRoute,
