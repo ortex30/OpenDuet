@@ -152,10 +152,14 @@ export function workloadAdvice(
 ): string | null {
   const cap = state.profile.dailyCapacityMin;
   const over = days.find((d) => d.over);
-  const dayName = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "long" });
+  const dayName = (d: Date) => {
+    const i = days.findIndex((x) => x.date.getTime() === d.getTime());
+    if (i === 0) return "Today";
+    if (i === 1) return "Tomorrow";
+    return d.toLocaleDateString("en-US", { weekday: "long" });
+  };
   if (over)
-    return `${dayName(over.date)} is over your ${formatMinutes(cap)} even if you spread everything out. Start the biggest job today, or ask the coach to help you plan around it.`;
+    return `${dayName(over.date)} has ${formatMinutes(over.spreadMin)} of work even spread out, more than your ${formatMinutes(cap)}. Do the top pick first, and ask the coach to help plan the rest.`;
   const crunch = days.find((d) => d.crammedMin > cap * 1.5);
   if (crunch) {
     const biggest = [...state.assignments]

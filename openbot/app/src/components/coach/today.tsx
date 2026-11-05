@@ -72,7 +72,7 @@ export function TodayHero({
           </p>
           <p
             className={cn(
-              "type-sub mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold",
+              "type-sub mt-1.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 font-semibold",
               days > 0
                 ? "bg-duet-amber-soft text-duet-amber"
                 : "bg-duet-tile text-duet-ink-2",
@@ -81,10 +81,12 @@ export function TodayHero({
           >
             <span aria-hidden>🔥</span>
             {days}-day streak
-            {days > 0 && !todayDone ? (
-              <span className="font-medium"> · keep it alive today</span>
-            ) : null}
           </p>
+          {days > 0 && !todayDone ? (
+            <p className="type-caption mt-1 text-duet-ink-2">
+              15 minutes today keeps it alive.
+            </p>
+          ) : null}
         </div>
       </Card>
       {nudge ? (
@@ -181,29 +183,33 @@ export function CheckInCard({
         options={MOODS}
         value={mood}
       />
-      <ChipChoice
-        label="Energy"
-        onChange={setEnergy}
-        options={ENERGY}
-        value={energy}
-      />
-      <ChipChoice
-        label="Sleep last night"
-        onChange={setSleep}
-        options={SLEEP}
-        value={sleep}
-      />
-      <CoachButton
-        disabled={mood === null || energy === null || sleep === null}
-        onClick={() => {
-          if (mood === null || energy === null || sleep === null) return;
-          onEarned(saveCheckIn({ mood, energy, sleepHours: sleep }));
-          setEditing(false);
-        }}
-        primary
-      >
-        Set my pace
-      </CoachButton>
+      {mood === null ? null : (
+        <>
+          <ChipChoice
+            label="Energy"
+            onChange={setEnergy}
+            options={ENERGY}
+            value={energy}
+          />
+          <ChipChoice
+            label="Sleep last night"
+            onChange={setSleep}
+            options={SLEEP}
+            value={sleep}
+          />
+          <CoachButton
+            disabled={mood === null || energy === null || sleep === null}
+            onClick={() => {
+              if (mood === null || energy === null || sleep === null) return;
+              onEarned(saveCheckIn({ mood, energy, sleepHours: sleep }));
+              setEditing(false);
+            }}
+            primary
+          >
+            Set my pace
+          </CoachButton>
+        </>
+      )}
     </Card>
   );
 }

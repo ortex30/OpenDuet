@@ -469,7 +469,7 @@ export function Celebration({
   if (!first) return null;
   return (
     <div
-      className="fixed inset-x-0 top-24 z-[70] mx-auto flex w-[calc(100%-32px)] max-w-[398px] items-center gap-3 rounded-[24px] bg-duet-black p-4 text-duet-on-black shadow-duet-raised"
+      className="fixed inset-x-0 top-24 z-[55] mx-auto flex w-[calc(100%-32px)] max-w-[398px] items-center gap-3 rounded-[24px] bg-duet-black p-4 text-duet-on-black shadow-duet-raised"
       data-testid="celebration"
       role="status"
     >

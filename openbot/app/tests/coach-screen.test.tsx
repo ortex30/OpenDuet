@@ -114,11 +114,13 @@ test("the check-in sets today's pace", async () => {
   const user = userEvent.setup({ document });
   const view = draw();
   const card = await view.findByLabelText("Daily check-in");
+  // Energy and sleep appear once a mood is picked, so the card starts small.
+  expect(within(card).queryByText("Energy")).toBeNull();
+  await user.click(within(card).getByRole("button", { name: "🙂" }));
   const button = within(card).getByRole("button", {
     name: "Set my pace",
   }) as HTMLButtonElement;
   expect(button.disabled).toBe(true);
-  await user.click(within(card).getByRole("button", { name: "🙂" }));
   await user.click(within(card).getByRole("button", { name: "Low" }));
   await user.click(within(card).getByRole("button", { name: "<6h" }));
   await user.click(button);

@@ -149,7 +149,9 @@ export function Ring({
   stroke = 8,
   children,
   label,
+  track = "var(--duet-tile)",
 }: {
+  track?: string;
   value: number;
   max: number;
   size?: number;
@@ -181,7 +183,7 @@ export function Ring({
           cy={size / 2}
           fill="none"
           r={r}
-          stroke="var(--duet-tile)"
+          stroke={track}
           strokeWidth={stroke}
         />
         <circle

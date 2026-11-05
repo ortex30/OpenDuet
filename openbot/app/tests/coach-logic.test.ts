@@ -176,7 +176,7 @@ describe("workload radar", () => {
     ]);
     const days = workload(state, NOW);
     expect(days[0]?.over).toBe(true);
-    expect(workloadAdvice(state, days)).toContain("over your 2h");
+    expect(workloadAdvice(state, days)).toContain("more than your 2h");
   });
 
   test("warns about cramming when the night before would be heavy", () => {

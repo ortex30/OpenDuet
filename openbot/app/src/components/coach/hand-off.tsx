@@ -27,10 +27,11 @@ export function HandOffSheet({
   const [draft, setDraft] = useState(instruction);
   const start = useMutation(startTaskMutationOptions(queryClient));
   return (
-    <CoachSheet onClose={onClose} open title={`Hand "${title}" to ${bot.name}`}>
+    <CoachSheet onClose={onClose} open title={`Hand to ${bot.name}`}>
       <p className="type-sub mb-2 text-duet-ink-2">
-        {bot.name} works on it as a task and follows the teacher's AI rule. Edit
-        anything first.
+        <span className="font-semibold text-duet-ink">{title}</span>. {bot.name}{" "}
+        works on it as a task and follows the teacher's AI rule. Edit anything
+        first.
       </p>
       <textarea
         aria-label="What to ask"

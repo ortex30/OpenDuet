@@ -85,12 +85,13 @@ export function FocusOverlay({
 }) {
   const timer = useTimer();
   const state = useCoachState();
-  const [now, setNow] = useState(() => Date.now());
+  const [, setTick] = useState(0);
+  const now = Date.now();
   const ended = useRef<string | null>(null);
 
   useEffect(() => {
     if (!timer) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
   }, [timer]);
 
@@ -175,6 +176,7 @@ export function FocusOverlay({
         max={timer.lengthMin * MINUTE}
         size={236}
         stroke={14}
+        track={focus ? "rgba(255,255,255,0.14)" : undefined}
         value={timer.lengthMin * MINUTE - left}
       >
         <span className="font-semibold text-6xl tabular-nums">
