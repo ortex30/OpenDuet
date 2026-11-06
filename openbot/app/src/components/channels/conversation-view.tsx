@@ -28,6 +28,7 @@ import {
   latestTurnToolCalls,
 } from "@/components/channels/conversation-send";
 import { PageSheetHost } from "@/components/duet/page-sheet";
+import { useChatCovered } from "@/components/shell/chat-cover";
 import {
   stepFor,
   usePatientStep,
@@ -101,7 +102,7 @@ export function ConversationView({
   pending?: boolean;
   /**
    * Focus the composer the moment it can take a caret; forwarded to the composer. In the shell a
-   * computer gets this anyway (`focusOnOpen`).
+   * computer gets this anyway, while nothing else has the caret (`focusOnOpen`).
    */
   autoFocus?: boolean;
   /**
@@ -163,8 +164,24 @@ export function ConversationView({
   /*
    * On a computer the shell's box takes the caret as the chat opens, so typing comes first. Not on a
    * phone, where that would put the keyboard up over the screen before anyone asked for it.
+   *
+   * Only while nobody else has it, and only where it can be seen. Decided once the chat is on the
+   * page, so a box this one replaced (the first day's, handing over to the ongoing chat) has let go:
+   * a field that already has the caret keeps it. The composer may wait out a turn before it takes
+   * it, so the first focus anywhere ends the offer, and the person keeps typing where they went.
+   * A screen covering the chat (`useChatCovered`) holds it until the chat shows again.
    */
-  const [focusOnOpen] = useState(() => inShell && finePointer());
+  const covered = useChatCovered();
+  const [focusOnOpen, setFocusOnOpen] = useState(false);
+  useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (!inShell || !finePointer() || (active && active !== document.body))
+      return;
+    setFocusOnOpen(true);
+    const elsewhere = () => setFocusOnOpen(false);
+    document.addEventListener("focusin", elsewhere, { once: true });
+    return () => document.removeEventListener("focusin", elsewhere);
+  }, [inShell]);
 
   /*
    * In the shell the composer floats over the conversation, frosted, rather than below it, so the
@@ -694,7 +711,7 @@ export function ConversationView({
         {notice}
         <Composer
           agents={agents}
-          autoFocus={autoFocus || focusOnOpen}
+          autoFocus={autoFocus || (focusOnOpen && !covered)}
           {...(channelId ? { channelId } : {})}
           {...(commands ? { commands } : {})}
           className="w-full mt-auto"

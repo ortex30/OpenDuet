@@ -4,6 +4,7 @@ import { AttentionNotifier } from "@/components/bot-profile/attention";
 import { DuetIcon } from "@/components/duet/icons";
 import { useChannelEvents } from "@/lib/channels/use-channel-events";
 import { cn } from "@/lib/utils";
+import { ChatCover } from "./chat-cover";
 import {
   ChatPresenceProvider,
   useChatServerBusy,
@@ -129,9 +130,11 @@ function ChatWithScreen({
         className="duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] lg:max-w-none"
       >
         <ShellHeader floating />
-        <main className="flex min-h-0 flex-1 flex-col">
-          {channel ? children : <ChatScreen />}
-        </main>
+        <ChatCover screen={screen !== null}>
+          <main className="flex min-h-0 flex-1 flex-col">
+            {channel ? children : <ChatScreen />}
+          </main>
+        </ChatCover>
       </section>
       {screen ? (
         <aside

@@ -1,13 +1,16 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { cleanup, render, waitFor } from "@testing-library/react";
+import { act } from "react";
 import { ConversationView } from "@/components/channels/conversation-view";
+import { ChatCover } from "@/components/shell/chat-cover";
 import { ChatPresenceProvider } from "@/components/shell/chat-presence";
 import { settleReactWork } from "./settle-react-work";
 
 /**
  * Chat's message box takes the caret as Chat opens on a computer, so typing comes first, and leaves
- * a phone's keyboard down until the box is tapped.
+ * a phone's keyboard down until the box is tapped. Never from a field that has it, and never into a
+ * box a screen covers.
  */
 
 beforeAll(() => GlobalRegistrator.register({ url: "http://localhost/" }));
@@ -26,14 +29,19 @@ afterAll(async () => {
   GlobalRegistrator.unregister();
 });
 
-/** The main pointer is a mouse (`fine`) or a finger (`coarse`). */
-function pointer(kind: "fine" | "coarse") {
+/**
+ * The main pointer is a mouse (`fine`) or a finger (`coarse`). `wide` is the shell's `lg`, where a
+ * screen opens beside the chat rather than over it.
+ */
+function pointer(kind: "fine" | "coarse", wide = true) {
   window.matchMedia = ((query: string) => {
     const list = realMatchMedia.call(window, query);
     if (query.startsWith("(pointer:"))
       Object.defineProperty(list, "matches", {
         value: query === `(pointer: ${kind})`,
       });
+    if (query === "(min-width: 64rem)")
+      Object.defineProperty(list, "matches", { value: wide });
     return list;
   }) as typeof window.matchMedia;
 }
@@ -67,4 +75,82 @@ test("a conversation outside the shell takes the caret only when asked", async (
   view.getByRole("textbox", { name: "Message" });
   await settleReactWork();
   expect(document.activeElement).toBe(document.body);
+});
+
+/** Chat beside another field, as a screen's "Add a task" sits beside it on a wide window. */
+function Beside({ pending = false, chat = true }) {
+  return (
+    <ChatPresenceProvider>
+      <input aria-label="Add a task" />
+      {chat ? (
+        <ConversationView
+          inShell
+          messages={[]}
+          onSubmit={() => {}}
+          pending={pending}
+        />
+      ) : null}
+    </ChatPresenceProvider>
+  );
+}
+
+test("Chat opening mid-turn takes the caret when the turn ends, if nobody else did", async () => {
+  pointer("fine");
+  const view = render(<Beside pending />);
+  const box = view.getByRole("textbox", { name: "Message" });
+  await settleReactWork();
+  // The box waits out the turn: a reload mid-answer, or another tab's turn.
+  expect(document.activeElement).toBe(document.body);
+  view.rerender(<Beside />);
+  await waitFor(() => expect(document.activeElement).toBe(box));
+});
+
+test("a field the person moved to while Chat waited keeps the caret when the turn ends", async () => {
+  pointer("fine");
+  const view = render(<Beside pending />);
+  await settleReactWork();
+  const field = view.getByRole("textbox", { name: "Add a task" });
+  act(() => field.focus());
+  view.rerender(<Beside />);
+  await settleReactWork();
+  expect(document.activeElement).toBe(field);
+});
+
+test("a field that has the caret as Chat opens keeps it", async () => {
+  pointer("fine");
+  const view = render(<Beside chat={false} />);
+  const field = view.getByRole("textbox", { name: "Add a task" });
+  act(() => field.focus());
+  view.rerender(<Beside />);
+  view.getByRole("textbox", { name: "Message" });
+  await settleReactWork();
+  expect(document.activeElement).toBe(field);
+});
+
+function Covered({ screen }: { screen: boolean }) {
+  return (
+    <ChatPresenceProvider>
+      <ChatCover screen={screen}>
+        <ConversationView inShell messages={[]} onSubmit={() => {}} />
+      </ChatCover>
+    </ChatPresenceProvider>
+  );
+}
+
+test("in a narrow window a screen covers Chat, and its box waits until the chat shows again", async () => {
+  pointer("fine", false);
+  const view = render(<Covered screen />);
+  const box = view.getByRole("textbox", { name: "Message" });
+  await settleReactWork();
+  expect(document.activeElement).toBe(document.body);
+  // Closed with Escape, nothing else focused: the chat is back, and typing goes into its box.
+  view.rerender(<Covered screen={false} />);
+  await waitFor(() => expect(document.activeElement).toBe(box));
+});
+
+test("in a wide window a screen opens beside Chat, and the box still takes the caret", async () => {
+  pointer("fine");
+  const view = render(<Covered screen />);
+  const box = view.getByRole("textbox", { name: "Message" });
+  await waitFor(() => expect(document.activeElement).toBe(box));
 });
