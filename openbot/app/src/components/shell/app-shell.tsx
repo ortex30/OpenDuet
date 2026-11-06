@@ -136,19 +136,20 @@ function ChatWithScreen({
           aria-label={SCREEN_NAMES[screen]}
           className="duet-face absolute inset-0 z-30 flex min-h-0 flex-col bg-duet-surface text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] [--screen-sticky:0px] [--screen-top:16px] motion-safe:animate-in motion-safe:fade-in lg:static lg:z-auto lg:border-duet-hair-2 lg:border-l motion-safe:lg:slide-in-from-right-4"
         >
-          <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-duet-hair-2 border-b px-4 lg:px-6">
-            <p className="type-sub truncate font-semibold">
-              {SCREEN_NAMES[screen]}
-            </p>
-            <Link
-              aria-label={`Close ${SCREEN_NAMES[screen].toLowerCase()}`}
-              className="grid size-10 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
-              to="/"
-            >
-              <DuetIcon name="x" size={20} />
-            </Link>
-          </div>
+          {/* The bar shares the content's column, and its 20px inset is the screen text's. */}
           <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col lg:max-w-none">
+            <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-duet-hair-2 border-b px-5">
+              <p className="type-sub truncate font-semibold">
+                {SCREEN_NAMES[screen]}
+              </p>
+              <Link
+                aria-label={`Close ${SCREEN_NAMES[screen].toLowerCase()}`}
+                className="grid size-10 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+                to="/"
+              >
+                <DuetIcon name="x" size={20} />
+              </Link>
+            </div>
             {children}
           </div>
         </aside>
