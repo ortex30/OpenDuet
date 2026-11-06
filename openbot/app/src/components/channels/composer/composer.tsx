@@ -1537,6 +1537,8 @@ export function Composer({
       multiple
       onChange={handlePickedFiles}
       ref={fileInputRef}
+      // Reached through the `+` button; on its own it would be an invisible stop in the Tab order.
+      tabIndex={-1}
       type="file"
     />
   ) : null;

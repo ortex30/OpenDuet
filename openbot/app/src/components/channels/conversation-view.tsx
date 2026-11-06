@@ -98,7 +98,10 @@ export function ConversationView({
    * drains on this falling.
    */
   pending?: boolean;
-  /** Focus the composer the moment it can take a caret; forwarded to the composer. */
+  /**
+   * Focus the composer the moment it can take a caret; forwarded to the composer. In the shell a
+   * computer gets this anyway (`focusOnOpen`).
+   */
   autoFocus?: boolean;
   /** Why the last turn ended without an answer. Drawn at the end of the transcript, not here. */
   stopped?: string;
@@ -153,6 +156,11 @@ export function ConversationView({
    */
   const [queued, setQueued] = useState<readonly QueuedMessage[]>([]);
   const queuedRef = useRef<readonly QueuedMessage[]>(queued);
+  /*
+   * On a computer the shell's box takes the caret as the chat opens, so typing comes first. Not on a
+   * phone, where that would put the keyboard up over the screen before anyone asked for it.
+   */
+  const [focusOnOpen] = useState(() => inShell && finePointer());
 
   /*
    * In the shell the composer floats over the conversation, frosted, rather than below it, so the
@@ -665,7 +673,7 @@ export function ConversationView({
         {notice}
         <Composer
           agents={agents}
-          autoFocus={autoFocus}
+          autoFocus={autoFocus || focusOnOpen}
           {...(channelId ? { channelId } : {})}
           {...(commands ? { commands } : {})}
           className="w-full mt-auto"
@@ -734,6 +742,14 @@ export function ConversationView({
         />
       </div>
     </div>
+  );
+}
+
+/** A mouse or a trackpad is the main pointer: a computer rather than a phone. */
+function finePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: fine)").matches === true
   );
 }
 

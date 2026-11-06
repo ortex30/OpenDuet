@@ -2,7 +2,6 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, type TouchEvent, useEffect, useRef } from "react";
 import { AttentionNotifier } from "@/components/bot-profile/attention";
 import { DuetIcon } from "@/components/duet/icons";
-import { SelfHostBanner } from "@/components/layout/self-host-banner";
 import { useChannelEvents } from "@/lib/channels/use-channel-events";
 import { cn } from "@/lib/utils";
 import {
@@ -41,12 +40,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <ChatPresenceProvider serverWork={chatServerWork}>
-      {/* `duet-touch`: every control drawn in the shell is a 44px target (styles.css). */}
-      <div className="duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface">
+      {/*
+       * `duet-touch`: every control drawn in the shell is a 44px target (styles.css). Clipped, not
+       * hidden: a clipped box can't be scrolled, so nothing (the `/` menu bringing an item into view,
+       * a phone's keyboard) can push the top bar off the screen.
+       */}
+      <div className="duet-touch flex h-svh flex-col overflow-clip bg-duet-surface">
         <StartupIntro tab={tab} />
         <AttentionNotifier />
         <FinishedForYou />
-        <SelfHostBanner />
         <DesktopBar />
         {tab ? (
           <ChatWithScreen
