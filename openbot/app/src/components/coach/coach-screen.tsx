@@ -17,7 +17,7 @@ import {
 } from "@/lib/coach/model";
 import { catchUpInstruction } from "@/lib/coach/plan";
 import { type Achievement, pacing, todaysCheckIn } from "@/lib/coach/progress";
-import { withAccountName } from "@/lib/coach/seed";
+import { withAccountName, withSampleColors } from "@/lib/coach/seed";
 import {
   syncAchievements,
   updateCoach,
@@ -96,10 +96,12 @@ export function CoachScreen() {
 
   useEffect(() => syncAchievements(), []);
 
-  // The sample week greets whoever is signed in, not Jordan, until they set it up as their own.
+  // Until the student sets it up as their own, the sample week greets whoever is signed in, not
+  // Jordan, and one this browser saved before its classes took the calendar's colours takes them.
   useEffect(() => {
-    if (withAccountName(state, accountName) !== state)
-      updateCoach((s) => withAccountName(s, accountName));
+    const sample = (s: CoachState) =>
+      withSampleColors(withAccountName(s, accountName));
+    if (sample(state) !== state) updateCoach(sample);
   }, [state, accountName]);
 
   useEffect(() => {

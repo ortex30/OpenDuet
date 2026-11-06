@@ -1,11 +1,22 @@
 import {
   type Assignment,
+  type ClassColor,
+  type CoachClass,
   type CoachState,
   addDays,
   type FocusSession,
   localDate,
   startOfDay,
 } from "./model";
+
+/** Each sample class in the colour the calendar gives it (it colours classes in order of name). */
+const SAMPLE_COLORS = {
+  apush: "blue",
+  chem: "violet",
+  english: "green",
+  precalc: "amber",
+  spanish: "red",
+} as const satisfies Record<string, ClassColor>;
 
 /** A local time on a day some days from `now`. */
 function at(now: Date, days: number, hour: number, minute = 0): string {
@@ -146,32 +157,36 @@ export function demoState(now: Date): CoachState {
       dailyCapacityMin: 120,
       setupDone: false,
     },
-    // Each class in the colour the calendar gives it (it colours classes in order of name).
     classes: [
       {
         id: "apush",
         name: "AP US History",
         teacher: "Mr. Grant",
-        color: "blue",
+        color: SAMPLE_COLORS.apush,
       },
-      { id: "chem", name: "Chemistry", teacher: "Dr. Okoro", color: "violet" },
+      {
+        id: "chem",
+        name: "Chemistry",
+        teacher: "Dr. Okoro",
+        color: SAMPLE_COLORS.chem,
+      },
       {
         id: "english",
         name: "English 11",
         teacher: "Ms. Alvarez",
-        color: "green",
+        color: SAMPLE_COLORS.english,
       },
       {
         id: "precalc",
         name: "Precalculus",
         teacher: "Mr. Chen",
-        color: "amber",
+        color: SAMPLE_COLORS.precalc,
       },
       {
         id: "spanish",
         name: "Spanish III",
         teacher: "Sra. Morales",
-        color: "red",
+        color: SAMPLE_COLORS.spanish,
       },
     ],
     assignments,
@@ -223,4 +238,22 @@ export function withAccountName(
   )
     return state;
   return { ...state, profile: { ...state.profile, name: first } };
+}
+
+/**
+ * A sample week saved before its classes took the calendar's colours, in those colours now. Only
+ * while it is still the sample: once the student sets it up, the colours are theirs. Returns the
+ * same state when nothing changes.
+ */
+export function withSampleColors(state: CoachState): CoachState {
+  if (!state.demo || state.profile.setupDone) return state;
+  const colorOf = (c: CoachClass): ClassColor =>
+    Object.hasOwn(SAMPLE_COLORS, c.id)
+      ? SAMPLE_COLORS[c.id as keyof typeof SAMPLE_COLORS]
+      : c.color;
+  if (state.classes.every((c) => colorOf(c) === c.color)) return state;
+  return {
+    ...state,
+    classes: state.classes.map((c) => ({ ...c, color: colorOf(c) })),
+  };
 }

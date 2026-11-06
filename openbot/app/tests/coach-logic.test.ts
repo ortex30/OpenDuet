@@ -26,7 +26,12 @@ import {
   streak,
   weeklyReport,
 } from "@/lib/coach/progress";
-import { blankState, demoState, withAccountName } from "@/lib/coach/seed";
+import {
+  blankState,
+  demoState,
+  withAccountName,
+  withSampleColors,
+} from "@/lib/coach/seed";
 
 /** A Thursday afternoon, local time. */
 const NOW = new Date(2026, 10, 5, 16, 0, 0);
@@ -404,5 +409,45 @@ describe("the student's name", () => {
     expect(withAccountName(setUp, "Viren Shah")).toBe(setUp);
     const fresh = blankState("Sam");
     expect(withAccountName(fresh, "Viren Shah")).toBe(fresh);
+  });
+});
+
+describe("the sample week's colours", () => {
+  test("a sample week saved before the calendar's colours takes them, and keeps any other class's", () => {
+    const fresh = demoState(NOW);
+    expect(withSampleColors(fresh)).toBe(fresh);
+    // As a browser saved it before, with a class that is no sample's (and names no colour).
+    const before = ["red", "green", "violet", "blue", "amber"] as const;
+    const saved = {
+      ...fresh,
+      classes: [
+        ...fresh.classes.map((c, i) => ({ ...c, color: before[i] ?? c.color })),
+        {
+          id: "toString",
+          name: "Robotics",
+          teacher: "",
+          color: "accent" as const,
+        },
+      ],
+    };
+    expect(withSampleColors(saved).classes.map((c) => [c.id, c.color])).toEqual(
+      [
+        ["apush", "blue"],
+        ["chem", "violet"],
+        ["english", "green"],
+        ["precalc", "amber"],
+        ["spanish", "red"],
+        ["toString", "accent"],
+      ],
+    );
+  });
+
+  test("a week the student set up, or started empty, keeps its colours", () => {
+    const setUp = demoState(NOW);
+    setUp.profile = { ...setUp.profile, setupDone: true };
+    setUp.classes = setUp.classes.map((c) => ({ ...c, color: "accent" }));
+    expect(withSampleColors(setUp)).toBe(setUp);
+    const empty = blankState("Sam");
+    expect(withSampleColors(empty)).toBe(empty);
   });
 });

@@ -27,6 +27,7 @@ import {
   resetCoachCache,
   restartWithDemo,
   setTimer,
+  updateCoach,
 } from "@/lib/coach/store";
 import { settleReactWork } from "./settle-react-work";
 
@@ -125,6 +126,21 @@ test("the sample week greets the signed-in student by their first name", async (
   expect(await view.findByText(/Viren\./)).toBeTruthy();
   expect(view.queryByText(/Jordan/)).toBeNull();
   expect(getCoachState().profile.name).toBe("Viren");
+});
+
+test("a sample week saved in the old colours takes the calendar's", async () => {
+  updateCoach((s) => ({
+    ...s,
+    classes: s.classes.map((c) =>
+      c.id === "apush" ? { ...c, color: "red" } : c,
+    ),
+  }));
+  draw();
+  await waitFor(() =>
+    expect(getCoachState().classes.find((c) => c.id === "apush")?.color).toBe(
+      "blue",
+    ),
+  );
 });
 
 test("the check-in sets today's pace", async () => {

@@ -305,7 +305,7 @@ export function SetupSheet({
           }}
           type="button"
         >
-          Reload the demo week
+          Reload the sample week
         </button>
         <button
           className="type-caption font-semibold text-duet-ink-2 hover:text-duet-red"
