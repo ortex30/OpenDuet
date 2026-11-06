@@ -412,7 +412,11 @@ test.each([
         busy: false,
         runId: start.runId,
       });
-      expect(view.queryByText("Couldn't reach the Bot. Try again.")).toBeNull();
+      expect(
+        view.queryByText(
+          "Couldn't reach your coach. Check your connection and try again.",
+        ),
+      ).toBeNull();
       expect(warnings).toHaveBeenCalledTimes(turn);
       expect(warnings).toHaveBeenLastCalledWith(
         "Could not report channel busy state.",
@@ -683,7 +687,9 @@ test.each([
     await waitFor(() => expect(connectCalls).toBe(1));
     await type(view, "Hello there");
     expect(
-      await view.findByText("Couldn't reach the Bot. Try again."),
+      await view.findByText(
+        "Couldn't reach your coach. Check your connection and try again.",
+      ),
     ).toBeTruthy();
     // Only the words in the box: no bubble claiming it was sent.
     await waitFor(() =>
@@ -754,8 +760,8 @@ test.each(["network failure", "thread conflict"])(
     quiet();
     const message =
       failure === "thread conflict"
-        ? "The Bot couldn't continue because another turn started. Review what it already did before trying again."
-        : "Couldn't reach the Bot. Try again.";
+        ? "Lifecycle couldn't continue because another turn started. Review what it already did before trying again."
+        : "Couldn't reach your coach. Check your connection and try again.";
     const result = Promise.withResolvers<string>();
     const tool = mock(() => result.promise);
     const succeed = onRun;

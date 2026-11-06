@@ -357,8 +357,6 @@ function describeAttachments(attachments: readonly Attachment[]): string {
  * tab's. Said in the person's terms, never with the thread's id.
  */
 const THREAD_LOCKED = /\bthread\b.*\block/i;
-const STILL_FINISHING =
-  "OpenDuet is still finishing something. Send this again when it's done.";
 
 export function ChannelChat({
   channel,
@@ -409,6 +407,9 @@ export function ChannelChat({
   const { copilotkit } = useCopilotKit();
   // Mentions are scoped to the channel's permitted agents.
   const { data: agentProfiles } = useQuery(agentListQueryOptions());
+  const botName =
+    agentProfiles?.find((profile) => profile.id === runtimeAgentId)?.name ??
+    channel.name;
   const channelAgentId = `channel:${channel.id}`;
   const { agent, isReady } = useAgent({
     agentId: channelAgentId,
@@ -1241,8 +1242,7 @@ export function ChannelChat({
       turnLocked.current = false;
       awaitingReply.current = false;
       if (serverStarted) {
-        const message =
-          "The Bot couldn't continue because another turn started. Review what it already did before trying again.";
+        const message = `${botName} couldn't continue because another turn started. Review what it already did before trying again.`;
         setRunError(message);
         throw new Error(message);
       }
@@ -1323,7 +1323,7 @@ export function ChannelChat({
     // Voice and typed requests share this turn boundary, including gaps between frontend tools.
     if (turnsRef.current > 0) {
       throw new Error(
-        "This Bot is still working on something. Wait for it, or stop it first.",
+        `${botName} is still working on something. Wait for it, or stop it first.`,
       );
     }
     // A turn this tab did not start is going: not a refusal, a wait. The queue parks the words.
@@ -1624,9 +1624,6 @@ export function ChannelChat({
     ...approvalInboxOptions(),
     enabled: inShell,
   });
-  const botName =
-    agentProfiles?.find((profile) => profile.id === runtimeAgentId)?.name ??
-    channel.name;
   const messages = transcriptMessages(
     restoring ? NOTHING : (standIn ?? agent.messages),
     seed,
@@ -1760,8 +1757,8 @@ export function ChannelChat({
                     className="pb-2 text-sm text-muted-foreground"
                     role="status"
                   >
-                    This Bot was deleted. You can still read this conversation,
-                    but the Bot can't reply.
+                    This coach was removed. You can still read this
+                    conversation, but the coach can't reply.
                   </p>
                 )}
               </>
@@ -1863,7 +1860,7 @@ export function ChannelChat({
              */
             stopped={
               runError && THREAD_LOCKED.test(runError)
-                ? STILL_FINISHING
+                ? `${botName} is still finishing something. Send this again when it's done.`
                 : (runError ?? recalledError ?? undefined)
             }
           />

@@ -103,7 +103,10 @@ export function ConversationView({
    * computer gets this anyway (`focusOnOpen`).
    */
   autoFocus?: boolean;
-  /** Why the last turn ended without an answer. Drawn at the end of the transcript, not here. */
+  /**
+   * Why the last turn ended without an answer. Drawn at the end of the transcript, not above the
+   * composer; in Chat with nothing in it yet, under its question.
+   */
   stopped?: string;
   /**
    * There is a run for Stop to abort, which is a narrower fact than `pending` and is the honest one
@@ -639,7 +642,7 @@ export function ConversationView({
                 })),
             ]}
             restoring={restoring}
-            {...(stopped ? { stopped } : {})}
+            {...(stopped && !empty ? { stopped } : {})}
           />
           {/* A page the Bot made, opened from its card over this conversation. */}
           <PageSheetHost />
@@ -662,6 +665,18 @@ export function ConversationView({
           <h2 className="type-display mb-5 text-balance text-center font-semibold text-duet-ink">
             What are we working on?
           </h2>
+        ) : null}
+        {/*
+         * An empty transcript has no end to say it at: alone up there it was a line far above the
+         * question and the box that the person is looking at.
+         */}
+        {empty && stopped ? (
+          <p
+            className="type-caption text-balance pb-2 text-center text-duet-red"
+            role="alert"
+          >
+            {stopped}
+          </p>
         ) : null}
         {/* Chat's Bot's newest suggestion; nothing in any other conversation. */}
         {inShell ? <ChatSuggestionCard /> : null}

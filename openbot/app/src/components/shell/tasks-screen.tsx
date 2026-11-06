@@ -94,7 +94,7 @@ export function TasksScreen() {
       />
       {agents.data ? null : (
         <p className="type-sub mb-3 px-1 text-duet-red" role="alert">
-          Couldn't load your Bots. Reload the page.
+          Couldn't load your coach. Reload the page.
         </p>
       )}
       <div
