@@ -1098,6 +1098,61 @@ test("while a week holding today loads, the now line keeps the student's time, a
   expect(scrollport.scrollTop).toBeCloseTo(target());
 });
 
+/**
+ * The DOM here lays nothing out, so the timeline is given a column's geometry: `width` across, the
+ * hours 64px at the left, and each day `day` wide, as in a phone's week (176px) or a narrow panel's
+ * (112px), so a week wider than its column scrolls sideways.
+ */
+function layOut(scrollport: HTMLElement, width: number, day: number) {
+  const days = () =>
+    Array.from(scrollport.querySelectorAll("section[data-calendar-date]"));
+  Object.defineProperties(scrollport, {
+    clientLeft: { configurable: true, value: 0 },
+    clientWidth: { configurable: true, value: width },
+    scrollWidth: {
+      configurable: true,
+      get: () => Math.max(width, 64 + days().length * day),
+    },
+  });
+  Element.prototype.getBoundingClientRect = function (this: Element) {
+    if (this === scrollport) return new DOMRect(0, 0, width, 600);
+    const index = days().indexOf(this);
+    if (index >= 0)
+      return new DOMRect(64 + index * day - scrollport.scrollLeft, 0, day, 600);
+    // The hours column, which stays at the left while the days scroll under it.
+    if (this.nextElementSibling === days()[0])
+      return new DOMRect(0, 0, 64, 600);
+    return new DOMRect();
+  };
+}
+
+test("a week wider than its column shows today just right of the hours, and stays put when today is in view", async () => {
+  const measure = Element.prototype.getBoundingClientRect;
+  try {
+    serving();
+    const { view, user } = draw();
+    await view.findByRole("button", { name: /^AP US History/ });
+    const scrollport = view.container.querySelector<HTMLElement>(
+      "[data-calendar-scrollport='true']",
+    );
+    if (!scrollport) throw new Error("no timeline scrollport");
+
+    // A phone's column: Wednesday, the fourth day, comes in flush against the hours, not centred.
+    layOut(scrollport, 390, 176);
+    await user.click(view.getByRole("radio", { name: "Week" }));
+    expect(scrollport.scrollLeft).toBe(3 * 176);
+
+    // A narrow panel's week: Wednesday is already wholly in view, so nothing moves.
+    await user.click(view.getByRole("radio", { name: "Day" }));
+    scrollport.scrollLeft = 0;
+    layOut(scrollport, 684, 112);
+    await user.click(view.getByRole("radio", { name: "Week" }));
+    expect(scrollport.scrollLeft).toBe(0);
+  } finally {
+    Element.prototype.getBoundingClientRect = measure;
+  }
+});
+
 test("the now line is this device's clock in the student's own zone, not the minute the calendar was read", async () => {
   // 1:30 AM Thursday in Tokyo, the student's zone; the calendar it shows was read at 1 AM.
   calendar = {

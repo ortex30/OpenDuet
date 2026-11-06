@@ -894,13 +894,19 @@ export function CalendarTimeline({
     const todayColumn = scrollport.querySelector<HTMLElement>(
       "[data-calendar-today='true']",
     );
+    // Academic OS change: sideways only when part of today is out of view, and then to just right
+    // of the hours column (the row's first child), rather than centred with half-days either side.
     if (todayColumn && scrollport.scrollWidth > scrollport.clientWidth) {
       const viewport = scrollport.getBoundingClientRect();
       const column = todayColumn.getBoundingClientRect();
-      scrollport.scrollLeft +=
-        column.left -
-        viewport.left -
-        Math.max(56, (viewport.width - column.width) / 2);
+      const start =
+        todayColumn.parentElement?.firstElementChild?.getBoundingClientRect()
+          .right ?? viewport.left + 64;
+      const end =
+        viewport.left + scrollport.clientLeft + scrollport.clientWidth;
+      if (column.left < start || column.right > end) {
+        scrollport.scrollLeft += column.left - start;
+      }
     }
     if (dates.includes(today) && nowMinute > gridTop + 120) {
       const target = (nowMinute - gridTop) * pxPerMinute - 180;
@@ -1114,10 +1120,12 @@ export function CalendarTimeline({
                   </span>
                 </button>
               )}
+              {/* Academic OS change: the cell's width comes from its day, never from its chips, so a
+                  long title is cut short in its chip instead of widening every day of the week. */}
               {allDayLane ? (
                 <div
                   data-calendar-all-day={date}
-                  className="sticky z-30 flex min-w-0 flex-col gap-0.5 overflow-hidden border-b border-border bg-card px-1 py-[3px]"
+                  className="sticky z-30 flex min-w-0 flex-col gap-0.5 overflow-hidden border-b border-border bg-card px-1 py-[3px] [contain:inline-size]"
                   style={{ top: headerHeight, height: allDayLane.height }}
                 >
                   {allDayLane.cells[dayIndex]}

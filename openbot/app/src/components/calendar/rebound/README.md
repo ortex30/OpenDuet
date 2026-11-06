@@ -51,6 +51,13 @@ include, not as a third-party package.
   marked every class); and in Day view no heading row at all, because the toolbar's title says the
   day. The scrollport publishes `--calendar-sticky-chrome`, the height the headings and the all-day
   row hold, for what must stay clear of them in `calendar.css`.
+- The jump to now scrolls sideways only when part of today's column is out of view, and then puts
+  it just right of the hours column. Rebound centred it, which in a week wider than its column left
+  half a day showing on either side.
+- Each all-day cell is `[contain:inline-size]`, so its chips never set a day's width: the row is
+  `w-max`, and without it the longest chip title widened every day of the week, pushing a week
+  with real assignment titles past the edge of its column, and a day of several chips grew wider
+  than its column in Day view instead of scrolling its chips.
 
 ## Read-only, three ways
 

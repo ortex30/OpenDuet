@@ -116,7 +116,7 @@ function ChatWithScreen({
       className={cn(
         "relative flex min-h-0 flex-1",
         screen === "calendar"
-          ? "lg:grid lg:grid-cols-[minmax(340px,0.75fr)_minmax(560px,1.25fr)]"
+          ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(560px,920px)]"
           : screen
             ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(400px,500px)]"
             : null,
