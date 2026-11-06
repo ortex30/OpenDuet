@@ -1608,13 +1608,22 @@ export function Composer({
                * bottom line. No ring when it has the caret; the caret says so.
                */
               "duet-face flex min-h-[54px] flex-col rounded-[27px] p-[9px]",
-              glass
-                ? "duet-glass shadow-duet-glass"
-                : "bg-duet-card shadow-duet-float",
+              glass ? "relative isolate" : "bg-duet-card shadow-duet-float",
               className,
             )}
             onSubmit={handleFormSubmit}
           >
+            {/*
+             * THE GLASS IS A LAYER BEHIND THE FORM, NOT THE FORM. A backdrop filter makes its box
+             * the containing block of every fixed child, and the `/` menu is one: drawn at the
+             * caret's place on the screen, it landed offset by wherever the form was.
+             */}
+            {glass ? (
+              <span
+                aria-hidden
+                className="duet-glass pointer-events-none absolute inset-0 -z-10 rounded-[inherit] shadow-duet-glass"
+              />
+            ) : null}
             <DictationSurface
               dictation={dictation}
               canSend={canSendRecording}

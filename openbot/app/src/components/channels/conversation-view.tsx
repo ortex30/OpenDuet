@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -171,12 +172,13 @@ export function ConversationView({
    * message would stop behind the composer. The dock grows and shrinks (a suggestion arrives, the
    * draft wraps), so its height is measured and handed to CSS as `--duet-dock`: written straight on
    * the element, because re-rendering the whole conversation to move a padding is the wrong price.
+   * Measured before the first paint, because an empty chat centres its dock by half this height.
    */
   const root = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
   // Opened from a task on Tasks: show that task's own message, not the conversation's end.
   useFocusMessage(root);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const frame = root.current;
     const docked = dock.current;
     if (!inShell || !frame || !docked || typeof ResizeObserver === "undefined")
@@ -648,13 +650,17 @@ export function ConversationView({
           <PageSheetHost />
         </ConversationSendContext.Provider>
       </div>
+      {/*
+       * An empty chat's dock is centred with a margin, not a transform: a transform would make it the
+       * containing block of the `/` menu, which is fixed to the caret's place on the screen.
+       */}
       <div
         className={
           inShell
             ? cn(
                 "absolute inset-x-0 z-10 mx-auto px-4 lg:max-w-3xl lg:px-6",
                 empty
-                  ? "top-1/2 -translate-y-1/2"
+                  ? "top-1/2 -mt-[calc(var(--duet-dock,0px)/2)]"
                   : "bottom-0 pb-[calc(var(--duet-tab-space,0px)+10px)] lg:pb-6",
               )
             : "max-w-2xl mx-auto w-full px-0 pb-4 shrink-0"
