@@ -53,10 +53,15 @@ skills:
       level, and a first step they can do in ten minutes. Then call suggest_replies with chips such
       as "Start it", "Something else" and "Plan my week". If nothing is due, say so plainly and
       suggest studying for the nearest test. If mail is not connected, say so and where to connect it.
+      When Notion is connected, also check their school notebook there (see the school-notebook
+      skill) and rank its open assignments together with the Classroom ones.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: plan-assignments
     title: Turn my assignments into tasks
@@ -71,10 +76,16 @@ skills:
       help level and then says what it is worth, the first step is concrete and takes about ten
       minutes, and the source is the Classroom link. Then say in one sentence how many you added
       and which one is most urgent. If you find none, say so and what you searched.
+      When Notion is connected, also add open assignments from their school notebook there (see the
+      school-notebook skill), with the Notion page link as the source, and merge any that match a
+      Classroom notice.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: quiz-me
     title: Quiz me
@@ -211,6 +222,31 @@ skills:
       - google-drive/search_files
       - google-drive/read_file_content
       - google-drive/get_file_metadata
+
+  # A student who keeps school in Notion: classes, an assignment tracker, and class notes and
+  # handouts. Reached through the catalogue's Notion connector (docs/plugins/notion.md), as the
+  # student, so it reads only the pages they shared on Notion's consent screen.
+  - slug: school-notebook
+    title: My school notebook (Notion)
+    summary: Read your classes, assignments and class materials from your own Notion.
+    instructions: >-
+      Their school notebook is in Notion. Find it with notion-search: look for a Courses or Classes
+      database (one page per class, with a Status such as Current), an assignments or tasks tracker
+      (Task name, Status, Due date) and a Library of class notes, handouts, agendas and syllabi
+      linked to each class. Use only classes marked Current, or the current school year when there
+      is no status. To list a database's rows, call notion-query-data-sources with mode "view" and
+      the database's view URL, since that works on every Notion plan; if a query is refused, use
+      notion-search inside that database instead and say nothing about the refusal. An assignment is
+      open only when its Status is not Done and its due date is today or later; an older date is not
+      proof the work is still owed, so never present it as due or overdue. For class material, such
+      as a syllabus, a daily agenda or notes, fetch the page and answer from it, and use it to build
+      quizzes, flashcards and explanations for that class. Teacher AI rules still apply; when a
+      Notion page states an AI rule for an assignment, treat it like a Classroom notice. Never write,
+      move or delete anything in their Notion unless they ask for exactly that.
+    tools:
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: find-a-notion-page
     title: Find a Notion page
