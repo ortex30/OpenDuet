@@ -258,7 +258,7 @@ function renderHeader(first: ReactNode, floating = true) {
     routeTree: createRootRoute({
       component: () => (
         <ChatPresenceProvider>
-          <ShellHeader floating={floating} menuOpen={false} onMenu={() => {}} />
+          <ShellHeader floating={floating} />
           <Screen />
         </ChatPresenceProvider>
       ),

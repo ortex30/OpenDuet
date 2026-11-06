@@ -60,7 +60,7 @@ skills:
 
   - slug: plan-assignments
     title: Turn my assignments into tasks
-    summary: Find every open assignment and test and put each on your Tasks tab with a due date and first step.
+    summary: Find every open assignment and test and put each on your task list with a due date and first step.
     instructions: >-
       Search their mail for Google Classroom notices from the last two weeks
       (from:classroom.google.com newer_than:14d) and read the next seven days of their calendar for
@@ -113,7 +113,7 @@ skills:
 
   - slug: plan-my-time
     title: Plan my study time
-    summary: Fit your homework and test prep around your classes and practice, then add it to your Calendar tab.
+    summary: Fit your homework and test prep around your classes and practice, then add it to your calendar.
     instructions: >-
       Find out how much time they have and when they can start, from what they said; if they said
       neither, plan 120 minutes for today from now. Call propose_study_plan with those minutes, the
@@ -121,7 +121,7 @@ skills:
       it starts on a later day (tomorrow, or a weekday such as saturday; never a guessed date), the
       assignments to do first when they named any, and a one-sentence reason. The card shows the sessions with an
       Apply button, so never list them in the chat. Say in one sentence what the plan covers and
-      what did not fit, and remind them that nothing is on their Calendar tab until they press
+      what did not fit, and remind them that nothing is on their calendar screen until they press
       Apply. If it is refused, fix what it says and call it again.
 
   - slug: how-am-i-doing

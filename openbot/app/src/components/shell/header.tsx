@@ -33,23 +33,15 @@ export function initialOf(user: { name?: string | null; email: string }) {
 }
 
 /**
- * The film's header: the menu in a disc on the left, OpenDuet's mic orb in the centre (back to
- * Chat), the person's initial in a disc on the right (their settings). The orb follows Chat: it
- * thinks while the Bot works, listens while the person types, and rests on every other screen.
- * While it thinks, a pill under it says what the Bot is doing.
+ * The phone's header over the chat: OpenDuet's mic orb in the centre and the person's initial in a
+ * disc on the right (their settings). There is no menu: the chat is the whole app, and the coach
+ * opens anything else when asked. The orb follows Chat: it thinks while the Bot works, listens while
+ * the person types, and rests otherwise. While it thinks, a pill under it says what the Bot is doing.
  *
- * `floating` lays it over a screen that scrolls under it, behind a fade, as on Chat, Tasks and
- * Make. Otherwise it is a bar in the page's flow, for the screens the menu opens.
+ * `floating` lays it over the chat, which scrolls under it behind a fade. Otherwise it is a bar in
+ * the page's flow. On a wide screen the desktop bar (desktop-bar.tsx) stands in for it.
  */
-export function ShellHeader({
-  floating,
-  menuOpen,
-  onMenu,
-}: {
-  floating: boolean;
-  menuOpen: boolean;
-  onMenu: () => void;
-}) {
+export function ShellHeader({ floating }: { floating: boolean }) {
   const { data: user } = useQuery(currentUserQueryOptions());
   const side = SIDE;
   const centre = floating ? 62 : 48;
@@ -62,15 +54,8 @@ export function ShellHeader({
           : "relative h-16 shrink-0 items-center border-border border-b bg-background",
       )}
     >
-      <Disc
-        aria-expanded={menuOpen}
-        aria-label="Menu"
-        className={floating ? "mt-2" : undefined}
-        onClick={onMenu}
-        size={side}
-      >
-        <DuetIcon name="menu" size={21} />
-      </Disc>
+      {/* The settings disc's width on the left too, so the orb stays in the middle. */}
+      <span aria-hidden className="shrink-0" style={{ width: side }} />
       {/* The span between the discs, so the pill under the orb can never reach under either. */}
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1 px-2">
         <Link

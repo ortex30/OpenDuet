@@ -418,7 +418,7 @@ test("the header's orb is the one Chat reports to", async () => {
     routeTree: createRootRoute({
       component: () => (
         <ChatPresenceProvider>
-          <ShellHeader floating menuOpen={false} onMenu={() => {}} />
+          <ShellHeader floating />
           <Reporter turn={{ working: true }} />
         </ChatPresenceProvider>
       ),

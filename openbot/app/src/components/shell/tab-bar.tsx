@@ -9,15 +9,9 @@ import { needsInputCount } from "@/lib/tasks/groups";
 import { taskListQueryOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
-export type ShellTab =
-  | "chat"
-  | "tasks"
-  | "calendar"
-  | "coach"
-  | "learn"
-  | "make";
+export type ShellTab = "chat" | "tasks" | "calendar" | "coach" | "learn" | "make";
 
-export const TABS: {
+const TABS: {
   id: ShellTab;
   to: "/" | "/tasks" | "/calendar" | "/coach" | "/learn" | "/make";
   icon: DuetIconName;
@@ -68,20 +62,15 @@ export function tabForPath(pathname: string): ShellTab | null {
  * the bar's way of saying something arrived (parity-spec scene 7). With reduced motion the capsule
  * moves without sliding and the badge and its number fade.
  */
-/** How many things wait on the person, counted as Tasks' Needs input group lists them. */
-export function useWaitingCount(): number {
+export function TabBar({ current }: { current: ShellTab }) {
   const inbox = useQuery(approvalInboxOptions());
   const tasks = useQuery(taskListQueryOptions());
-  return needsInputCount(tasks.data, inbox.data);
-}
-
-export function TabBar({ current }: { current: ShellTab }) {
-  const waiting = useWaitingCount();
+  const waiting = needsInputCount(tasks.data, inbox.data);
   const reduced = useReducedMotionPreference();
   return (
     <nav
       aria-label="Main"
-      className="duet-face duet-glass absolute inset-x-0 bottom-[22px] z-20 mx-auto flex lg:hidden h-16 w-[344px] max-w-[calc(100%-32px)] gap-0.5 rounded-[32px] p-[5px] shadow-duet-glass"
+      className="duet-face duet-glass absolute inset-x-0 bottom-[22px] z-20 mx-auto flex h-16 w-[344px] max-w-[calc(100%-32px)] gap-0.5 rounded-[32px] p-[5px] shadow-duet-glass"
     >
       {TABS.map((tab) => {
         const on = tab.id === current;

@@ -37,6 +37,7 @@ import type { ApprovalRequest } from "@/lib/approvals";
 import { attachmentUrl } from "@/lib/channels/attachments";
 import { isThreadBusyError } from "@/lib/channels/run-lifecycle";
 import { useFocusMessage } from "@/lib/tasks/focus-message";
+import { cn } from "@/lib/utils";
 import { newId } from "../../lib/new-id";
 
 export function ConversationView({
@@ -223,6 +224,17 @@ export function ConversationView({
   // The app shell's orb follows Chat: thinking for the turn, listening to the draft. Not while
   // history is restoring: joining the thread is a run of its own, and it is not an answer.
   const working = (busy || inFlight) && !restoring;
+  /*
+   * Chat with nothing in it yet, as School Chat opens: one question and the box to answer it, in
+   * the middle of the screen. The first message sends the box to the foot, where it stays.
+   */
+  const empty =
+    inShell &&
+    messages.length === 0 &&
+    queued.length === 0 &&
+    serverQueued.length === 0 &&
+    !working &&
+    !restoring;
   /*
    * What moves when the turn does: another message, the last one growing as it is written, or a
    * tool call added to it. The pill's quiet clock (`usePatientStep`) starts again on each.
@@ -628,11 +640,21 @@ export function ConversationView({
       <div
         className={
           inShell
-            ? "absolute inset-x-0 bottom-0 z-10 mx-auto px-4 pb-[calc(var(--duet-tab-space,0px)+10px)] lg:max-w-3xl lg:px-6 lg:pb-6"
+            ? cn(
+                "absolute inset-x-0 z-10 mx-auto px-4 lg:max-w-3xl lg:px-6",
+                empty
+                  ? "top-1/2 -translate-y-1/2"
+                  : "bottom-0 pb-[calc(var(--duet-tab-space,0px)+10px)] lg:pb-6",
+              )
             : "max-w-2xl mx-auto w-full px-0 pb-4 shrink-0"
         }
         ref={dock}
       >
+        {empty ? (
+          <h2 className="type-display mb-5 text-balance text-center font-semibold text-duet-ink">
+            What are we working on?
+          </h2>
+        ) : null}
         {/* Chat's Bot's newest suggestion; nothing in any other conversation. */}
         {inShell ? <ChatSuggestionCard /> : null}
         {queuedNotice && queued.length > 0 ? (

@@ -341,10 +341,7 @@ export function MakeScreen() {
               yet. Tap + to make one.
             </p>
           ) : (
-            <ul
-              aria-label="Made for you"
-              className="grid grid-cols-2 gap-3 @2xl:grid-cols-3 @4xl:grid-cols-4"
-            >
+            <ul aria-label="Made for you" className="grid grid-cols-2 gap-3">
               {making.map((entry) => (
                 <motion.li key={entry.id} layout={!reduced}>
                   <MakingCard

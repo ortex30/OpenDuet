@@ -1,56 +1,41 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  type ReactNode,
-  type RefObject,
-  type TouchEvent,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, type TouchEvent, useEffect, useRef } from "react";
 import { AttentionNotifier } from "@/components/bot-profile/attention";
+import { DuetIcon } from "@/components/duet/icons";
 import { SelfHostBanner } from "@/components/layout/self-host-banner";
 import { useChannelEvents } from "@/lib/channels/use-channel-events";
-import { useIsDesktop } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { ChatScreen } from "./chat-screen";
-import { DesktopBar } from "./desktop-bar";
 import {
   ChatPresenceProvider,
   useChatServerBusy,
   useServerWork,
 } from "./chat-presence";
+import { DesktopBar } from "./desktop-bar";
 import { FinishedForYou } from "./finished-for-you";
 import { PageHeader, ShellHeader, useBack } from "./header";
-import { MenuSheet } from "./menu-sheet";
 import { PageChromeProvider, usePageChromeState } from "./page-chrome";
-import { type ShellTab, TabBar, tabForPath } from "./tab-bar";
-import { DuetIcon } from "@/components/duet/icons";
+import { type ShellTab, tabForPath } from "./tab-bar";
 
 /**
- * The signed-in app. On a phone: one column with the header floating over it and the tabs at its
- * foot. On a wide screen (`lg` and up): one bar across the top and the chat always on screen, with
- * the other screens opening beside it (`DesktopSplit`).
+ * The signed-in app is one chat with the coach, as School Chat was. There are no tabs to find:
+ * Tasks, Calendar, Coach, Learn and what the coach made are screens it opens when the student asks
+ * (the `open_screen` tool), one at a time. On a wide screen the screen opens beside the chat; on a
+ * phone it covers the chat until it is closed. The chat stays mounted under it either way, so
+ * nothing typed or streaming is lost.
  *
- * Everything that is not a tab is a page pushed over the app, in one chrome (parity-spec 2.9): a
- * back disc, the page's title in a pill, and no menu disc, avatar or tab bar. Bots, Connections,
- * Settings and a conversation opened from the menu all draw it; none draws its own.
+ * Everything else (Settings, Bots, Connections) is a page pushed over the app, in one chrome
+ * (parity-spec 2.9): a back disc and the page's title in a pill.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
   const tab = tabForPath(pathname);
-  const [menuOpen, setMenuOpen] = useState(false);
-  // Any navigation closes the menu, including a conversation picked from inside it.
-  const [shownPath, setShownPath] = useState(pathname);
-  if (shownPath !== pathname) {
-    setShownPath(pathname);
-    setMenuOpen(false);
-  }
   // One socket for the app: it keeps the conversation list and its working dots live.
   useChannelEvents();
   // Work the server runs in Chat that this screen did not start, for the pill and the orb.
-  const chat = useChatServerBusy(tab === "chat");
+  const chat = useChatServerBusy(tab !== null);
   const chatServerWork = useServerWork(chat.busy, chat.threadId);
 
   return (
@@ -60,146 +45,109 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AttentionNotifier />
         <FinishedForYou />
         <SelfHostBanner />
-        {/* On a wide screen one bar across the top holds what the phone's header and tab bar do. */}
-        <DesktopBar current={tab} />
+        <DesktopBar />
         {tab ? (
-          <TabColumn tab={tab}>
-            <ShellHeader
-              floating
-              menuOpen={menuOpen}
-              onMenu={() => setMenuOpen(true)}
-            />
-            <DesktopSplit tab={tab}>{children}</DesktopSplit>
-          </TabColumn>
+          <ChatWithScreen
+            channel={/^\/channels\/[^/]+\/?$/.test(pathname)}
+            tab={tab}
+          >
+            {children}
+          </ChatWithScreen>
         ) : (
           <PageChromeProvider>
             <PageColumn>{children}</PageColumn>
           </PageChromeProvider>
         )}
-        <MenuSheet onOpenChange={setMenuOpen} open={menuOpen} />
       </div>
     </ChatPresenceProvider>
   );
 }
 
-const TAB_NAMES: Record<ShellTab, string> = {
-  chat: "Chat",
-  tasks: "Tasks",
-  calendar: "Calendar",
-  coach: "Coach",
-  learn: "Learn",
-  make: "Make",
+/** What each screen is called on the bar over it. */
+const SCREEN_NAMES: Record<Exclude<ShellTab, "chat">, string> = {
+  tasks: "Your tasks",
+  calendar: "Your calendar",
+  coach: "Today's plan",
+  learn: "What to review",
+  make: "Made for you",
 };
 
 /**
- * One agent, one place. On a desktop the chat with the coach is always there: alone and centred on
- * Chat, and down the left with any other screen (Tasks, Calendar, Coach, Learn, Make) open beside
- * it, so the student never leaves the conversation to look something up. On a phone each screen
- * is its own tab, as before.
+ * The chat, and the one screen the coach opened, if any.
+ *
+ * The chat is Chat's own conversation, drawn here rather than by the `/` route so it keeps its
+ * place, and everything in it, while screens open and close beside it. A channel (`/channels/<id>`)
+ * is drawn by its route in the chat's place.
+ *
+ * Wide: the chat takes what the screen leaves, and the screen a column on the right, wider for the
+ * calendar's week. Narrow: the screen covers the chat, under a bar with its name and a close button.
+ * Escape closes it too.
  */
-function DesktopSplit({
+function ChatWithScreen({
   tab,
+  channel,
   children,
 }: {
   tab: ShellTab;
+  /** A channel's own conversation, drawn by its route in the chat's place. */
+  channel: boolean;
   children: ReactNode;
 }) {
-  const desktop = useIsDesktop();
+  const screen = tab === "chat" ? null : tab;
   const navigate = useNavigate();
-  const panel = desktop && tab !== "chat";
   useEffect(() => {
-    if (!panel) return;
+    if (!screen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !document.querySelector("[role=dialog]"))
         void navigate({ to: "/" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [panel, navigate]);
-  if (!panel)
-    return <main className="flex min-h-0 flex-1 flex-col">{children}</main>;
-  return (
-    <div className="flex min-h-0 flex-1">
-      <section
-        aria-label="Chat"
-        className="relative flex min-h-0 w-[420px] shrink-0 flex-col border-duet-hair-2 border-r xl:w-[480px]"
-      >
-        <ChatScreen />
-      </section>
-      <main className="relative flex min-h-0 flex-1 flex-col">
-        <div className="flex h-12 shrink-0 items-center justify-between border-duet-hair-2 border-b px-6">
-          <p className="type-label font-semibold text-duet-ink-2 uppercase tracking-wide">
-            {TAB_NAMES[tab]}
-          </p>
-          <Link
-            aria-label={`Close ${TAB_NAMES[tab]}`}
-            className="grid size-9 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
-            to="/"
-          >
-            <DuetIcon name="x" size={18} />
-          </Link>
-        </div>
-        {children}
-      </main>
-    </div>
-  );
-}
-
-/** The tab bar's distance from the foot of the screen. */
-const TAB_BAR_GAP = 22;
-
-/**
- * A tab's column. The tab bar floats over its foot, frosted, so what scrolls reaches the bottom of
- * the screen. `--duet-tab-space` is the height the bar covers there: a screen pads its end by it,
- * and Chat docks its composer above it.
- */
-function TabColumn({
-  tab,
-  children,
-}: {
-  tab: NonNullable<ReturnType<typeof tabForPath>>;
-  children: ReactNode;
-}) {
-  const column = useRef<HTMLDivElement>(null);
-  useTabSpace(column);
+  }, [screen, navigate]);
   return (
     <div
-      className="duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:86px] lg:max-w-none"
-      ref={column}
+      className={cn(
+        "relative flex min-h-0 flex-1",
+        screen === "calendar"
+          ? "lg:grid lg:grid-cols-[minmax(340px,0.75fr)_minmax(560px,1.25fr)]"
+          : screen
+            ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(400px,500px)]"
+            : null,
+      )}
     >
-      {children}
-      <TabBar current={tab} />
+      <section
+        aria-label="Chat"
+        className="duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] lg:max-w-none"
+      >
+        <ShellHeader floating />
+        <main className="flex min-h-0 flex-1 flex-col">
+          {channel ? children : <ChatScreen />}
+        </main>
+      </section>
+      {screen ? (
+        <aside
+          aria-label={SCREEN_NAMES[screen]}
+          className="duet-face absolute inset-0 z-30 flex min-h-0 flex-col bg-duet-surface text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] [--screen-sticky:0px] [--screen-top:16px] motion-safe:animate-in motion-safe:fade-in lg:static lg:z-auto lg:border-duet-hair-2 lg:border-l motion-safe:lg:slide-in-from-right-4"
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-duet-hair-2 border-b px-4 lg:px-6">
+            <p className="type-sub truncate font-semibold">
+              {SCREEN_NAMES[screen]}
+            </p>
+            <Link
+              aria-label={`Close ${SCREEN_NAMES[screen].toLowerCase()}`}
+              className="grid size-10 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+              to="/"
+            >
+              <DuetIcon name="x" size={20} />
+            </Link>
+          </div>
+          <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col lg:max-w-none">
+            {children}
+          </div>
+        </aside>
+      ) : null}
     </div>
   );
-}
-
-/**
- * Keep `--duet-tab-space` at the tab bar's real height plus its gap from the edge.
- *
- * MEASURED, NOT WRITTEN DOWN. It was a fixed 86px (a 64px bar and its 22px gap), but the bar's
- * height is in rem and follows the person's text size: at 200% it is 128px tall, and a fixed inset
- * left it lying over Chat's composer, so nobody could type. The 86px in the class is only the first
- * paint, before the bar has been measured.
- */
-export function useTabSpace(column: RefObject<HTMLElement | null>) {
-  useLayoutEffect(() => {
-    const host = column.current;
-    const bar = host?.querySelector<HTMLElement>('nav[aria-label="Main"]');
-    if (!host || !bar) return;
-    // On a wide screen the bar is hidden (the sidebar replaces it): leave only a margin.
-    const apply = () => {
-      const height = Math.ceil(bar.getBoundingClientRect().height);
-      host.style.setProperty(
-        "--duet-tab-space",
-        `${height > 0 ? height + TAB_BAR_GAP : 16}px`,
-      );
-    };
-    apply();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(apply);
-    observer.observe(bar);
-    return () => observer.disconnect();
-  }, [column]);
 }
 
 /**

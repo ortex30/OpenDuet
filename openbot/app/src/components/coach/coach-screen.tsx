@@ -99,9 +99,7 @@ export function CoachScreen() {
     <ScreenScroll>
       <header className="mb-3 flex items-end justify-between gap-2 px-1">
         <div>
-          <h1 className="type-display font-semibold text-duet-ink lg:text-[34px] lg:leading-[40px]">
-            Coach
-          </h1>
+          <h1 className="type-display font-semibold text-duet-ink">Coach</h1>
           <p className="type-sub mt-0.5 text-duet-ink-2">
             {now.toLocaleDateString("en-US", {
               weekday: "long",
@@ -148,44 +146,32 @@ export function CoachScreen() {
         </div>
       ) : null}
 
-      {/* One column on a phone; on a desktop, today's plan on the left and the week on the right. */}
-      <div className="@3xl:grid @3xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] @3xl:items-start @3xl:gap-5">
-        <div className="min-w-0">
-          <TodayHero now={now} pace={pace} state={state} />
-          <CheckInCard
-            now={now}
-            onEarned={onEarned}
-            pace={pace}
-            state={state}
-          />
-          <DoNextCard
-            now={now}
-            onHandOff={(r) =>
-              setHandOff({
-                title: r.assignment.title,
-                instruction: assignmentInstruction(state, r.assignment, now),
-              })
-            }
-            pace={pace}
-            state={state}
-          />
-          <CatchUpCard
-            now={now}
-            onPlan={() =>
-              setHandOff({
-                title: "Catch-up plan",
-                instruction: catchUpInstruction(state, now),
-              })
-            }
-            state={state}
-          />
-        </div>
-        <div className="min-w-0">
-          <WorkloadRadar now={now} state={state} />
-          <AssignmentsCard now={now} onEarned={onEarned} state={state} />
-          <AchievementsCard state={state} />
-        </div>
-      </div>
+      <TodayHero now={now} pace={pace} state={state} />
+      <CheckInCard now={now} onEarned={onEarned} pace={pace} state={state} />
+      <DoNextCard
+        now={now}
+        onHandOff={(r) =>
+          setHandOff({
+            title: r.assignment.title,
+            instruction: assignmentInstruction(state, r.assignment, now),
+          })
+        }
+        pace={pace}
+        state={state}
+      />
+      <CatchUpCard
+        now={now}
+        onPlan={() =>
+          setHandOff({
+            title: "Catch-up plan",
+            instruction: catchUpInstruction(state, now),
+          })
+        }
+        state={state}
+      />
+      <WorkloadRadar now={now} state={state} />
+      <AssignmentsCard now={now} onEarned={onEarned} state={state} />
+      <AchievementsCard state={state} />
 
       {handOff && bot ? (
         <HandOffSheet
