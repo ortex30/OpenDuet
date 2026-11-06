@@ -71,8 +71,14 @@ export function ShellHeader({ floating }: { floating: boolean }) {
       </div>
       <Link
         aria-label="Your settings"
-        className={cn(DISC, "pointer-events-auto", floating && "mt-2")}
+        className={cn(
+          DISC,
+          // The press still scales; a pointer that can hover also tints it, as the desktop bar's does.
+          "pointer-events-auto transition-[scale,background-color] hover:bg-duet-tile",
+          floating && "mt-2",
+        )}
         style={{ width: side, height: side }}
+        title="Settings"
         to="/settings"
       >
         <span className="type-nav font-semibold">

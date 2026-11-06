@@ -13,11 +13,9 @@ import { queryClient } from "@/query-client";
 /**
  * One box, applied to every coworker in every channel.
  *
- * WHAT IT IS FOR, said on the screen rather than left to be guessed. A coworker's role and this are
- * both durable instructions and a person meeting them for the first time has no reason to know which
- * belongs where, so the description draws the line the prompt draws: the role says what a coworker
- * is for, this says how the person wants things done. Without that sentence the obvious mistake is
- * to write a job description here and get it applied to every coworker at once.
+ * WHAT IT IS FOR, said on the screen rather than left to be guessed. A student has one coach, so
+ * this is what the coach should know about them and how they like to be helped, which is what the
+ * title, the description and the example in the empty box all say.
  */
 export function StandingInstructions() {
   const stored = useQuery(instructionsQueryOptions());
@@ -57,8 +55,8 @@ export function StandingInstructions() {
 
   return (
     <PageSection
-      description="Applies to every Bot in every conversation. A Bot's role says what it does. This says how you want it done, like your writing style."
-      title="Standing instructions"
+      description="Your coach keeps this in mind in every chat."
+      title="About you"
     >
       {stored.isPending ? null : stored.error ? (
         <p className="mt-4 text-destructive text-sm" role="alert">
@@ -67,14 +65,14 @@ export function StandingInstructions() {
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           <Textarea
-            aria-label="Standing instructions"
+            aria-label="About you"
             className="min-h-40"
             disabled={save.isPending}
             onChange={(event) => {
               setDraft(event.target.value);
               setSaved(false);
             }}
-            placeholder="We are two people, not a team. Write in British English, and never call our product a platform."
+            placeholder="I'm a junior. Walk me through math step by step, keep answers short, and quiz me before tests."
             value={text}
           />
           <div className="flex flex-row items-center justify-between gap-4">

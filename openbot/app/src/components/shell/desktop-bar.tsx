@@ -32,7 +32,8 @@ export function DesktopBar() {
       </div>
       <Link
         aria-label="Your settings"
-        className="duet-glass type-nav grid size-10 shrink-0 place-items-center rounded-full font-semibold shadow-duet-glass focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+        className="duet-glass type-nav grid size-10 shrink-0 place-items-center rounded-full font-semibold shadow-duet-glass transition-colors hover:bg-duet-tile focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+        title="Settings"
         to="/settings"
       >
         {user ? initialOf(user) : null}
