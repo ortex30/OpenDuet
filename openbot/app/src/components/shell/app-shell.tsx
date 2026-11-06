@@ -44,9 +44,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/*
        * `duet-touch`: every control drawn in the shell is a 44px target (styles.css). Clipped, not
        * hidden: a clipped box can't be scrolled, so nothing (the `/` menu bringing an item into view,
-       * a phone's keyboard) can push the top bar off the screen.
+       * a phone's keyboard) can push the top bar off the screen. Hidden where a browser can't clip
+       * (Safari before 16), rather than not cut off at all.
        */}
-      <div className="duet-touch flex h-svh flex-col overflow-clip bg-duet-surface">
+      <div className="duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface supports-[overflow:clip]:overflow-clip">
         <StartupIntro tab={tab} />
         <AttentionNotifier />
         <FinishedForYou />
