@@ -23,11 +23,13 @@ import {
   INTRO_STILL_MS,
   resetStartupIntroForTests,
   StartupIntro,
+  skipStartupIntro,
 } from "@/components/shell/startup-intro";
+import { appConfig } from "@/lib/generated/application-config";
 import { settleReactWork } from "./settle-react-work";
 
 /**
- * The app's hello: the coach's orb wakes in the middle, the name writes in, and both fly into the
+ * The app's hello: the coach's orb wakes up in the middle, the name inks in, and both fly into the
  * header while the screen behind dissolves into Chat. Once a tab, never in the way: decoration over
  * an app that is already there, skipped by a tap or a key, and a plain fade for less motion.
  */
@@ -41,6 +43,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   sessionStorage.clear();
   resetStartupIntroForTests();
+  // happy-dom says it is a driven browser, as Playwright's do; the person's browser is not.
+  driven(false);
 });
 afterEach(async () => {
   cleanup();
@@ -50,6 +54,8 @@ afterEach(async () => {
   } finally {
     window.matchMedia = originalMatchMedia;
     Reflect.deleteProperty(document, "visibilityState");
+    Reflect.deleteProperty(navigator, "webdriver");
+    history.replaceState(null, "", "/");
     document.body.innerHTML = "";
     document.documentElement.removeAttribute("data-startup-intro");
   }
@@ -65,18 +71,49 @@ const headerHidden = () =>
   document.documentElement.hasAttribute("data-startup-intro");
 const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
 
-/** Ask for less motion, or not, as the person's system would. */
-function reducedMotion(reduce: boolean) {
+/**
+ * The person's screen, as media queries see it: whether they asked their system for less motion
+ * (which can change while the page is open), and whether it is a wide screen (64rem and up).
+ */
+function screen({ reduce = false, wide = false }) {
+  const changed = new Set<() => void>();
+  const state = { reduce, wide };
   window.matchMedia = ((query: string) => ({
-    matches: reduce && query.includes("prefers-reduced-motion"),
+    get matches() {
+      if (query.includes("prefers-reduced-motion")) return state.reduce;
+      if (query.includes("min-width")) return state.wide;
+      return false;
+    },
     media: query,
     onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    addEventListener: (_: string, listener: () => void) =>
+      changed.add(listener),
+    removeEventListener: (_: string, listener: () => void) =>
+      changed.delete(listener),
     addListener: () => {},
     removeListener: () => {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
+  return {
+    /** Ask for less motion now, as a system setting changed while the page is open would. */
+    reduceMotion() {
+      state.reduce = true;
+      act(() => {
+        for (const listener of changed) listener();
+      });
+    },
+  };
+}
+
+/** Ask for less motion, or not, as the person's system would. */
+const reducedMotion = (reduce: boolean) => screen({ reduce });
+
+/** Driven by a test harness or an eval, as Playwright drives a browser. */
+function driven(yes = true) {
+  Object.defineProperty(navigator, "webdriver", {
+    configurable: true,
+    get: () => yes,
+  });
 }
 
 /** Lays an element out at a box, since happy-dom lays nothing out. */
@@ -111,7 +148,7 @@ function header({ name }: { name: boolean }) {
 
 describe("the startup intro", () => {
   test("plays through to the app once, and not again in the same tab", () => {
-    const first = render(<StartupIntro />);
+    const first = render(<StartupIntro tab="chat" />);
     expect(phase()).toBe("enter");
     expect(headerHidden()).toBe(true);
     expect(sessionStorage.getItem(INTRO_PLAYED_KEY)).toBe("1");
@@ -130,14 +167,14 @@ describe("the startup intro", () => {
 
     // The shell remounts between Chat and Settings; that is not a new start.
     first.unmount();
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     expect(intro()).toBeNull();
     expect(headerHidden()).toBe(false);
   });
 
   test("is decoration: hidden from assistive tech, never a dialog, never takes focus", () => {
     const before = document.activeElement;
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     const overlay = intro();
     expect(overlay?.getAttribute("aria-hidden")).toBe("true");
     expect(document.querySelector("[role=dialog]")).toBeNull();
@@ -152,7 +189,7 @@ describe("the startup intro", () => {
   });
 
   test("a key skips it straight to the app", () => {
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
     });
@@ -163,7 +200,7 @@ describe("the startup intro", () => {
   });
 
   test("a tap skips it too", () => {
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     act(() => {
       document.body.dispatchEvent(
         new PointerEvent("pointerdown", { bubbles: true }),
@@ -181,7 +218,7 @@ describe("the startup intro", () => {
       pressed += 1;
     });
     document.body.append(start);
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     act(() => {
       start.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     });
@@ -201,7 +238,7 @@ describe("the startup intro", () => {
   });
 
   test("a tap while it flies ends it at once, and the tap still reaches the app", () => {
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     wait(INTRO_ENTER_MS);
     expect(phase()).toBe("fly");
     const tap = new PointerEvent("pointerdown", {
@@ -222,7 +259,7 @@ describe("the startup intro", () => {
   });
 
   test("scrolling skips it", () => {
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     act(() => {
       window.dispatchEvent(new WheelEvent("wheel", { deltaY: 40 }));
     });
@@ -230,7 +267,7 @@ describe("the startup intro", () => {
   });
 
   test("an Escape that skips it does not also close a screen under it", () => {
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     const escapeKey = new KeyboardEvent("keydown", {
       key: "Escape",
       cancelable: true,
@@ -245,7 +282,7 @@ describe("the startup intro", () => {
 
   test("flies the orb and the name onto the header's, the one on screen", () => {
     header({ name: true });
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     const [orbBox, nameBox] = document.querySelectorAll<HTMLElement>(
       ".startup-intro-flight",
     );
@@ -267,7 +304,7 @@ describe("the startup intro", () => {
 
   test("on a phone the name has nowhere to land, so it fades up and away while the orb flies", () => {
     header({ name: false });
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     const [orbBox, nameBox] = document.querySelectorAll<HTMLElement>(
       ".startup-intro-flight",
     );
@@ -288,7 +325,7 @@ describe("the startup intro", () => {
     const elementFromPoint = document.elementFromPoint;
     document.elementFromPoint = () => screen;
     try {
-      render(<StartupIntro />);
+      render(<StartupIntro tab="chat" />);
       const [orbBox] = document.querySelectorAll<HTMLElement>(
         ".startup-intro-flight",
       );
@@ -300,27 +337,54 @@ describe("the startup intro", () => {
     }
   });
 
-  test("the orb lands as it wakes, then calms on its way up to match the header's", () => {
-    render(<StartupIntro />);
-    const orbState = () =>
-      intro()?.querySelector("[data-state]")?.getAttribute("data-state");
-    expect(orbState()).toBe("done");
-    wait(INTRO_ENTER_MS);
-    expect(orbState()).toBe("idle");
+  test("the orb that wakes is drawn frame by frame; with less motion it is the resting orb, still", () => {
+    render(<StartupIntro tab="chat" />);
+    expect(intro()?.querySelector("[data-intro-orb] canvas")).not.toBeNull();
+    // Nothing in it reads as the coach's presence, which the app finds by `data-state`.
+    expect(intro()?.querySelector("[data-state]")).toBeNull();
+    cleanup();
+
+    resetStartupIntroForTests();
+    sessionStorage.clear();
+    reducedMotion(true);
+    render(<StartupIntro tab="chat" />);
+    expect(intro()?.querySelector("[data-intro-orb]")).toBeNull();
+    expect(
+      intro()?.querySelector("[data-state]")?.getAttribute("data-state"),
+    ).toBe("idle");
   });
 
-  test("it is short: through to the app in about two seconds, and never past the limit", () => {
+  test("the name inks in letter by letter, and still reads as the name", () => {
+    render(<StartupIntro tab="chat" />);
+    const name = intro()?.querySelector(".startup-intro-name");
+    const letters = [
+      ...(intro()?.querySelectorAll<HTMLElement>(".startup-intro-letter") ??
+        []),
+    ];
+    expect(name?.textContent).toBe(appConfig.brand.productName);
+    expect(letters).toHaveLength(
+      Array.from(appConfig.brand.productName).length,
+    );
+    letters.forEach((letter, i) => {
+      expect(letter.style.getPropertyValue("--i")).toBe(String(i));
+    });
+  });
+
+  test("it is short: through to the app in under two seconds, and never past the limit", () => {
+    expect(INTRO_ENTER_MS + INTRO_FLY_MS + INTRO_LAND_MS).toBe(1960);
     expect(INTRO_ENTER_MS + INTRO_FLY_MS + INTRO_LAND_MS).toBeGreaterThan(1200);
     expect(INTRO_ENTER_MS + INTRO_FLY_MS + INTRO_LAND_MS).toBeLessThan(2200);
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     wait(INTRO_LIMIT_MS);
     expect(intro()).toBeNull();
   });
 
   test("with less motion it is a still moment and a fade, with no flight", () => {
+    expect(INTRO_STILL_MS).toBe(400);
+    expect(INTRO_STILL_FADE_MS).toBe(200);
     reducedMotion(true);
     header({ name: true });
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     expect(intro()?.hasAttribute("data-reduced")).toBe(true);
 
     wait(INTRO_STILL_MS);
@@ -340,7 +404,7 @@ describe("the startup intro", () => {
       configurable: true,
       get: () => "hidden",
     });
-    render(<StartupIntro />);
+    render(<StartupIntro tab="chat" />);
     expect(intro()).toBeNull();
     expect(headerHidden()).toBe(false);
   });
@@ -355,10 +419,10 @@ describe("the startup intro", () => {
       throw new Error("blocked");
     };
     try {
-      const first = render(<StartupIntro />);
+      const first = render(<StartupIntro tab="chat" />);
       expect(phase()).toBe("enter");
       first.unmount();
-      render(<StartupIntro />);
+      render(<StartupIntro tab="chat" />);
       expect(intro()).toBeNull();
     } finally {
       storage.getItem = getItem;
@@ -366,8 +430,65 @@ describe("the startup intro", () => {
     }
   });
 
+  test("asked for less motion while it plays, it ends there", () => {
+    const person = screen({});
+    render(<StartupIntro tab="chat" />);
+    wait(200);
+    expect(phase()).toBe("enter");
+    person.reduceMotion();
+    expect(phase()).toBe("leave");
+    expect(headerHidden()).toBe(false);
+    wait(INTRO_STILL_FADE_MS);
+    expect(intro()).toBeNull();
+  });
+
+  test("a first page that is not the chat (Settings, say) does not play it, and does not use it up", () => {
+    const settings = render(<StartupIntro tab={null} />);
+    expect(intro()).toBeNull();
+    // The shell remounts for Chat on the same page: still not this page.
+    settings.unmount();
+    render(<StartupIntro tab="chat" />);
+    expect(intro()).toBeNull();
+    // A later page load can still play it.
+    expect(sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+
+  test("a screen opened first plays it on a wide screen, beside the chat, but not over it on a phone", () => {
+    screen({ wide: false });
+    render(<StartupIntro tab="calendar" />);
+    expect(intro()).toBeNull();
+    cleanup();
+
+    resetStartupIntroForTests();
+    screen({ wide: true });
+    render(<StartupIntro tab="calendar" />);
+    expect(phase()).toBe("enter");
+  });
+
+  test("?intro=1 plays it again, even after it played, and even in a driven browser", () => {
+    sessionStorage.setItem(INTRO_PLAYED_KEY, "1");
+    driven();
+    history.replaceState(null, "", "/?intro=1");
+    render(<StartupIntro tab="chat" />);
+    expect(phase()).toBe("enter");
+  });
+
+  test("a browser driven by a test does not play it", () => {
+    driven();
+    render(<StartupIntro tab="chat" />);
+    expect(intro()).toBeNull();
+    expect(headerHidden()).toBe(false);
+  });
+
+  test("onboarding's own ending stands in for it on that page", () => {
+    skipStartupIntro();
+    render(<StartupIntro tab="chat" />);
+    expect(intro()).toBeNull();
+    expect(sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+
   test("leaving while it plays gives the header its orb back", () => {
-    const view = render(<StartupIntro />);
+    const view = render(<StartupIntro tab="chat" />);
     expect(headerHidden()).toBe(true);
     view.unmount();
     expect(headerHidden()).toBe(false);

@@ -23,6 +23,7 @@ import {
   OnboardingWizard,
 } from "@/components/onboarding/onboarding-wizard";
 import { SetupChecklist } from "@/components/onboarding/setup-checklist";
+import { skipStartupIntro } from "@/components/shell/startup-intro";
 import { buttonVariants } from "@/components/ui/button";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { type AgentProfile, agentListQueryOptions } from "@/lib/agents/queries";
@@ -596,7 +597,13 @@ function RouteComponent() {
   const reduced = useReducedMotion() === true;
   const finish = (to = "/") => {
     if (complete.isPending || finishedTo !== null) return;
-    complete.mutate(undefined, { onSuccess: () => setFinishedTo(to) });
+    complete.mutate(undefined, {
+      onSuccess: () => {
+        // Onboarding ends on the orb's own finish: no second orb moment as the app opens.
+        skipStartupIntro();
+        setFinishedTo(to);
+      },
+    });
   };
   React.useEffect(() => {
     if (finishedTo === null) return;

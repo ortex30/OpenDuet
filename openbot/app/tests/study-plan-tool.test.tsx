@@ -371,9 +371,7 @@ describe("the study plan card", () => {
         name: "Remove from calendar",
       }),
     );
-    const status = await within(card).findByText(
-      "Removed from your calendar",
-    );
+    const status = await within(card).findByText("Removed from your calendar");
     expect(state.asked).toContainEqual({
       method: "POST",
       path: "/api/openduet/study/plans/plan-1/remove",

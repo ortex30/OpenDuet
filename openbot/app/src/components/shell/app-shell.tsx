@@ -5,12 +5,12 @@ import { DuetIcon } from "@/components/duet/icons";
 import { SelfHostBanner } from "@/components/layout/self-host-banner";
 import { useChannelEvents } from "@/lib/channels/use-channel-events";
 import { cn } from "@/lib/utils";
-import { ChatScreen } from "./chat-screen";
 import {
   ChatPresenceProvider,
   useChatServerBusy,
   useServerWork,
 } from "./chat-presence";
+import { ChatScreen } from "./chat-screen";
 import { DesktopBar } from "./desktop-bar";
 import { FinishedForYou } from "./finished-for-you";
 import { PageHeader, ShellHeader, useBack } from "./header";
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <ChatPresenceProvider serverWork={chatServerWork}>
       {/* `duet-touch`: every control drawn in the shell is a 44px target (styles.css). */}
       <div className="duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface">
-        <StartupIntro />
+        <StartupIntro tab={tab} />
         <AttentionNotifier />
         <FinishedForYou />
         <SelfHostBanner />

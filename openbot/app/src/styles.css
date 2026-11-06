@@ -661,28 +661,32 @@ body {
 }
 
 /*
- * The startup intro (components/shell/startup-intro.tsx). The orb wakes in the middle with a bloom
- * of its own colour behind it, the name writes itself in beside it and a band of that colour
- * sweeps across it once, and then both fly into the header while the screen behind dissolves. The
- * component steps `data-phase` on timers and sets the flight's transform; this is how each looks.
+ * The startup intro (components/shell/startup-intro.tsx). The orb wakes up in the middle (the canvas
+ * draws its eyes opening; this grows it) with a slowly turning bloom of its own two colours behind
+ * it, the name inks in under it letter by letter, and then both fly into the header while the screen
+ * behind dissolves. The component steps `data-phase` on timers and sets the flight's transform; this
+ * is how each looks.
  *
  * Each entrance animates only `from` its start (`backwards`), so when it ends the element is simply
- * at rest, and a later phase can transition it from there.
+ * at rest, and a later phase can transition it from there. Only opacity and transforms move.
  */
 [data-startup-intro] :is(.startup-target-orb, .startup-target-name) {
   opacity: 0;
 }
 
+/* The tint is the orb's own ping's: violet on light, blue on dark. */
 .startup-intro {
+  --intro-tint: var(--intro-violet);
   --intro-bloom-mix: 24%;
 }
 .dark .startup-intro {
+  --intro-tint: var(--intro-blue);
   --intro-bloom-mix: 36%;
 }
 
 /* It waits a moment to dissolve, so a name with nowhere to land is gone before the app shows. */
 .startup-intro-backdrop {
-  transition: opacity 420ms var(--duet-ease-out) 60ms;
+  transition: opacity 340ms var(--duet-ease-out) 40ms;
 }
 .startup-intro:is([data-phase="fly"], [data-phase="land"])
   .startup-intro-backdrop {
@@ -714,27 +718,66 @@ body {
     transform 320ms var(--duet-ease-out);
 }
 
+/* Asleep and small, it fades in, holds, then grows past its size and settles as it wakes. */
 .startup-intro-orb {
-  animation: duet-intro-orb 560ms cubic-bezier(0.34, 1.45, 0.64, 1) backwards;
+  animation: duet-intro-wake 740ms linear backwards;
 }
-@keyframes duet-intro-orb {
-  from {
+@keyframes duet-intro-wake {
+  0% {
     opacity: 0;
     transform: scale(0.4);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  35% {
+    transform: scale(0.4);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  66% {
+    transform: scale(1.07);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  80% {
+    transform: scale(0.99);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
+/* Two soft pools of the orb's colours, turning slowly behind it as it wakes. */
 .startup-intro-bloom {
   position: absolute;
   inset: -150%;
   border-radius: 9999px;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in oklab, var(--intro-bloom) var(--intro-bloom-mix), transparent),
-    transparent
-  );
+  background:
+    radial-gradient(
+      closest-side at 42% 44%,
+      color-mix(
+        in oklab,
+        var(--intro-blue) var(--intro-bloom-mix),
+        transparent
+      ),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 60% 58%,
+      color-mix(
+        in oklab,
+        var(--intro-violet) var(--intro-bloom-mix),
+        transparent
+      ),
+      transparent
+    );
   transition: opacity 240ms var(--duet-ease-out);
-  animation: duet-intro-bloom 900ms var(--duet-ease-out) backwards;
+  animation:
+    duet-intro-bloom 900ms var(--duet-ease-out) 260ms backwards,
+    duet-intro-drift 2.4s linear 260ms both;
 }
 .startup-intro:not([data-phase="enter"]) .startup-intro-bloom {
   opacity: 0;
@@ -745,17 +788,25 @@ body {
     transform: scale(0.3);
   }
 }
+@keyframes duet-intro-drift {
+  from {
+    rotate: -14deg;
+  }
+  to {
+    rotate: 16deg;
+  }
+}
 
-/* One ring of the orb's colour spreads out from it as it wakes: its own ping, screen-sized. */
+/* One ring of the orb's colour spreads out from it as it lands: its own ping, screen-sized. */
 .startup-intro-ripple {
   position: absolute;
   inset: 14%;
   border-radius: 9999px;
   opacity: 0;
   box-shadow:
-    0 0 0 1.5px color-mix(in oklab, var(--intro-bloom) 55%, transparent),
-    0 0 28px 6px color-mix(in oklab, var(--intro-bloom) 22%, transparent);
-  animation: duet-intro-ripple 760ms var(--duet-ease-out) 260ms;
+    0 0 0 1.5px color-mix(in oklab, var(--intro-tint) 55%, transparent),
+    0 0 28px 6px color-mix(in oklab, var(--intro-tint) 22%, transparent);
+  animation: duet-intro-ripple 760ms var(--duet-ease-out) 720ms;
 }
 @keyframes duet-intro-ripple {
   from {
@@ -768,37 +819,22 @@ body {
   }
 }
 
-/*
- * The name: written in from the orb's side, then one sweep of the orb's colour across it. The fill
- * is the gradient, so `-webkit-text-fill-color` is transparent rather than `color` (see
- * `.tool-line-running`); at rest the gradient shows only its ink.
- */
+/* The name rises a little as its letters ink in, one after another. */
 .startup-intro-name {
-  background-image: linear-gradient(
-    100deg,
-    var(--duet-ink) 40%,
-    var(--intro-bloom) 50%,
-    var(--duet-ink) 60%
-  );
-  background-size: 300% 100%;
-  background-position: 0 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation:
-    duet-intro-write 480ms var(--duet-ease-out) 180ms backwards,
-    duet-intro-shine 600ms ease-in-out 520ms backwards;
+  animation: duet-intro-rise 320ms var(--duet-ease-out) 820ms backwards;
 }
-@keyframes duet-intro-write {
+@keyframes duet-intro-rise {
   from {
-    opacity: 0;
-    clip-path: inset(0 100% 0 0);
-    transform: translateX(-10px);
+    transform: translateY(0.25em);
   }
 }
-@keyframes duet-intro-shine {
+.startup-intro-letter {
+  animation: duet-intro-ink 200ms var(--duet-ease-out) backwards;
+  animation-delay: calc(820ms + var(--i) * 26ms);
+}
+@keyframes duet-intro-ink {
   from {
-    background-position: 100% 0;
+    opacity: 0;
   }
 }
 
@@ -806,12 +842,9 @@ body {
   .startup-intro-orb,
   .startup-intro-bloom,
   .startup-intro-ripple,
-  .startup-intro-name {
+  .startup-intro-name,
+  .startup-intro-letter {
     animation: none;
-  }
-  .startup-intro-name {
-    background-image: none;
-    -webkit-text-fill-color: currentColor;
   }
 }
 
