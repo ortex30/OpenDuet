@@ -26,7 +26,7 @@ import {
   streak,
   weeklyReport,
 } from "@/lib/coach/progress";
-import { blankState, demoState } from "@/lib/coach/seed";
+import { blankState, demoState, withAccountName } from "@/lib/coach/seed";
 
 /** A Thursday afternoon, local time. */
 const NOW = new Date(2026, 10, 5, 16, 0, 0);
@@ -381,5 +381,28 @@ describe("weekly report", () => {
     expect(text).toContain("Focused study: 3h 5m");
     expect(text).not.toContain("sleep");
     expect(reportText(state, report, true)).toContain("average sleep 6.5h");
+  });
+});
+
+describe("the student's name", () => {
+  test("the sample week greets the account by its first word, and stays Jordan with no name", () => {
+    const sample = demoState(NOW);
+    expect(withAccountName(sample, "Viren Shah").profile.name).toBe("Viren");
+    expect(withAccountName(sample, "  Ava  ").profile.name).toBe("Ava");
+    expect(withAccountName(sample, undefined)).toBe(sample);
+    expect(withAccountName(sample, null).profile.name).toBe("Jordan");
+    expect(withAccountName(sample, " ").profile.name).toBe("Jordan");
+    // An address is not a name to greet.
+    expect(withAccountName(sample, "dev@openbot.local").profile.name).toBe(
+      "Jordan",
+    );
+  });
+
+  test("a week the student set up, or started empty, keeps the name they gave", () => {
+    const setUp = demoState(NOW);
+    setUp.profile = { ...setUp.profile, name: "Ava", setupDone: true };
+    expect(withAccountName(setUp, "Viren Shah")).toBe(setUp);
+    const fresh = blankState("Sam");
+    expect(withAccountName(fresh, "Viren Shah")).toBe(fresh);
   });
 });

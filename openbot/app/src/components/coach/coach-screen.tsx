@@ -5,6 +5,7 @@ import { DuetIcon } from "@/components/duet/icons";
 import { ScreenScroll } from "@/components/shell/screen";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { agentListQueryOptions } from "@/lib/agents/queries";
+import { currentUserQueryOptions } from "@/lib/auth/queries";
 import {
   type Assignment,
   type CoachState,
@@ -16,7 +17,12 @@ import {
 } from "@/lib/coach/model";
 import { catchUpInstruction } from "@/lib/coach/plan";
 import { type Achievement, pacing, todaysCheckIn } from "@/lib/coach/progress";
-import { syncAchievements, useCoachState } from "@/lib/coach/store";
+import { withAccountName } from "@/lib/coach/seed";
+import {
+  syncAchievements,
+  updateCoach,
+  useCoachState,
+} from "@/lib/coach/store";
 import { FocusOverlay } from "./focus-timer";
 import { HandOffSheet } from "./hand-off";
 import { CoachButton } from "./kit";
@@ -78,6 +84,7 @@ export function CoachScreen() {
   const navigate = useNavigate();
   const agents = useQuery(agentListQueryOptions());
   const bot = primaryBot(agents.data);
+  const accountName = useQuery(currentUserQueryOptions()).data?.name;
   const [handOff, setHandOff] = useState<HandOff | null>(null);
   const [report, setReport] = useState(false);
   const [setup, setSetup] = useState(false);
@@ -89,6 +96,12 @@ export function CoachScreen() {
 
   useEffect(() => syncAchievements(), []);
 
+  // The sample week greets whoever is signed in, not Jordan, until they set it up as their own.
+  useEffect(() => {
+    if (withAccountName(state, accountName) !== state)
+      updateCoach((s) => withAccountName(s, accountName));
+  }, [state, accountName]);
+
   useEffect(() => {
     if (!earned.length) return;
     const id = window.setTimeout(() => setEarned([]), 5000);
@@ -97,16 +110,16 @@ export function CoachScreen() {
 
   return (
     <ScreenScroll>
-      <header className="mb-3 flex items-end justify-between gap-2 px-1">
+      {/* The bar over the screen names it; the heading stays for screen readers. */}
+      <header className="mb-3 flex items-center justify-between gap-2 px-1">
         <div>
-          <h1 className="type-display font-semibold text-duet-ink">Coach</h1>
-          <p className="type-sub mt-0.5 text-duet-ink-2">
+          <h1 className="sr-only">Coach</h1>
+          <p className="type-sub text-duet-ink-2">
             {now.toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
               day: "numeric",
             })}
-            {state.demo ? " · demo week" : ""}
           </p>
         </div>
         <div className="flex gap-1">
@@ -130,19 +143,11 @@ export function CoachScreen() {
       </header>
 
       {!state.profile.setupDone ? (
-        <div className="mb-3 flex items-center gap-3 rounded-[24px] bg-[image:var(--duet-face-gradient)] px-4 py-3 text-white">
-          <span aria-hidden className="text-2xl">
-            👋
-          </span>
-          <p className="type-sub min-w-0 flex-1 font-medium">
-            Demo week. Add your classes to make it yours.
+        <div className="mb-3 flex items-center gap-3 rounded-[20px] bg-duet-card px-4 py-3 shadow-duet-card">
+          <p className="type-sub min-w-0 flex-1 text-duet-ink-2">
+            This is a sample week. Add your classes to make it yours.
           </p>
-          <CoachButton
-            className="bg-duet-on-accent text-duet-accent shadow-none"
-            onClick={() => setSetup(true)}
-          >
-            Set up
-          </CoachButton>
+          <CoachButton onClick={() => setSetup(true)}>Set up</CoachButton>
         </div>
       ) : null}
 

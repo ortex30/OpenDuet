@@ -324,7 +324,7 @@ export function weeklyReport(state: CoachState, now: Date): WeeklyReport {
     const a = state.assignments.find((x) => x.id === s.assignmentId);
     const c = a
       ? classOf(state, a)
-      : { id: "general", name: "General study", color: "accent" };
+      : { id: "general", name: "General study", color: "general" };
     const row = perClass.get(c.id) ?? {
       name: c.name,
       color: c.color,

@@ -139,37 +139,39 @@ export function demoState(now: Date): CoachState {
     version: 1,
     demo: true,
     profile: {
+      // Only for an account with no name: see withAccountName.
       name: "Jordan",
       dailyGoalMin: 60,
       bedtime: "22:30",
       dailyCapacityMin: 120,
       setupDone: false,
     },
+    // Each class in the colour the calendar gives it (it colours classes in order of name).
     classes: [
       {
         id: "apush",
         name: "AP US History",
         teacher: "Mr. Grant",
-        color: "red",
+        color: "blue",
       },
-      { id: "chem", name: "Chemistry", teacher: "Dr. Okoro", color: "green" },
+      { id: "chem", name: "Chemistry", teacher: "Dr. Okoro", color: "violet" },
       {
         id: "english",
         name: "English 11",
         teacher: "Ms. Alvarez",
-        color: "violet",
+        color: "green",
       },
       {
         id: "precalc",
         name: "Precalculus",
         teacher: "Mr. Chen",
-        color: "blue",
+        color: "amber",
       },
       {
         id: "spanish",
         name: "Spanish III",
         teacher: "Sra. Morales",
-        color: "amber",
+        color: "red",
       },
     ],
     assignments,
@@ -200,4 +202,25 @@ export function blankState(name: string): CoachState {
     checkIns: [],
     unlocked: {},
   };
+}
+
+/**
+ * The sample week, greeting whoever is signed in: until they set it up, it takes the first word of
+ * their account's name, and keeps Jordan only when the account has none. A week the student set
+ * up, or started empty, keeps the name they gave. Returns the same state when nothing changes.
+ */
+export function withAccountName(
+  state: CoachState,
+  accountName: string | null | undefined,
+): CoachState {
+  const first = accountName?.trim().split(/\s+/)[0] ?? "";
+  if (
+    !first ||
+    first.includes("@") ||
+    !state.demo ||
+    state.profile.setupDone ||
+    state.profile.name === first
+  )
+    return state;
+  return { ...state, profile: { ...state.profile, name: first } };
 }
