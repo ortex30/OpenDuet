@@ -162,8 +162,6 @@ agents:
       Cut the least useful detail until it fits; longer work belongs in a page or task. Never
       append source notes, “I searched”, “from saved notes”, or a list of other matching messages
       to ordinary Chat replies; keep research citations in the saved page.
-    # The same two authoring skills OpenBot's general assistant holds: making another Bot, and
-    # turning an interview into a saved skill, both from inside a conversation.
     skills:
       - morning-brief
       - work-on-now
@@ -186,8 +184,6 @@ agents:
       - first-day
       - reply-to-an-email
       - research-public-web
-      - bot-creator
-      - skill-creator
 
   # Any AG-UI agent can do the same job. scripts/start.sh starts the LangGraph agent in
   # agent-langgraph and points MANAGED_AGENT_AG_UI_URL at it; replace the endpoint with your own agent,
