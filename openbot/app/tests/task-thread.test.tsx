@@ -1131,9 +1131,7 @@ test("while the task's own turn runs on the server, a reply waits in the queue a
   ).toBeTruthy();
   expect(posted).toEqual(["/api/openduet/tasks/rosa/reply"]);
   expect(runs).toHaveLength(0);
-  expect(
-    within(sheet).queryByRole("button", { name: "Stop the Bot" }),
-  ).toBeNull();
+  expect(within(sheet).queryByRole("button", { name: "Stop" })).toBeNull();
 });
 
 test("a task marked done after it failed still takes a reply as Try again", async () => {

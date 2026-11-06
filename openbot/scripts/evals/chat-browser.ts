@@ -18,11 +18,9 @@ export function readChatSnapshot(question: string): ChatSnapshot {
     (form) => form.querySelector('[contenteditable="true"], textarea'),
   );
   // ChannelChat gives these aria-busy markers the whole turn's pending state, including gaps
-  // between tool runs. Stop the Bot is a second active-run signal, not proof of idle by its absence.
+  // between tool runs. Stop is a second active-run signal, not proof of idle by its absence.
   const busy = Boolean(
-    document.querySelector(
-      '[aria-busy="true"], button[aria-label="Stop the Bot"]',
-    ),
+    document.querySelector('[aria-busy="true"], button[aria-label="Stop"]'),
   );
   const reply = [
     ...document.querySelectorAll(

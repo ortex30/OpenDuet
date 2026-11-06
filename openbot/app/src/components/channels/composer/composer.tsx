@@ -1409,7 +1409,7 @@ export function Composer({
   );
   const primaryAction = canStop ? (
     <Button
-      aria-label="Stop the Bot"
+      aria-label="Stop"
       className={actionClassName}
       data-testid="composer-stop"
       onClick={onStop}
@@ -1427,7 +1427,7 @@ export function Composer({
         callAction.supported
           ? callAction.active
             ? "Show voice call"
-            : "Call this Bot"
+            : "Call your coach"
           : "Voice calls need a microphone and a secure (HTTPS) connection"
       }
       className={actionClassName}
