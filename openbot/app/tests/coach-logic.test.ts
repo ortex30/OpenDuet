@@ -26,7 +26,12 @@ import {
   streak,
   weeklyReport,
 } from "@/lib/coach/progress";
-import { blankState, demoState } from "@/lib/coach/seed";
+import {
+  blankState,
+  demoState,
+  withAccountName,
+  withSampleColors,
+} from "@/lib/coach/seed";
 
 /** A Thursday afternoon, local time. */
 const NOW = new Date(2026, 10, 5, 16, 0, 0);
@@ -381,5 +386,68 @@ describe("weekly report", () => {
     expect(text).toContain("Focused study: 3h 5m");
     expect(text).not.toContain("sleep");
     expect(reportText(state, report, true)).toContain("average sleep 6.5h");
+  });
+});
+
+describe("the student's name", () => {
+  test("the sample week greets the account by its first word, and stays Jordan with no name", () => {
+    const sample = demoState(NOW);
+    expect(withAccountName(sample, "Viren Shah").profile.name).toBe("Viren");
+    expect(withAccountName(sample, "  Ava  ").profile.name).toBe("Ava");
+    expect(withAccountName(sample, undefined)).toBe(sample);
+    expect(withAccountName(sample, null).profile.name).toBe("Jordan");
+    expect(withAccountName(sample, " ").profile.name).toBe("Jordan");
+    // An address is not a name to greet.
+    expect(withAccountName(sample, "dev@openbot.local").profile.name).toBe(
+      "Jordan",
+    );
+  });
+
+  test("a week the student set up, or started empty, keeps the name they gave", () => {
+    const setUp = demoState(NOW);
+    setUp.profile = { ...setUp.profile, name: "Ava", setupDone: true };
+    expect(withAccountName(setUp, "Viren Shah")).toBe(setUp);
+    const fresh = blankState("Sam");
+    expect(withAccountName(fresh, "Viren Shah")).toBe(fresh);
+  });
+});
+
+describe("the sample week's colours", () => {
+  test("a sample week saved before the calendar's colours takes them, and keeps any other class's", () => {
+    const fresh = demoState(NOW);
+    expect(withSampleColors(fresh)).toBe(fresh);
+    // As a browser saved it before, with a class that is no sample's (and names no colour).
+    const before = ["red", "green", "violet", "blue", "amber"] as const;
+    const saved = {
+      ...fresh,
+      classes: [
+        ...fresh.classes.map((c, i) => ({ ...c, color: before[i] ?? c.color })),
+        {
+          id: "toString",
+          name: "Robotics",
+          teacher: "",
+          color: "accent" as const,
+        },
+      ],
+    };
+    expect(withSampleColors(saved).classes.map((c) => [c.id, c.color])).toEqual(
+      [
+        ["apush", "blue"],
+        ["chem", "violet"],
+        ["english", "green"],
+        ["precalc", "amber"],
+        ["spanish", "red"],
+        ["toString", "accent"],
+      ],
+    );
+  });
+
+  test("a week the student set up, or started empty, keeps its colours", () => {
+    const setUp = demoState(NOW);
+    setUp.profile = { ...setUp.profile, setupDone: true };
+    setUp.classes = setUp.classes.map((c) => ({ ...c, color: "accent" }));
+    expect(withSampleColors(setUp)).toBe(setUp);
+    const empty = blankState("Sam");
+    expect(withSampleColors(empty)).toBe(empty);
   });
 });

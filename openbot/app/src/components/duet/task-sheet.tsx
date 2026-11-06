@@ -123,12 +123,13 @@ function FailureUpdate({ task }: { task: TaskRecord }) {
   );
 }
 
-/** What a refused Try again or reply says, when it lost to a run already going. */
-const STILL_FINISHING =
-  "OpenDuet is still finishing something. Send this again when it's done.";
-const friendly = (error: Error) =>
+/**
+ * What a refused Try again or reply says, when it lost to a run already going. The coach's name
+ * starts it, so "your coach", said while the roster is missing, takes a capital.
+ */
+const friendly = (error: Error, botName: string) =>
   /already running|couldn't finish can be tried/i.test(error.message)
-    ? STILL_FINISHING
+    ? `${botName.charAt(0).toUpperCase()}${botName.slice(1)} is still finishing something. Send this again when it's done.`
     : error.message;
 
 function TaskBody({ task }: { task: TaskRecord }) {
@@ -143,7 +144,7 @@ function TaskBody({ task }: { task: TaskRecord }) {
   const report = useQuery(taskReportQueryOptions(task.id, status));
   const agents = useQuery(agentListQueryOptions());
   const botName =
-    agents.data?.find((agent) => agent.id === task.botId)?.name ?? "your Bot";
+    agents.data?.find((agent) => agent.id === task.botId)?.name ?? "your coach";
   const [conversationShown, setConversationShown] = useState(false);
   const done = task.resolvedAt !== null;
   const failed = status === "failed";
@@ -217,7 +218,7 @@ function TaskBody({ task }: { task: TaskRecord }) {
       </div>
       {error ? (
         <p className="type-label px-5 pt-2 text-duet-red" role="alert">
-          {friendly(error)}
+          {friendly(error, botName)}
         </p>
       ) : null}
       <div

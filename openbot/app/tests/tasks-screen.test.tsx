@@ -30,8 +30,8 @@ import { settleReactWork } from "./settle-react-work";
 /**
  * The Tasks tab: Active and Up next under one switch. Active groups what is under way and what needs
  * the person by what each thing needs, Ready for review, Needs input, Working and Resolved, leaving
- * out a group with nothing in it. Up next lists what nobody has started, and when it is empty asks
- * what it can take off the person's plate. The + adds a task, started now or saved for Up next.
+ * out a group with nothing in it. Up next lists what nobody has started, and when it is empty offers
+ * to find homework it can help with. The + adds a task, started now or saved for later.
  */
 
 beforeAll(() => GlobalRegistrator.register({ url: "http://localhost:3010" }));
@@ -282,7 +282,7 @@ test("Tasks opens on Active, with Up next beside it, sort and search on the righ
   expect(view.getByRole("button", { name: "Sort: newest first" })).toBeTruthy();
   expect(view.getByRole("button", { name: "Search tasks" })).toBeTruthy();
   expect(view.getByRole("button", { name: "Add a task" })).toBeTruthy();
-  expect(await view.findByText("Nothing active right now.")).toBeTruthy();
+  expect(await view.findByText("Nothing in progress.")).toBeTruthy();
 });
 
 test("the list last shown is remembered in this browser", async () => {
@@ -460,7 +460,7 @@ test("a group with nothing in it is left out", async () => {
   const view = draw();
   await view.findByRole("region", { name: "Working" });
   expect(regionNames(view)).toEqual(["Working"]);
-  expect(view.queryByText("Nothing active right now.")).toBeNull();
+  expect(view.queryByText("Nothing in progress.")).toBeNull();
 });
 
 test("each group heads itself with how many it holds and when the newest one changed", async () => {
@@ -1194,13 +1194,13 @@ test("a swiped card's place closes as soon as it has flown, and it comes back wi
   );
 });
 
-test("empty, Up next asks what it can take off your plate, and Show me checks in now", async () => {
+test("empty, Up next offers to find homework it can help with, and Show me checks in now", async () => {
   quiet();
   serving();
   const view = await upNext();
   expect(
     await view.findByRole("heading", {
-      name: "What can I take off your plate?",
+      name: "Want me to find homework I can help with?",
     }),
   ).toBeTruthy();
   const apps = view.getByRole("list", { name: "What it checks" });
@@ -1379,20 +1379,20 @@ test("search narrows Up next by title", async () => {
 
 // ---------- the + ----------
 
-test("+ asks what OpenDuet should do, and Start now starts it as a task and shows Active", async () => {
+test("+ asks what it can help with, and Start now starts it as a task and shows Active", async () => {
   quiet();
   serving();
   const view = await upNext();
   fireEvent.click(await view.findByRole("button", { name: "Add a task" }));
   const sheet = await view.findByRole("dialog");
   expect(
-    within(sheet).getByRole("heading", { name: "What should OpenDuet do?" }),
+    within(sheet).getByRole("heading", { name: "What can I help with?" }),
   ).toBeTruthy();
   const start = within(sheet).getByRole("button", { name: "Start now" });
   expect(start.hasAttribute("disabled")).toBe(true);
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(
-    within(sheet).getByRole("textbox", { name: "What should OpenDuet do?" }),
+    within(sheet).getByRole("textbox", { name: "What can I help with?" }),
     "  Find a time for coffee with Sam next week  ",
   );
   await waitFor(() => expect(start.hasAttribute("disabled")).toBe(false));
@@ -1413,7 +1413,7 @@ test("+ asks what OpenDuet should do, and Start now starts it as a task and show
   ).toBe("true");
 });
 
-test("+ Save for Up next saves it as an asked card and shows Up next", async () => {
+test("+ Save for later saves it as an asked card and shows Up next", async () => {
   quiet();
   serving();
   const view = draw();
@@ -1421,10 +1421,10 @@ test("+ Save for Up next saves it as an asked card and shows Up next", async () 
   const sheet = await view.findByRole("dialog");
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(
-    within(sheet).getByRole("textbox", { name: "What should OpenDuet do?" }),
+    within(sheet).getByRole("textbox", { name: "What can I help with?" }),
     "Chase the booth deposit",
   );
-  const save = within(sheet).getByRole("button", { name: "Save for Up next" });
+  const save = within(sheet).getByRole("button", { name: "Save for later" });
   await waitFor(() => expect(save.hasAttribute("disabled")).toBe(false));
   fireEvent.click(save);
   await waitFor(() =>

@@ -130,7 +130,7 @@ const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   botId: "openduet",
   channelId: "task-9-channel",
   threadId: "task-9-thread",
-  title: "Make a deck about the Hearth order",
+  title: "Make slides about the Hearth order",
   why: null,
   origin: "asked",
   suggestionId: null,
@@ -243,7 +243,7 @@ function expectFinalPageCache() {
 
 async function startMaking(view: ReturnType<typeof app>["view"]) {
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a slides" }));
+  fireEvent.click(view.getByRole("button", { name: "Make slides" }));
   const sheet = await view.findByRole("dialog");
   const field = within(sheet).getByRole("textbox");
   fireEvent.focus(field);
@@ -780,15 +780,7 @@ test("the chips show one kind at a time, and a kind with nothing yet says how to
     within(chips)
       .getAllByRole("button")
       .map((chip) => chip.textContent),
-  ).toEqual([
-    "All",
-    "Design System",
-    "Design",
-    "Dashboard",
-    "Slides",
-    "Docs",
-    "Web page",
-  ]);
+  ).toEqual(["All", "Study guide", "Practice quiz", "Slides", "Study plan"]);
   const chip = (name: string) => within(chips).getByRole("button", { name });
   expect(chip("All").getAttribute("aria-pressed")).toBe("true");
 
@@ -798,12 +790,12 @@ test("the chips show one kind at a time, and a kind with nothing yet says how to
   expect(opened(view.getByRole("list", { name: "Made for you" }))).toEqual([
     "/make/deck",
   ]);
-  // A dashboard is a page too, but Pages holds the ones that are not dashboards.
-  fireEvent.click(chip("Web page"));
+  // A dashboard is stored as a page too, but Practice quiz holds only the pages that are not.
+  fireEvent.click(chip("Practice quiz"));
   expect(opened(view.getByRole("list", { name: "Made for you" }))).toEqual([
     "/make/notes",
   ]);
-  fireEvent.click(chip("Dashboard"));
+  fireEvent.click(chip("Study plan"));
   expect(opened(view.getByRole("list", { name: "Made for you" }))).toEqual([
     "/make/pulse",
   ]);
@@ -825,7 +817,7 @@ test("the chips show one kind at a time, and a kind with nothing yet says how to
     ),
   );
   expect(
-    second.view.getByText("No slides yet. Tap + to make one."),
+    second.view.getByText("No slides yet. Use + to make one."),
   ).toBeTruthy();
   expect(second.view.queryByRole("list", { name: "Made for you" })).toBeNull();
 });
@@ -837,32 +829,30 @@ test("with nothing made yet, Make says what will appear and how", async () => {
   expect(await view.findByText("Nothing made yet.")).toBeTruthy();
   expect(
     view.getByText(
-      "Tap + to choose what to make. What OpenDuet makes shows up here.",
+      "Use + to ask for a study guide, a practice quiz, slides or a study plan.",
     ),
   ).toBeTruthy();
   expect(view.queryByRole("list", { name: "Made for you" })).toBeNull();
   expect(view.queryByRole("group", { name: "Show" })).toBeNull();
 });
 
-test("the + fans out Page, Deck, Dashboard and Doc, nearest first, and folds them away", async () => {
+test("the + fans out a study guide, a practice quiz, slides and a study plan, nearest first, and folds them away", async () => {
   reducedMotion(false);
   listed = [];
   serving();
   const { view } = app();
   const plus = await view.findByRole("button", { name: "Make something" });
   expect(plus.getAttribute("aria-expanded")).toBe("false");
-  expect(view.queryByRole("button", { name: "Make a slides" })).toBeNull();
+  expect(view.queryByRole("button", { name: "Make slides" })).toBeNull();
 
   fireEvent.click(plus);
   const fan = view.getByRole("list", { name: "What to make" });
   const options = within(fan).getAllByRole("button");
   expect(options.map((option) => option.textContent)).toEqual([
-    "Design System",
-    "Design",
-    "Dashboard",
+    "Study guide",
+    "Practice quiz",
     "Slides",
-    "Docs",
-    "Web page",
+    "Study plan",
   ]);
   expect(view.getByRole("button", { name: "Close", expanded: true })).toBe(
     plus,
@@ -877,12 +867,12 @@ test("the + fans out Page, Deck, Dashboard and Doc, nearest first, and folds the
   fireEvent.keyDown(document, { key: "Escape" });
   expect(plus.getAttribute("aria-expanded")).toBe("false");
   expect(fan.hidden).toBe(false);
-  expect(within(fan).getAllByRole("button")).toHaveLength(6);
+  expect(within(fan).getAllByRole("button")).toHaveLength(4);
   // Motion draws only on a frame, and this DOM gets none of its own: run them by hand until the
   // last pill has folded, and the list is hidden again.
   await runMotionFrames(40);
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Make a slides" }) === null).toBe(
+    expect(view.queryByRole("button", { name: "Make slides" }) === null).toBe(
       true,
     ),
   );
@@ -896,7 +886,7 @@ test("with reduced motion the options fade in place, without rising", async () =
   const { view } = app();
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
   const fan = view.getByRole("list", { name: "What to make" });
-  expect(within(fan).getAllByRole("button")).toHaveLength(6);
+  expect(within(fan).getAllByRole("button")).toHaveLength(4);
   for (const item of fan.querySelectorAll("li")) {
     expect((item as HTMLElement).style.transform ?? "").not.toContain(
       "translateY",
@@ -905,7 +895,7 @@ test("with reduced motion the options fade in place, without rising", async () =
   }
 });
 
-test("Deck opens the + sheet with its starter and the blank selected; Start now starts a task whose card leads the grid until the deck arrives", async () => {
+test("Slides opens the + sheet with its starter and the blank selected; Start now starts a task whose card leads the grid until the deck arrives", async () => {
   reducedMotion(true);
   listed = [notes];
   tasks = [];
@@ -913,15 +903,15 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   const { view, router } = app();
   await view.findByRole("list", { name: "Made for you" });
   fireEvent.click(view.getByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a slides" }));
+  fireEvent.click(view.getByRole("button", { name: "Make slides" }));
 
   const sheet = await view.findByRole("dialog", {
-    name: "What should OpenDuet make?",
+    name: "What should I make?",
   });
   const field = within(sheet).getByRole("textbox") as HTMLTextAreaElement;
   const starter = MAKE_KINDS.find((kind) => kind.id === "slides")?.starter;
-  expect(starter).toBe("Make a deck about …");
-  expect(field.value).toBe("Make a deck about …");
+  expect(starter).toBe("Make slides about …");
+  expect(field.value).toBe("Make slides about …");
   fireEvent.focus(field);
   // The "…" is selected, so what is typed replaces it.
   expect([field.selectionStart, field.selectionEnd]).toEqual([18, 19]);
@@ -932,25 +922,30 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   // Typing replaces the selected blank.
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(field, "the Hearth order", { skipClick: true });
-  expect(field.value).toBe("Make a deck about the Hearth order");
+  expect(field.value).toBe("Make slides about the Hearth order");
   expect(startNow.hasAttribute("disabled")).toBe(false);
   fireEvent.click(startNow);
+  // The ask leads, so the task is named after it, and the line after it asks for a deck saved here.
+  const slides = MAKE_KINDS.find((kind) => kind.id === "slides");
+  expect(slides?.steer).toContain("as slides, so they show up in Made for you");
   await waitFor(() =>
     expect(started).toEqual([
-      { botId: "openduet", instruction: "Make a deck about the Hearth order" },
+      {
+        botId: "openduet",
+        instruction: `Make slides about the Hearth order\n\n${slides?.steer}`,
+      },
     ]),
   );
   await waitFor(() =>
     expect(
-      view.queryByRole("dialog", { name: "What should OpenDuet make?" }) ===
-        null,
+      view.queryByRole("dialog", { name: "What should I make?" }) === null,
     ).toBe(true),
   );
 
   // The task's card leads the grid and opens the task.
   const grid = view.getByRole("list", { name: "Made for you" });
   const making = await within(grid).findByRole("link", {
-    name: /Make a deck about the Hearth order/,
+    name: /Make slides about the Hearth order/,
   });
   expect(making.getAttribute("href")).toBe("/tasks/task-9");
   expect(opened(grid)).toEqual(["/tasks/task-9", "/make/notes"]);
@@ -977,7 +972,7 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   );
 });
 
-test("Save for Up next from Make says where it went", async () => {
+test("Save for later from Make says where it went", async () => {
   reducedMotion(true);
   listed = [];
   serving();
@@ -995,20 +990,45 @@ test("Save for Up next from Make says where it went", async () => {
   }) as unknown as typeof fetch;
   const { view } = app();
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a docs" }));
+  fireEvent.click(view.getByRole("button", { name: "Make study guide" }));
   const sheet = await view.findByRole("dialog");
   const field = within(sheet).getByRole("textbox") as HTMLTextAreaElement;
-  expect(field.value).toBe("Write a doc about …");
+  expect(field.value).toBe("Make a study guide for …");
   fireEvent.focus(field);
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(field, "our glaze suppliers", { skipClick: true });
   fireEvent.click(
-    within(sheet).getByRole("button", { name: "Save for Up next" }),
+    within(sheet).getByRole("button", { name: "Save for later" }),
   );
   expect(await view.findByText("Saved for Up next on Tasks.")).toBeTruthy();
+  // Saved with the same line after the ask, so it lands here whenever it is started.
+  const guide = MAKE_KINDS.find((kind) => kind.id === "doc");
+  expect(guide?.steer).toContain("as a doc, so it shows up in Made for you");
   expect(saved).toEqual([
-    { botId: "openduet", instruction: "Write a doc about our glaze suppliers" },
+    {
+      botId: "openduet",
+      instruction: `Make a study guide for our glaze suppliers\n\n${guide?.steer}`,
+    },
   ]);
+});
+
+test("each option asks for a page of its own kind, so what is made lands under its chip", () => {
+  const steer = (id: string) =>
+    MAKE_KINDS.find((kind) => kind.id === id)?.steer ?? "";
+  // Each kind in the words make_page uses for it.
+  expect(steer("doc")).toContain("Save it as a doc,");
+  expect(steer("page")).toContain("Save it as a web page");
+  expect(steer("slides")).toContain("Save them as slides,");
+  expect(steer("dashboard")).toContain("Save it as a dashboard,");
+  for (const kind of MAKE_KINDS)
+    expect(kind.steer).toMatch(/shows? up in Made for you\./);
+  // Left to itself, a quiz or a plan is made as its own card, which stays in the task.
+  expect(steer("page")).toContain("not as a quiz card");
+  expect(steer("dashboard")).toContain("not as a plan card");
+  // A page checks no teacher's rule in code, so the coach is told to; planning is never paused.
+  for (const id of ["doc", "page", "slides"])
+    expect(steer(id)).toContain("set this class to No help, make nothing");
+  expect(steer("dashboard")).not.toContain("No help");
 });
 
 test("a task started here stops being drawn once a page arrives for it or it stops", () => {

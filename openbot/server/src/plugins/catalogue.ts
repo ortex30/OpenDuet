@@ -368,7 +368,7 @@ const REVIEWED: readonly CatalogueEntry[] = Object.freeze([
     key: GOOGLE_WORKSPACE,
     title: "Gmail and Google Calendar",
     vendor: "Google",
-    summary: "Mail and calendar of whoever is asking.",
+    summary: "Your email and calendar.",
     /*
      * ONE ENTRY FOR TWO PRODUCTS, on purpose, and not the "each is a further entry" the Drive entry
      * above describes. That was about Google's MCP servers, one host per product. Over REST the two

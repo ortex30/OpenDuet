@@ -265,7 +265,7 @@ test("Esc discards, and gives the focus back to the voice button", async () => {
 test("while Stop holds the send arrow's place, the mic opens the sheet instead", async () => {
   const dictation = stubDictation();
   const { view } = renderChatComposer({ pending: true, onStop: () => {} });
-  expect(hasButton(view, "Stop the Bot")).toBe(true);
+  expect(hasButton(view, "Stop")).toBe(true);
   expect(hasButton(view, "Speak a message")).toBe(false);
   fireEvent.click(view.getByRole("button", { name: "Dictate a message" }));
   await view.findByRole("dialog", { name: "Say everything you need to do" });

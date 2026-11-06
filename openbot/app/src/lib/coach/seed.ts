@@ -1,11 +1,22 @@
 import {
   type Assignment,
+  type ClassColor,
+  type CoachClass,
   type CoachState,
   addDays,
   type FocusSession,
   localDate,
   startOfDay,
 } from "./model";
+
+/** Each sample class in the colour the calendar gives it (it colours classes in order of name). */
+const SAMPLE_COLORS = {
+  apush: "blue",
+  chem: "violet",
+  english: "green",
+  precalc: "amber",
+  spanish: "red",
+} as const satisfies Record<string, ClassColor>;
 
 /** A local time on a day some days from `now`. */
 function at(now: Date, days: number, hour: number, minute = 0): string {
@@ -139,6 +150,7 @@ export function demoState(now: Date): CoachState {
     version: 1,
     demo: true,
     profile: {
+      // Only for an account with no name: see withAccountName.
       name: "Jordan",
       dailyGoalMin: 60,
       bedtime: "22:30",
@@ -150,26 +162,31 @@ export function demoState(now: Date): CoachState {
         id: "apush",
         name: "AP US History",
         teacher: "Mr. Grant",
-        color: "red",
+        color: SAMPLE_COLORS.apush,
       },
-      { id: "chem", name: "Chemistry", teacher: "Dr. Okoro", color: "green" },
+      {
+        id: "chem",
+        name: "Chemistry",
+        teacher: "Dr. Okoro",
+        color: SAMPLE_COLORS.chem,
+      },
       {
         id: "english",
         name: "English 11",
         teacher: "Ms. Alvarez",
-        color: "violet",
+        color: SAMPLE_COLORS.english,
       },
       {
         id: "precalc",
         name: "Precalculus",
         teacher: "Mr. Chen",
-        color: "blue",
+        color: SAMPLE_COLORS.precalc,
       },
       {
         id: "spanish",
         name: "Spanish III",
         teacher: "Sra. Morales",
-        color: "amber",
+        color: SAMPLE_COLORS.spanish,
       },
     ],
     assignments,
@@ -199,5 +216,44 @@ export function blankState(name: string): CoachState {
     sessions: [],
     checkIns: [],
     unlocked: {},
+  };
+}
+
+/**
+ * The sample week, greeting whoever is signed in: until they set it up, it takes the first word of
+ * their account's name, and keeps Jordan only when the account has none. A week the student set
+ * up, or started empty, keeps the name they gave. Returns the same state when nothing changes.
+ */
+export function withAccountName(
+  state: CoachState,
+  accountName: string | null | undefined,
+): CoachState {
+  const first = accountName?.trim().split(/\s+/)[0] ?? "";
+  if (
+    !first ||
+    first.includes("@") ||
+    !state.demo ||
+    state.profile.setupDone ||
+    state.profile.name === first
+  )
+    return state;
+  return { ...state, profile: { ...state.profile, name: first } };
+}
+
+/**
+ * A sample week saved before its classes took the calendar's colours, in those colours now. Only
+ * while it is still the sample: once the student sets it up, the colours are theirs. Returns the
+ * same state when nothing changes.
+ */
+export function withSampleColors(state: CoachState): CoachState {
+  if (!state.demo || state.profile.setupDone) return state;
+  const colorOf = (c: CoachClass): ClassColor =>
+    Object.hasOwn(SAMPLE_COLORS, c.id)
+      ? SAMPLE_COLORS[c.id as keyof typeof SAMPLE_COLORS]
+      : c.color;
+  if (state.classes.every((c) => colorOf(c) === c.color)) return state;
+  return {
+    ...state,
+    classes: state.classes.map((c) => ({ ...c, color: colorOf(c) })),
   };
 }

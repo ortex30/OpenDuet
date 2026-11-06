@@ -15,6 +15,7 @@ import { FlashcardsCardTool } from "./flashcards-card-tool";
 import { HandoffTool } from "./handoff-tool";
 import { MorningBriefTool } from "./morning-brief-tool";
 import { OfferTaskTool } from "./offer-task-tool";
+import { OpenScreenTool } from "./open-screen-tool";
 import { PageCardTool } from "./page-card-tool";
 import { ProgressCardTool } from "./progress-card-tool";
 import { QuizCardTool } from "./quiz-card-tool";
@@ -107,6 +108,11 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         <FlashcardsCardTool />
         <ProgressCardTool />
         <StudyPlanCardTool />
+        {/*
+          The coach opens Tasks, Calendar, Coach, Learn or what it made beside the chat when the
+          student asks to see them, one at a time. See open-screen-tool.tsx.
+        */}
+        <OpenScreenTool />
         {/* A task a check-in offers, drawn as the card with Start and Hide. See offer-task-tool.tsx. */}
         <OfferTaskTool />
         {/* A task started from Chat, drawn as a card that opens it. See task-card-tool.tsx. */}

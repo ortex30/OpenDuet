@@ -66,7 +66,7 @@ describe(ADD_TASKS_TOOL, () => {
       ROSA.title,
       "Book the kiln technician",
     ]);
-    expect(result.note).toContain("Tasks tab");
+    expect(result.note).toContain("task list");
   });
 
   test("refuses a call it cannot turn into cards, and saves nothing", async () => {

@@ -259,7 +259,7 @@ export function StudyPlanCard({
               tabIndex={-1}
             >
               {state === "removed"
-                ? "Removed from your Calendar tab"
+                ? "Removed from your calendar"
                 : "Not added"}
             </p>
           ) : (

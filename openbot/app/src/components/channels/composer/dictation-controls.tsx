@@ -74,11 +74,15 @@ export function DictationSurface({
         <div
           aria-hidden={recording || undefined}
           inert={recording}
+          /*
+           * No translate at rest, not even a zero one: any translate makes this box the containing
+           * block of the editor's `/` menu, which is fixed to the caret's place on the screen.
+           */
           className={cn(
             "min-w-0 transition-[opacity,transform] duration-[var(--duet-dur-swap)] motion-reduce:transform-none motion-reduce:transition-none",
             recording
               ? "pointer-events-none -translate-y-1 opacity-0"
-              : "translate-y-0 opacity-100",
+              : "opacity-100",
           )}
         >
           {children}

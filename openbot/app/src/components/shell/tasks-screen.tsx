@@ -94,7 +94,7 @@ export function TasksScreen() {
       />
       {agents.data ? null : (
         <p className="type-sub mb-3 px-1 text-duet-red" role="alert">
-          Couldn't load your Bots. Reload the page.
+          Couldn't load your coach. Reload the page.
         </p>
       )}
       <div
@@ -176,7 +176,7 @@ function TasksSwitch({
   return (
     <div
       className={cn(
-        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2",
+        "sticky top-[var(--screen-sticky,-20px)] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2",
         // Solid up to the header's discs, and a short fade under it, so rows don't show through.
         "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-[14px] before:bg-duet-surface before:content-['']",
         "after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-4 after:bg-[linear-gradient(var(--duet-surface),transparent)] after:content-['']",

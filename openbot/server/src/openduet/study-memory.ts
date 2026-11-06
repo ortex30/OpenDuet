@@ -581,7 +581,7 @@ export function studyTools(options: {
       name: RECORD_STUDY_TOOL,
       ref: `openduet/${RECORD_STUDY_TOOL}`,
       description: [
-        "Save how the student did on each topic they just practiced to their study memory, which schedules spaced review and fills their Learn tab.",
+        "Save how the student did on each topic they just practiced to their study memory, which schedules spaced review and fills their learn screen.",
         "Call it once at the end of any quiz, flashcard round, review, tutoring problem, teach-back or work check, with one entry per topic: right, partly or missed, and the misunderstanding when they got it wrong.",
         "Use short, reusable topic names so later practice lands on the same topic.",
         "It saves silently: do not announce or list what was saved.",
@@ -602,7 +602,7 @@ export function studyTools(options: {
             ...topic,
             nextReview: topic.nextReview.slice(0, 10),
           })),
-          note: "Saved to their study memory and Learn tab. Don't list what was saved. At most, mention in a few words the one topic that moved most, such as a topic that just reached strong or one that will come back tomorrow.",
+          note: "Saved to their study memory and learn screen. Don't list what was saved. At most, mention in a few words the one topic that moved most, such as a topic that just reached strong or one that will come back tomorrow.",
         });
       },
     },
@@ -638,7 +638,7 @@ export function studyTools(options: {
           return JSON.stringify({
             totals: overview.totals,
             subjects: overview.subjects,
-            note: "Mastery is 0 to 100. The Learn tab shows the full map; give the short answer here.",
+            note: "Mastery is 0 to 100. The learn screen shows the full map; give the short answer here.",
           });
         if (view === "due")
           return JSON.stringify({

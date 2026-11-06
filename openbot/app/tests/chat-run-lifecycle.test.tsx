@@ -403,7 +403,7 @@ test.each([
       await type(view, `Hello ${turn}`);
       expect(await view.findByText(`Reply ${turn}`)).toBeTruthy();
       await waitFor(() =>
-        expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+        expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
       );
       await waitFor(() => expect(busyRequests).toHaveLength(turn * 2));
       const start = busyRequests[(turn - 1) * 2]!;
@@ -412,7 +412,11 @@ test.each([
         busy: false,
         runId: start.runId,
       });
-      expect(view.queryByText("Couldn't reach the Bot. Try again.")).toBeNull();
+      expect(
+        view.queryByText(
+          "Couldn't reach your coach. Check your connection and try again.",
+        ),
+      ).toBeNull();
       expect(warnings).toHaveBeenCalledTimes(turn);
       expect(warnings).toHaveBeenLastCalledWith(
         "Could not report channel busy state.",
@@ -445,7 +449,7 @@ test("a message sent after a turn that asked before acting is run, not dropped",
   await type(view, "Email Ana that Tuesday works.");
   await waitFor(() => expect(runRequests).toHaveLength(1));
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
   );
 
   await type(view, "Also, what's on my calendar Monday?");
@@ -480,7 +484,7 @@ test("after Allow once, a message typed meanwhile is Queued and answered after t
   await type(view, "Email Ana that Tuesday works.");
   await waitFor(() => expect(runRequests).toHaveLength(1));
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
   );
   const asked = [
     ...runRequests[0]!.messages,
@@ -507,7 +511,7 @@ test("after Allow once, a message typed meanwhile is Queued and answered after t
     { type: "RUN_STARTED", threadId: channel.threadId, runId: "continuation" },
     { type: "MESSAGES_SNAPSHOT", messages: asked },
   ]);
-  await view.findByRole("button", { name: "Stop the Bot" });
+  await view.findByRole("button", { name: "Stop" });
 
   await type(view, "Also, what's on my calendar Monday?");
   expect(await view.findByText("Queued")).toBeTruthy();
@@ -567,7 +571,7 @@ test("a question sent while the card is undecided tells the Bot the truth, and w
   await type(view, "Reply to Ana that the mugs leave Thursday.");
   await waitFor(() => expect(runRequests).toHaveLength(1));
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
   );
 
   // The card still waits. A question meanwhile runs, and the Bot is told the send has not run yet.
@@ -581,7 +585,7 @@ test("a question sent while the card is undecided tells the Bot the truth, and w
   expect(JSON.stringify(runRequests[1]!.messages)).not.toMatch(/interrupted/i);
   expect(await view.findByText("Leo does your contracts.")).toBeTruthy();
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
   );
   history = [
     ...runRequests[1]!.messages,
@@ -683,7 +687,9 @@ test.each([
     await waitFor(() => expect(connectCalls).toBe(1));
     await type(view, "Hello there");
     expect(
-      await view.findByText("Couldn't reach the Bot. Try again."),
+      await view.findByText(
+        "Couldn't reach your coach. Check your connection and try again.",
+      ),
     ).toBeTruthy();
     // Only the words in the box: no bubble claiming it was sent.
     await waitFor(() =>
@@ -754,8 +760,8 @@ test.each(["network failure", "thread conflict"])(
     quiet();
     const message =
       failure === "thread conflict"
-        ? "The Bot couldn't continue because another turn started. Review what it already did before trying again."
-        : "Couldn't reach the Bot. Try again.";
+        ? "Lifecycle couldn't continue because another turn started. Review what it already did before trying again."
+        : "Couldn't reach your coach. Check your connection and try again.";
     const result = Promise.withResolvers<string>();
     const tool = mock(() => result.promise);
     const succeed = onRun;
@@ -790,7 +796,7 @@ test.each(["network failure", "thread conflict"])(
     await waitFor(() => expect(connectCalls).toBe(1));
     await type(view, "Look at my screen");
     await waitFor(() => expect(tool).toHaveBeenCalledTimes(1));
-    expect(view.getByRole("button", { name: "Stop the Bot" })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Stop" })).toBeTruthy();
     expect(busyRequests).toHaveLength(1);
     await act(async () => result.resolve("Looked."));
     expect(await view.findByText(message)).toBeTruthy();
@@ -807,7 +813,7 @@ test.each(["network failure", "thread conflict"])(
       busy: false,
       runId: busyRequests[0]!.runId,
     });
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull();
     expect(view.queryByText("Queued")).toBeNull();
     expect(view.getAllByText("Look at my screen")).toHaveLength(2);
     expect(runRequests).toHaveLength(2);
@@ -869,11 +875,11 @@ test("a reload mid-run draws the stored transcript at once, keeps Stop past the 
   expect(
     await view.findByText("What does Ana still need from me?"),
   ).toBeTruthy();
-  expect(view.getByRole("button", { name: "Stop the Bot" })).toBeTruthy();
+  expect(view.getByRole("button", { name: "Stop" })).toBeTruthy();
 
   // Past the 1.5 s join deadline: a join streaming a live turn is kept, so Stop is still there.
   await act(() => new Promise((resolve) => setTimeout(resolve, 2200)));
-  expect(view.getByRole("button", { name: "Stop the Bot" })).toBeTruthy();
+  expect(view.getByRole("button", { name: "Stop" })).toBeTruthy();
   expect(view.getAllByText("What does Ana still need from me?")).toHaveLength(
     1,
   );
@@ -897,7 +903,7 @@ test("a reload mid-run draws the stored transcript at once, keeps Stop past the 
   running.end();
   expect(await view.findByText("The 200-mug answer, by Friday.")).toBeTruthy();
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Stop the Bot" })).toBeNull(),
+    expect(view.queryByRole("button", { name: "Stop" })).toBeNull(),
   );
   expect(view.getAllByText("The 200-mug answer, by Friday.")).toHaveLength(1);
   expect(view.getAllByText("What does Ana still need from me?")).toHaveLength(

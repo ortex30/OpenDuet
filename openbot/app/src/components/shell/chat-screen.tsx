@@ -72,10 +72,10 @@ export function ChatScreen() {
   if (!agents.data)
     return (
       <ScreenNotice alert>
-        Couldn't load your Bots. Reload the page.
+        Couldn't load your coach. Reload the page.
       </ScreenNotice>
     );
-  if (!bot) return <ScreenNotice>There are no Bots yet.</ScreenNotice>;
+  if (!bot) return <ScreenNotice>Your coach isn't set up yet.</ScreenNotice>;
   if (!channels.data)
     return (
       <ScreenNotice alert>

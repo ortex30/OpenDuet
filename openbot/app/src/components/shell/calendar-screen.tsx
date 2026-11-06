@@ -1,11 +1,10 @@
 import {
-  type AssignmentKind,
-  type CalendarView,
   HELP_LEVEL_LABEL,
   type HelpLevel,
   type SchoolClass,
   type StudyPlan,
 } from "@openbot/shared/study";
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import {
   keepPreviousData,
   type UseQueryResult,
@@ -16,6 +15,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import {
   type ComponentProps,
+  type ReactNode,
   type RefObject,
   useEffect,
   useMemo,
@@ -29,6 +29,7 @@ import {
   classColor,
   clockLabel,
   dayLabel,
+  deadlineWhen,
   deviceNow,
   isCalendarDate,
   itemButton,
@@ -37,8 +38,7 @@ import {
   weekDates,
   zonedNow,
 } from "@/components/calendar/rebound/calendar-data";
-import { DuetIcon, type DuetIconName } from "@/components/duet/icons";
-import { DuetCard, Segmented } from "@/components/duet/kit";
+import { DuetIcon } from "@/components/duet/icons";
 import { staleSentence } from "@/components/duet/study/study-plan-card";
 import {
   calendarQueryOptions,
@@ -46,7 +46,6 @@ import {
 } from "@/lib/study/calendar";
 import { removePlanMutationOptions } from "@/lib/study/plans";
 import { cn } from "@/lib/utils";
-import { ScreenScroll } from "./screen";
 
 /** The item whose details are open, and the button it was pressed on. */
 type Pressed = { key: string; button: HTMLElement };
@@ -60,7 +59,7 @@ function focusItem(item: CalendarItem, pressed: Pressed | null) {
   back?.focus();
 }
 
-/** What the Calendar tab reads from its address: a day, Day or Week, and a plan to lay over it. */
+/** What the Calendar screen reads from its address: a day, Day or Week, and a plan to lay over it. */
 export type CalendarSearch = { date?: string; plan?: string; view?: string };
 
 const VIEWS: readonly { value: CalendarMode; label: string }[] = [
@@ -68,27 +67,24 @@ const VIEWS: readonly { value: CalendarMode; label: string }[] = [
   { value: "week", label: "Week" },
 ];
 
-/** What each kind of deadline is called on its line, before its time. */
-const KIND_WORD: Record<AssignmentKind, string> = {
-  assignment: "Due",
-  quiz: "Quiz",
-  test: "Test",
-  announcement: "Note",
-  material: "Material",
-};
-
-/** More lines than this in the all-day strip and it shows the first few, and how many more. */
-const STRIP_LIMIT = 4;
+/**
+ * A small control drawn smaller than a finger: an invisible ring around it takes the tap, so it
+ * is still a 44px target (parity-spec 2.11) without looking like one.
+ */
+const TAP_AREA = "relative before:absolute before:content-['']";
 
 /**
- * The Calendar tab: the student's Google Calendar with the study blocks they applied and what is due,
- * one day at a time by default (the column is a phone's width) or a week. `?plan=<id>` lays a plan
- * that is only proposed over it, dashed, until it is applied in Chat; once applied, its banner can
- * take it off again. The timeline is Rebound's own renderer, read-only (components/calendar/rebound).
+ * The Calendar screen, in Rebound's calendar look: one quiet toolbar (the step back and forward,
+ * the day or week shown, Today, and Day or Week) over the timeline, which fills the rest. What owns
+ * no hours, an all-day event or what is due, sits as chips under the day headings. It shows the
+ * student's Google Calendar with the study blocks they applied, one day at a time by default or a
+ * week. `?plan=<id>` lays a plan that is only proposed over it, dashed, until it is applied in Chat;
+ * once applied, its bar can take it off again. The timeline is Rebound's own renderer, read-only
+ * (components/calendar/rebound).
  *
- * The page does not scroll: the timeline scrolls inside a card that fills the room between the
- * header and the tab bar, so the hours keep their place under the toolbar. At a large text size the
- * room runs out, and the page scrolls with the toolbar held at the top.
+ * The screen does not scroll: the timeline scrolls inside it, so the hours keep their place under
+ * the toolbar. At a large text size the room runs out, and the screen scrolls with the toolbar
+ * held at the top.
  */
 export function CalendarScreen({
   search,
@@ -146,6 +142,8 @@ export function CalendarScreen({
     if (!details) return;
     const close = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // Escape puts the details away and nothing more: the panel the calendar is open in stays.
+      event.preventDefault();
       setSelected(null);
       // From inside the details, focus would go with them: it goes back to the item instead.
       if (
@@ -177,116 +175,114 @@ export function CalendarScreen({
     !proposal?.blocks.some((block) => shown.has(block.date));
 
   return (
-    <ScreenScroll>
-      <div className="flex min-h-full flex-col">
-        <CalendarToolbar
-          headingRef={heading}
-          label={
-            mode === "day"
-              ? dayLabel(day, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                })
-              : rangeLabel(dates)
-          }
-          mode={mode}
-          onMode={(next) =>
-            go({
-              ...search,
-              date: day,
-              view: next === "week" ? "week" : undefined,
-            })
-          }
-          onStep={(step) => show(stepDay(day, mode, step))}
-          onToday={() => show(today)}
+    <div className="academic-calendar-screen flex min-h-0 flex-1 flex-col overflow-y-auto bg-card pb-[env(safe-area-inset-bottom)] text-foreground">
+      <CalendarToolbar
+        headingRef={heading}
+        label={
+          mode === "day"
+            ? dayLabel(day, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })
+            : rangeLabel(dates)
+        }
+        mode={mode}
+        onMode={(next) =>
+          go({
+            ...search,
+            date: day,
+            view: next === "week" ? "week" : undefined,
+          })
+        }
+        onStep={(step) => show(stepDay(day, mode, step))}
+        onToday={() => {
+          show(today);
+          // Today goes once today is shown: focus lands on the day it shows.
+          heading.current?.focus();
+        }}
+        showToday={!shown.has(today)}
+      />
+      {planId ? (
+        <PlanNotice
+          dates={dates}
+          // The pressed control goes with the bar or the day: focus lands on the day shown.
+          onGo={(date) => {
+            show(date);
+            heading.current?.focus();
+          }}
+          onHide={() => {
+            go({ ...search, date: day, plan: undefined });
+            heading.current?.focus();
+          }}
+          plan={plan}
+          planId={planId}
         />
-        {planId ? (
-          <PlanNotice
-            dates={dates}
-            // The pressed control goes with the banner or the day: focus lands on the day shown.
-            onGo={(date) => {
-              show(date);
-              heading.current?.focus();
-            }}
-            onHide={() => {
-              go({ ...search, date: day, plan: undefined });
-              heading.current?.focus();
-            }}
-            plan={plan}
-            planId={planId}
-          />
-        ) : null}
-        {view && view.couldNotRead.length > 0 ? (
-          <CouldNotRead lines={view.couldNotRead} />
-        ) : null}
-        {view && calendar.isError ? (
-          <p className="type-sub mb-3 px-1 text-duet-red" role="alert">
-            {calendar.error.message} What's shown may be out of date.
-          </p>
-        ) : null}
-        {view ? (
-          <AllDayStrip
-            dates={dates}
-            key={dates.join(",")}
-            mode={mode}
-            view={view}
-          />
-        ) : null}
-        {nothing ? (
-          <NothingNote
-            dates={dates}
-            mode={mode}
-            today={today}
-            unread={Boolean(view?.couldNotRead.length)}
-          />
-        ) : null}
-        {view ? (
-          <AcademicCalendar
-            blocks={view.blocks}
-            /*
-             * A length, not flex-1: a percentage basis in a column with no fixed height is read as
-             * the content's, and the timeline's content is every hour, so the page scrolled instead.
-             */
-            className="min-h-[320px] flex-[1_1_320px]"
-            classes={view.classes}
-            day={day}
-            events={view.events}
-            mode={mode}
-            nowMinute={now.minute}
-            onOpenDay={(date) => go({ ...search, date, view: undefined })}
-            onSelect={(item, button) => {
-              pressed.current = { key: item.key, button };
-              setSelected((current) =>
-                current?.key === item.key ? null : item,
-              );
-            }}
-            overlay={
-              details ? (
-                <ItemDetails
-                  classes={view.classes}
-                  item={details}
-                  onClose={() => {
-                    setSelected(null);
-                    // The close button goes with the details: focus goes back to the item.
-                    focusItem(details, pressed.current);
-                  }}
-                />
-              ) : null
-            }
-            proposed={proposal?.blocks}
-            provisional={calendar.isPlaceholderData}
-            selectedKey={details?.key ?? null}
-            today={now.day}
-          />
-        ) : (
-          <CalendarPlaceholder
-            error={calendar.isError ? calendar.error.message : null}
-            onRetry={() => void calendar.refetch()}
-          />
-        )}
-      </div>
-    </ScreenScroll>
+      ) : null}
+      {view && view.couldNotRead.length > 0 ? (
+        <CouldNotRead lines={view.couldNotRead} />
+      ) : null}
+      {view && calendar.isError ? (
+        <p
+          className="type-caption border-border border-b px-4 py-2.5 text-duet-red"
+          role="alert"
+        >
+          {calendar.error.message} What's shown may be out of date.
+        </p>
+      ) : null}
+      {nothing ? (
+        <NothingNote
+          dates={dates}
+          mode={mode}
+          today={today}
+          unread={Boolean(view?.couldNotRead.length)}
+        />
+      ) : null}
+      {view ? (
+        <AcademicCalendar
+          allDay={view.allDay}
+          blocks={view.blocks}
+          /*
+           * A length, not flex-1: a percentage basis in a column with no fixed height is read as
+           * the content's, and the timeline's content is every hour, so the screen scrolled instead.
+           */
+          className="min-h-[320px] flex-[1_1_320px]"
+          classes={view.classes}
+          day={day}
+          deadlines={view.deadlines}
+          events={view.events}
+          mode={mode}
+          nowMinute={now.minute}
+          onOpenDay={(date) => go({ ...search, date, view: undefined })}
+          onSelect={(item, button) => {
+            pressed.current = { key: item.key, button };
+            setSelected((current) => (current?.key === item.key ? null : item));
+          }}
+          overlay={
+            details ? (
+              <ItemDetails
+                classes={view.classes}
+                item={details}
+                onClose={() => {
+                  setSelected(null);
+                  // The close button goes with the details: focus goes back to the item.
+                  focusItem(details, pressed.current);
+                }}
+              />
+            ) : null
+          }
+          proposed={proposal?.blocks}
+          provisional={calendar.isPlaceholderData}
+          selectedKey={details?.key ?? null}
+          today={now.day}
+        />
+      ) : (
+        <CalendarPlaceholder
+          error={calendar.isError ? calendar.error.message : null}
+          onRetry={() => void calendar.refetch()}
+        />
+      )}
+    </div>
   );
 }
 
@@ -302,7 +298,15 @@ function useClock(): number {
 
 /** The day an item is drawn on. */
 function itemDate(item: CalendarItem): string {
-  return item.kind === "event" ? item.event.date : item.block.date;
+  switch (item.kind) {
+    case "event":
+    case "allDay":
+      return item.event.date;
+    case "block":
+      return item.block.date;
+    case "due":
+      return item.deadline.date;
+  }
 }
 
 /** The earliest day a plan has a session on, or its first planned day when it has none. */
@@ -336,9 +340,9 @@ function minutesLabel(minutes: number): string {
 }
 
 /**
- * The day or week shown, Today, the step back and forward, and Day or Week. It sticks under the
- * header when the page scrolls, as Tasks' switch does, and wraps rather than running off the screen
- * at a large text size.
+ * Rebound's calendar toolbar, in one row: two round arrows, the day or week shown, Today (only
+ * while today is out of view), and Day or Week at the end. It stays at the top when the screen
+ * scrolls at a large text size, and wraps rather than running off a narrow screen.
  */
 function CalendarToolbar({
   headingRef,
@@ -347,6 +351,7 @@ function CalendarToolbar({
   onMode,
   onStep,
   onToday,
+  showToday,
 }: {
   /** The heading, which takes focus when the control that had it goes away. */
   headingRef: RefObject<HTMLHeadingElement | null>;
@@ -355,90 +360,140 @@ function CalendarToolbar({
   onMode: (mode: CalendarMode) => void;
   onStep: (step: -1 | 1) => void;
   onToday: () => void;
+  showToday: boolean;
 }) {
   const unit = mode === "day" ? "day" : "week";
   return (
-    <div
-      className={cn(
-        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2",
-        // Solid up to the header's discs, and a short fade under it, so rows don't show through.
-        "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-[14px] before:bg-duet-surface before:content-['']",
-        "after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-4 after:bg-[linear-gradient(var(--duet-surface),transparent)] after:content-['']",
-      )}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="sticky top-0 z-40 flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-border border-b bg-card px-3 py-2 sm:px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
+          <StepButton label={`Previous ${unit}`} onClick={() => onStep(-1)}>
+            <IconArrowLeft aria-hidden size={16} stroke={1.75} />
+          </StepButton>
+          <StepButton label={`Next ${unit}`} onClick={() => onStep(1)}>
+            <IconArrowRight aria-hidden size={16} stroke={1.75} />
+          </StepButton>
+        </div>
         {/* Read out when it changes, so stepping a day says where it landed. */}
         <h1
           aria-live="polite"
-          className="type-big min-w-0 font-semibold text-duet-ink tabular-nums outline-none"
+          className="ml-1 min-w-0 truncate font-semibold text-base tabular-nums tracking-tight outline-none sm:text-lg"
           ref={headingRef}
           tabIndex={-1}
         >
           {label}
         </h1>
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <button
-            className="duet-glass type-sub min-h-[44px] rounded-full px-4 font-medium text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
-            onClick={onToday}
-            type="button"
-          >
-            Today
-          </button>
-          <IconButton
-            icon="chevronLeft"
-            label={`Previous ${unit}`}
-            onClick={() => onStep(-1)}
-          />
-          <IconButton
-            icon="chevronRight"
-            label={`Next ${unit}`}
-            onClick={() => onStep(1)}
-          />
-        </div>
+        {showToday ? <TextButton onClick={onToday}>Today</TextButton> : null}
       </div>
-      <div className="mt-2">
-        <Segmented
-          label="Calendar view"
-          onChange={onMode}
-          options={VIEWS}
-          value={mode}
-        />
-      </div>
+      <ViewSwitch mode={mode} onMode={onMode} />
     </div>
   );
 }
 
-function IconButton({
-  icon,
+/** One of the toolbar's round arrows: 32px drawn, 44px to the touch. */
+function StepButton({
   label,
   onClick,
+  children,
 }: {
-  icon: DuetIconName;
   label: string;
   onClick: () => void;
+  children: ReactNode;
 }) {
   return (
     <button
       aria-label={label}
-      // 44px, the smallest tap target (parity-spec 2.11), and in pixels: an icon, as on Tasks.
-      className="duet-glass grid size-[44px] place-items-center rounded-full text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
+      className={cn(
+        TAP_AREA,
+        "grid size-8 place-items-center rounded-full bg-accent text-primary outline-none transition-[background-color,transform] before:-inset-1.5 hover:bg-[color-mix(in_oklab,var(--primary)_16%,var(--card))] focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95",
+      )}
       onClick={onClick}
       title={label}
       type="button"
     >
-      <DuetIcon name={icon} size={19} stroke={2} />
+      {children}
     </button>
   );
 }
 
-/** A pill for a card's own action: SmallPill's look, at its own width. */
-function PillButton(props: ComponentProps<"button">) {
+/** A quiet action in the accent's ink, as Rebound draws Today. */
+function TextButton({ className, ...props }: ComponentProps<"button">) {
   return (
     <button
-      className="type-sub min-h-11 shrink-0 rounded-full px-4 py-2 font-medium text-duet-ink shadow-[inset_0_0_0_1px_var(--duet-hair)] transition-[transform,background-color] hover:bg-duet-tile focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-[0.98] disabled:opacity-50"
+      className={cn(
+        TAP_AREA,
+        "type-caption h-8 shrink-0 whitespace-nowrap rounded-md px-2 font-medium text-primary outline-none transition-colors before:inset-x-0 before:-inset-y-1.5 hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+        className,
+      )}
       type="button"
       {...props}
     />
+  );
+}
+
+/**
+ * Day or Week, as one small switch: a radio group, so the arrow keys move between the two and the
+ * view follows, as on a phone's segmented control.
+ */
+function ViewSwitch({
+  mode,
+  onMode,
+}: {
+  mode: CalendarMode;
+  onMode: (mode: CalendarMode) => void;
+}) {
+  const group = useRef<HTMLDivElement>(null);
+  const choose = (next: CalendarMode, focus: boolean) => {
+    onMode(next);
+    if (focus)
+      group.current
+        ?.querySelector<HTMLElement>(`[data-calendar-view="${next}"]`)
+        ?.focus();
+  };
+  return (
+    <div
+      aria-label="Calendar view"
+      className="ml-auto flex shrink-0 rounded-lg bg-muted p-0.5"
+      ref={group}
+      role="radiogroup"
+    >
+      {VIEWS.map((option, index) => {
+        const on = option.value === mode;
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: a segmented control, drawn as one capsule.
+          <button
+            aria-checked={on}
+            className={cn(
+              TAP_AREA,
+              "type-caption h-7 min-w-12 rounded-md px-2.5 font-medium outline-none transition-colors before:inset-x-0 before:-inset-y-2 focus-visible:ring-3 focus-visible:ring-ring/50",
+              on
+                ? "bg-card text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_0.5px_rgb(0_0_0/0.04)]"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            data-calendar-view={option.value}
+            key={option.value}
+            onClick={() => choose(option.value, false)}
+            onKeyDown={(event) => {
+              const step =
+                event.key === "ArrowRight" || event.key === "ArrowDown"
+                  ? 1
+                  : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                    ? -1
+                    : 0;
+              if (!step) return;
+              event.preventDefault();
+              const next = VIEWS[(index + step + VIEWS.length) % VIEWS.length];
+              if (next) choose(next.value, true);
+            }}
+            role="radio"
+            tabIndex={on ? 0 : -1}
+            type="button"
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -464,7 +519,7 @@ function planNote(
   if (data.status === "applied")
     return {
       title: "Plan applied",
-      detail: "Its sessions are on your Calendar tab.",
+      detail: "Its sessions are on your calendar.",
       first: null,
       removable: true,
     };
@@ -473,7 +528,7 @@ function planNote(
     return data.appliedAt !== null
       ? {
           title: "Plan removed",
-          detail: "Removed from your Calendar tab.",
+          detail: "Removed from your calendar.",
           first: null,
           removable: false,
         }
@@ -512,8 +567,8 @@ function planNote(
 }
 
 /**
- * The plan `?plan=` names: proposed and drawn dashed, or why nothing of it is drawn. An applied plan
- * can be taken off the calendar from here.
+ * The plan `?plan=` names, as a thin bar under the toolbar: proposed and drawn dashed, or why
+ * nothing of it is drawn. An applied plan can be taken off the calendar from here.
  */
 function PlanNotice({
   planId,
@@ -530,46 +585,40 @@ function PlanNotice({
 }) {
   const queryClient = useQueryClient();
   const remove = useMutation(removePlanMutationOptions(queryClient, planId));
-  // Removed, the button goes and the banner says so: focus moves onto what it says.
+  // Removed, the button goes and the bar says so: focus moves onto what it says.
   const title = useRef<HTMLParagraphElement>(null);
   if (plan.isPending) return null;
   const note = planNote(plan, dates);
   const { first } = note;
   return (
-    // Dismissed from its corner, so the banner costs the timeline as little room as it can.
-    <DuetCard
+    <div
       aria-label="Study plan"
-      className="mb-3 flex items-start gap-1 py-3 pr-1.5 pl-4"
+      className="flex shrink-0 items-start gap-2 border-border border-b bg-[color-mix(in_oklab,var(--primary)_5%,var(--card))] py-2 pr-2 pl-4"
       role="status"
     >
-      <div className="min-w-0 flex-1">
+      <div className="type-caption min-w-0 flex-1 py-1">
         <p
-          className="type-sub font-semibold text-duet-ink outline-none"
+          className="font-semibold text-foreground outline-none"
           ref={title}
           tabIndex={-1}
         >
           {note.title}
         </p>
-        <p className="type-sub mt-0.5 text-duet-ink-2">{note.detail}</p>
-        {first ? (
-          <div className="mt-2.5 flex">
-            <PillButton onClick={() => onGo(first)}>
-              Show its first day
-            </PillButton>
-          </div>
+        <p className="mt-0.5 text-muted-foreground">{note.detail}</p>
+        {note.removable && remove.isError ? (
+          <p className="mt-1 text-duet-status-problem" role="alert">
+            {remove.error.message}
+          </p>
         ) : null}
-        {note.removable ? (
-          <>
-            {remove.isError ? (
-              <p
-                className="type-sub mt-2 text-duet-status-problem"
-                role="alert"
-              >
-                {remove.error.message}
-              </p>
+        {first || note.removable ? (
+          <div className="-ml-2 mt-1 flex flex-wrap gap-1">
+            {first ? (
+              <TextButton onClick={() => onGo(first)}>
+                Show its first day
+              </TextButton>
             ) : null}
-            <div className="mt-2.5 flex">
-              <PillButton
+            {note.removable ? (
+              <TextButton
                 disabled={remove.isPending}
                 onClick={() =>
                   remove.mutate(undefined, {
@@ -578,21 +627,24 @@ function PlanNotice({
                 }
               >
                 Remove from calendar
-              </PillButton>
-            </div>
-          </>
+              </TextButton>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <button
         aria-label="Hide this plan"
-        className="-mt-1.5 grid size-11 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+        className={cn(
+          TAP_AREA,
+          "grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors before:-inset-1.5 hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+        )}
         onClick={onHide}
         title="Hide this plan"
         type="button"
       >
-        <DuetIcon name="x" size={18} stroke={2.2} />
+        <DuetIcon name="x" size={16} stroke={2.2} />
       </button>
-    </DuetCard>
+    </div>
   );
 }
 
@@ -604,30 +656,30 @@ function CouldNotRead({ lines }: { lines: readonly string[] }) {
   return (
     <div
       aria-label="Not everything could be read"
-      className="mb-3 flex gap-3 rounded-[var(--duet-radius-card)] bg-duet-tile px-4 py-3"
+      className="flex shrink-0 gap-2.5 border-border border-b px-4 py-2.5"
       role="note"
     >
       <DuetIcon
-        className="mt-px shrink-0 text-duet-ink-2"
+        className="mt-px shrink-0 text-muted-foreground"
         name="alert"
-        size={18}
+        size={16}
       />
-      <div className="min-w-0 flex-1">
-        <p className="type-sub font-medium text-duet-ink">
+      <div className="type-caption min-w-0 flex-1">
+        <p className="font-medium text-foreground">
           Not everything could be read
         </p>
-        <ul className="mt-0.5">
+        <ul className="mt-0.5 text-muted-foreground">
           {[...new Set(lines)].map((line) => (
-            <li
-              className="type-sub text-duet-ink-2 [overflow-wrap:anywhere]"
-              key={line}
-            >
+            <li className="[overflow-wrap:anywhere]" key={line}>
               {line}
             </li>
           ))}
         </ul>
         <Link
-          className="type-sub -mb-2 inline-flex min-h-11 items-center rounded-full font-medium text-duet-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+          className={cn(
+            TAP_AREA,
+            "mt-1 inline-flex rounded-sm font-medium text-primary outline-none before:-inset-x-1 before:-inset-y-3.5 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50",
+          )}
           to="/connections"
         >
           Open Connections
@@ -637,143 +689,12 @@ function CouldNotRead({ lines }: { lines: readonly string[] }) {
   );
 }
 
-type StripLine = {
-  key: string;
-  date: string;
-  /** Sorts a day's lines: all-day events first, then deadlines by time. */
-  order: string;
-  title: string;
-  detail: string;
-  /** A class's colour for a deadline; null for an all-day event, which has no class. */
-  color: string | null;
-  help: HelpLevel | null;
-};
-
-/** The visible days' all-day events and deadlines, in day order. */
-function stripLines(
-  view: CalendarView,
-  dates: readonly string[],
-  mode: CalendarMode,
-): StripLine[] {
-  const shown = new Set(dates);
-  const weekday = (date: string) =>
-    mode === "week" ? `${dayLabel(date, { weekday: "short" })} · ` : "";
-  const classById = new Map(view.classes.map((entry) => [entry.id, entry]));
-  return [
-    ...view.allDay
-      .filter((event) => shown.has(event.date))
-      .map(
-        (event): StripLine => ({
-          key: `all-day:${event.date}:${event.id}`,
-          date: event.date,
-          order: "",
-          title: event.title,
-          detail: `${weekday(event.date)}All day`,
-          color: null,
-          help: null,
-        }),
-      ),
-    ...view.deadlines
-      .filter((deadline) => shown.has(deadline.date))
-      .map((deadline): StripLine => {
-        const owner = classById.get(deadline.classId);
-        const word = KIND_WORD[deadline.kind];
-        return {
-          key: `deadline:${deadline.date}:${deadline.assignmentId}`,
-          date: deadline.date,
-          // A deadline with no time is due by the end of its day.
-          order: deadline.time ?? "24:00",
-          title: deadline.title,
-          detail: `${weekday(deadline.date)}${[
-            owner?.name,
-            deadline.time ? `${word} ${clockLabel(deadline.time)}` : word,
-          ]
-            .filter(Boolean)
-            .join(" · ")}`,
-          color: classColor(owner?.color ?? "slate"),
-          help: deadline.help,
-        };
-      }),
-  ].sort(
-    (a, b) =>
-      a.date.localeCompare(b.date) ||
-      a.order.localeCompare(b.order) ||
-      a.title.localeCompare(b.title),
-  );
-}
-
-/**
- * The visible days' all-day events and what is due, above the hours: the timeline has no all-day
- * lane. Each deadline carries its class's colour and the teacher's AI-help level, where the notice
- * gave one. A level the notice did not give is left out rather than guessed.
- */
-function AllDayStrip({
-  view,
-  dates,
-  mode,
-}: {
-  view: CalendarView;
-  dates: readonly string[];
-  mode: CalendarMode;
-}) {
-  const [open, setOpen] = useState(false);
-  const lines = stripLines(view, dates, mode);
-  if (lines.length === 0) return null;
-  const visible =
-    open || lines.length <= STRIP_LIMIT
-      ? lines
-      : lines.slice(0, STRIP_LIMIT - 1);
-  return (
-    <section aria-labelledby="calendar-all-day" className="mb-3">
-      <h2 className="type-sub px-1 text-duet-ink-2" id="calendar-all-day">
-        {mode === "day" ? "All day" : "All day this week"}
-      </h2>
-      <ul className="mt-1 flex flex-col">
-        {visible.map((line) => (
-          <li className="flex items-center gap-3 px-1 py-1.5" key={line.key}>
-            <span
-              aria-hidden
-              className="grid w-3.5 shrink-0 place-items-center text-duet-ink-3"
-            >
-              {line.color ? (
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: line.color }}
-                />
-              ) : (
-                <DuetIcon name="calendar" size={14} />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="type-sub font-medium text-duet-ink [overflow-wrap:anywhere]">
-                {line.title}
-              </p>
-              <p className="type-caption text-duet-ink-2">{line.detail}</p>
-            </div>
-            {line.help ? <HelpLabel level={line.help} /> : null}
-          </li>
-        ))}
-      </ul>
-      {visible.length < lines.length ? (
-        <button
-          className="type-sub min-h-11 rounded-full px-1 font-medium text-duet-ink-2 transition-colors hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
-          onClick={() => setOpen(true)}
-          type="button"
-        >
-          Show {lines.length - visible.length} more
-        </button>
-      ) : null}
-    </section>
-  );
-}
-
 /** The teacher's AI-help level in its own words. Grey: a rule to know, not a status. */
 function HelpLabel({ level }: { level: HelpLevel }) {
   return (
-    <span className="type-caption inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-duet-tile px-2 py-1 font-medium text-duet-ink-2">
+    <span className="type-caption inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
       {level === "none" ? <DuetIcon name="lock" size={12} stroke={2} /> : null}
-      <span className="sr-only">AI help: </span>
-      {HELP_LEVEL_LABEL[level]}
+      AI help: {HELP_LEVEL_LABEL[level]}
     </span>
   );
 }
@@ -805,12 +726,12 @@ function NothingNote({
         : "that week"
       : (day ?? "today");
   return (
-    <p className="type-sub mb-3 px-1 text-duet-ink-2">
+    <p className="type-caption shrink-0 border-border border-b px-4 py-2.5 text-muted-foreground">
       {unread
         ? `Nothing we could read for ${when}.`
         : `Nothing on your calendar ${day ? `on ${day}` : when}.`}{" "}
       <Link
-        className="font-medium text-duet-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+        className="rounded-sm font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         to="/"
       >
         Plan study time in Chat
@@ -819,7 +740,7 @@ function NothingNote({
   );
 }
 
-/** Where the timeline will be: a quiet card while it loads, or why it could not. */
+/** Where the timeline will be: a quiet space while it loads, or why it could not. */
 function CalendarPlaceholder({
   error,
   onRetry,
@@ -828,28 +749,25 @@ function CalendarPlaceholder({
   onRetry: () => void;
 }) {
   return (
-    <DuetCard className="grid min-h-[320px] flex-[1_1_320px] place-items-center px-6 py-8 text-center">
+    <div className="grid min-h-[320px] flex-[1_1_320px] place-items-center px-6 py-8 text-center">
       {error ? (
         <div role="alert">
           <p className="type-sub text-duet-red">{error}</p>
-          <div className="mt-3 flex justify-center">
-            <PillButton onClick={onRetry}>Try again</PillButton>
+          <div className="mt-2 flex justify-center">
+            <TextButton onClick={onRetry}>Try again</TextButton>
           </div>
         </div>
       ) : (
-        <p className="type-sub text-duet-ink-2" role="status">
+        <p className="type-sub text-muted-foreground" role="status">
           Loading your calendar…
         </p>
       )}
-    </DuetCard>
+    </div>
   );
 }
 
 /** The facts of the item the student pressed, in the card's words. */
-function itemFacts(
-  item: CalendarItem,
-  classes: readonly SchoolClass[],
-): {
+type ItemFacts = {
   title: string;
   when: string;
   location: string | null;
@@ -857,29 +775,62 @@ function itemFacts(
   color: string;
   proposed: boolean;
   late: boolean;
-} {
-  const classId =
-    item.kind === "event" ? item.event.classId : item.block.classId;
-  const owner = classes.find((entry) => entry.id === classId);
+  /** The teacher's AI-help level for what is due, where the notice gave one. */
+  help: HelpLevel | null;
+};
+
+function itemFacts(
+  item: CalendarItem,
+  classes: readonly SchoolClass[],
+): ItemFacts {
+  const owner = (classId: string | null | undefined) =>
+    classId ? classes.find((entry) => entry.id === classId) : undefined;
+  const date = (day: string) =>
+    dayLabel(day, { weekday: "short", month: "short", day: "numeric" });
+  const quiet = {
+    location: null,
+    proposed: false,
+    late: false,
+    help: null,
+  };
+  if (item.kind === "due") {
+    const { deadline } = item;
+    const schoolClass = owner(deadline.classId);
+    return {
+      ...quiet,
+      title: deadline.title,
+      when: `${date(deadline.date)} · ${deadlineWhen(deadline)}`,
+      className: schoolClass?.name ?? null,
+      color: classColor(schoolClass?.color ?? "slate"),
+      help: deadline.help,
+    };
+  }
+  if (item.kind === "allDay")
+    return {
+      ...quiet,
+      title: item.event.title,
+      when: `${date(item.event.date)} · All day`,
+      className: null,
+      color: classColor("slate"),
+    };
   const range = item.kind === "event" ? item.event : item.block;
+  const schoolClass = owner(range.classId);
   return {
     title: range.title,
-    when: `${dayLabel(range.date, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })} · ${clockLabel(range.start)} – ${clockLabel(range.end)}`,
+    when: `${date(range.date)} · ${clockLabel(range.start)} – ${clockLabel(range.end)}`,
     location: item.kind === "event" ? (item.event.location ?? null) : null,
-    className: owner?.name ?? null,
-    color: classColor(owner?.color ?? "slate"),
+    className: schoolClass?.name ?? null,
+    color: classColor(schoolClass?.color ?? "slate"),
     proposed: item.kind === "block" && item.proposed,
     late: item.kind === "block" && item.block.late === true,
+    help: null,
   };
 }
 
 /**
- * The pressed item's title, day and time, place and class, over the foot of the timeline. Escape,
- * the close button or pressing the item again puts it away, and focus goes back to the item.
+ * The pressed item's title, day and time, place and class, over the foot of the timeline: a sheet
+ * along the bottom on a phone, a card in the corner on a wide screen. Escape, the close button or
+ * pressing the item again puts it away, and focus goes back to the item.
  */
 function ItemDetails({
   item,
@@ -892,13 +843,11 @@ function ItemDetails({
 }) {
   const facts = itemFacts(item, classes);
   return (
-    <DuetCard
+    <section
       aria-label={`${facts.title}, details`}
       aria-live="polite"
-      className="calendar-detail-popover absolute inset-x-2 bottom-2 z-50 px-4 py-3"
+      className="calendar-detail-popover absolute inset-x-2 bottom-2 z-50 rounded-xl border border-border bg-popover py-3 pr-2 pl-4 text-popover-foreground shadow-[var(--academic-calendar-elevation)] sm:inset-x-auto sm:right-3 sm:bottom-3 sm:w-[22rem]"
       data-calendar-details=""
-      raised
-      role="region"
     >
       <div className="flex items-start gap-3">
         <span
@@ -906,39 +855,41 @@ function ItemDetails({
           className="mt-[7px] size-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: facts.color }}
         />
-        <div className="min-w-0 flex-1">
+        <div className="type-caption min-w-0 flex-1 text-muted-foreground">
           {facts.proposed ? (
-            <p className="type-caption font-semibold text-duet-ink-2">
-              Proposed, not on your calendar yet
-            </p>
+            <p className="font-semibold">Proposed, not on your calendar yet</p>
           ) : null}
-          <p className="type-body font-semibold text-duet-ink [overflow-wrap:anywhere]">
+          <p className="type-sub font-semibold text-foreground [overflow-wrap:anywhere]">
             {facts.title}
           </p>
-          <p className="type-sub text-duet-ink-2 tabular-nums">{facts.when}</p>
+          <p className="mt-0.5 tabular-nums">{facts.when}</p>
           {facts.location ? (
-            <p className="type-sub text-duet-ink-2 [overflow-wrap:anywhere]">
-              {facts.location}
+            <p className="[overflow-wrap:anywhere]">{facts.location}</p>
+          ) : null}
+          {facts.className ? <p>{facts.className}</p> : null}
+          {facts.late ? (
+            <p className="text-duet-status-needs">
+              After its due date: time to catch up.
             </p>
           ) : null}
-          {facts.className ? (
-            <p className="type-sub text-duet-ink-2">{facts.className}</p>
-          ) : null}
-          {facts.late ? (
-            <p className="type-sub text-duet-status-needs">
-              After its due date: time to catch up.
+          {facts.help ? (
+            <p className="mt-1.5">
+              <HelpLabel level={facts.help} />
             </p>
           ) : null}
         </div>
         <button
           aria-label="Close details"
-          className="-mt-1.5 -mr-2 grid size-11 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+          className={cn(
+            TAP_AREA,
+            "-mt-1 grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors before:-inset-1.5 hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+          )}
           onClick={onClose}
           type="button"
         >
-          <DuetIcon name="x" size={18} stroke={2.2} />
+          <DuetIcon name="x" size={16} stroke={2.2} />
         </button>
       </div>
-    </DuetCard>
+    </section>
   );
 }

@@ -95,6 +95,19 @@ export function landedActionNotice(action: string): string {
   return `You just authorized ${action}.`;
 }
 
+/** Google's scopes in the words a student reads. Any other scope is shown as the vendor wrote it. */
+const SCOPE_WORDS: ReadonlyMap<string, string> = new Map([
+  ["https://www.googleapis.com/auth/gmail.readonly", "Read your email"],
+  ["https://www.googleapis.com/auth/gmail.send", "Send emails you approve"],
+  ["https://www.googleapis.com/auth/calendar.readonly", "Read your calendar"],
+]);
+
+/** What a recorded grant allows, one entry per scope (the vendor separates them with spaces). */
+export function scopeWords(scope: string): string[] {
+  const scopes = new Set(scope.split(/\s+/).filter(Boolean));
+  return [...scopes].map((one) => SCOPE_WORDS.get(one) ?? one);
+}
+
 /**
  * One service, and whether a Bot may read it as you.
  *
@@ -559,12 +572,13 @@ function AppConnectionPage() {
               {/* Not "Connect your account": the row is also the connected state, and a title has to
                   read for both. */}
               <ItemTitle>Your account</ItemTitle>
-              <ItemDescription>
+              {/* Whole, even on a phone, where two lines would cut it off mid-sentence. */}
+              <ItemDescription className="line-clamp-none">
                 {!enabled
                   ? "Not available yet. An admin has to turn this on first."
                   : connection
-                    ? "Bots you allow use this as you, and see only what you can see."
-                    : `No Bot can use this as you. Connecting takes you to ${entry.vendor} to approve access.`}
+                    ? "Your coach uses this as you, and sees only what you can see."
+                    : `Your coach can't use this yet. Connecting takes you to ${entry.vendor} to approve access.`}
               </ItemDescription>
             </ItemContent>
             <ItemActions>
@@ -664,7 +678,17 @@ function AppConnectionPage() {
               <ItemContent>
                 <ItemTitle>Allowed</ItemTitle>
                 <ItemDescription className="line-clamp-none">
-                  {connection.scope || `${entry.vendor} didn't say.`}
+                  {connection.scope
+                    ? scopeWords(connection.scope).map((allowed) => (
+                        // A scope with no words is a long address: it wraps rather than run off the card.
+                        <span
+                          className="block [overflow-wrap:anywhere]"
+                          key={allowed}
+                        >
+                          {allowed}
+                        </span>
+                      ))
+                    : `${entry.vendor} didn't say.`}
                 </ItemDescription>
               </ItemContent>
             </Item>
@@ -675,7 +699,7 @@ function AppConnectionPage() {
               </ItemContent>
               <ItemActions>
                 <span className="text-muted-foreground text-xs">
-                  {new Date(connection.connectedAt).toLocaleString()}
+                  {new Date(connection.connectedAt).toLocaleDateString()}
                 </span>
               </ItemActions>
             </Item>

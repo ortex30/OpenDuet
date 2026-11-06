@@ -94,3 +94,15 @@ test("page-making skills use make_page block kinds the page tool accepts", () =>
   expect(skill("writing-feedback").instructions).toContain("checklist");
   expect(skill("study-guide").instructions).toContain("make_page");
 });
+
+test("the coach's '/' menu is for studying: no making Bots or writing skills from chat", () => {
+  const bot = tenant.agents.find((agent) => agent.id === tenant.tenantId);
+  expect(bot?.skills).not.toContain("bot-creator");
+  expect(bot?.skills).not.toContain("skill-creator");
+  // Both still ship, for whoever runs the app to grant by hand.
+  expect(skill("bot-creator").instructions).toContain("save_bot");
+  expect(skill("skill-creator").instructions).toContain("save_skill");
+  // And the school notebook keeps the Notion skills it reads with.
+  expect(bot?.skills).toContain("school-notebook");
+  expect(bot?.skills).toContain("find-a-notion-page");
+});

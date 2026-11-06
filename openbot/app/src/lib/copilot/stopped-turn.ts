@@ -19,9 +19,9 @@ import { sayableReason } from "@/lib/channels/run-lifecycle";
 /**
  * The sentence to show, in the words of whatever ended the turn.
  *
- * Falls back only when there is genuinely nothing to pass on. Saying "the Bot stopped without saying
- * why" is honest about that; inventing a cause would not be, and this is the one moment a person has
- * no other way to find out what went wrong.
+ * Falls back only when there is genuinely nothing to pass on. Saying "your coach stopped without
+ * saying why" is honest about that; inventing a cause would not be, and this is the one moment a
+ * person has no other way to find out what went wrong.
  */
 export function stoppedReason(reported: unknown): string {
   const said =
@@ -30,7 +30,7 @@ export function stoppedReason(reported: unknown): string {
       : typeof reported === "string"
         ? reported
         : "";
-  return said.trim() || "The Bot stopped without saying why.";
+  return said.trim() || "Your coach stopped without saying why.";
 }
 
 /**

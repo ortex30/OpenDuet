@@ -21,6 +21,8 @@ export const SOLID: Record<ClassColor | string, string> = {
   amber: "bg-duet-amber",
   red: "bg-duet-red",
   accent: "bg-duet-accent",
+  // Study that belongs to no class, in grey so it never looks like one.
+  general: "bg-duet-ink-3",
 };
 
 /** A rounded card on the tab's surface. */

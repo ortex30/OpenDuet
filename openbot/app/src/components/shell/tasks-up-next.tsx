@@ -34,12 +34,12 @@ import { type AnswerSuggestion, SmallPill } from "./suggestion-card";
 import { SwipeToAnswer } from "./swipe-to-answer";
 
 /**
- * What the product's own Bot looks for when the person turns research on from Tasks. OpenDuet works
- * in mail and calendar, so this names the things there that end up as tasks. The Bot reads it as
- * the person's own request, so it is written in their voice.
+ * What the product's own Bot looks for when the person turns research on from Tasks: a student's
+ * school work, as it shows up in their mail and calendar, which is what ends up as tasks. The Bot
+ * reads it as the person's own request, so it is written in their voice.
  */
 export const RESEARCH_FOCUS =
-  "Replies I owe, decisions waiting on me, payments due and deadlines coming up, in my mail and calendar.";
+  "Homework, quizzes, tests and other deadlines coming up, and messages from teachers I should answer, in my mail and calendar.";
 
 /** How often Up next reads again while Show me is looking. */
 export const LOOKING_POLL_MS = 3_000;
@@ -97,7 +97,7 @@ export function UpNextView({
     : undefined;
   const researchOff = Boolean(bot && settings.data && !setting?.enabled);
   const botName = (id: string) =>
-    agents?.find((agent) => agent.id === id)?.name ?? "Your Bot";
+    agents?.find((agent) => agent.id === id)?.name ?? "Your coach";
 
   if (suggestions.isPending) return null;
   const open = suggestions.data ?? [];
@@ -438,11 +438,11 @@ function TakeOffYourPlate({ bot }: { bot: AgentProfile }) {
       aria-label="Up next"
       className="flex flex-col items-center px-6 pt-10 text-center"
     >
-      <h2 className="type-title font-semibold text-duet-ink">
-        What can I take off your plate?
+      <h2 className="type-title text-balance font-semibold text-duet-ink">
+        Want me to find homework I can help with?
       </h2>
       <p className="type-sub mt-1.5 text-duet-ink-2">
-        I'll look through your mail and calendar for things I can handle.
+        I'll check your school email and calendar.
       </p>
       <ul aria-label="What it checks" className="mt-5 flex gap-3">
         <AppMark icon="mail" name="Gmail" tone="red" />

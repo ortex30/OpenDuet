@@ -19,6 +19,7 @@ import {
   useUnownedServerWork,
 } from "./chat-presence";
 import { usePageChromeState } from "./page-chrome";
+import { INTRO_ORB_TARGET } from "./startup-intro";
 
 const DISC =
   "duet-glass grid shrink-0 place-items-center rounded-full text-duet-ink shadow-duet-glass transition-transform duration-[var(--duet-dur-tap)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40 active:scale-95";
@@ -33,44 +34,29 @@ export function initialOf(user: { name?: string | null; email: string }) {
 }
 
 /**
- * The film's header: the menu in a disc on the left, OpenDuet's mic orb in the centre (back to
- * Chat), the person's initial in a disc on the right (their settings). The orb follows Chat: it
- * thinks while the Bot works, listens while the person types, and rests on every other screen.
- * While it thinks, a pill under it says what the Bot is doing.
+ * The phone's header over the chat: OpenDuet's mic orb in the centre and the person's initial in a
+ * disc on the right (their settings). There is no menu: the chat is the whole app, and the coach
+ * opens anything else when asked. The orb follows Chat: it thinks while the Bot works, listens while
+ * the person types, and rests otherwise. While it thinks, a pill under it says what the Bot is doing.
  *
- * `floating` lays it over a screen that scrolls under it, behind a fade, as on Chat, Tasks and
- * Make. Otherwise it is a bar in the page's flow, for the screens the menu opens.
+ * `floating` lays it over the chat, which scrolls under it behind a fade. Otherwise it is a bar in
+ * the page's flow. On a wide screen the desktop bar (desktop-bar.tsx) stands in for it.
  */
-export function ShellHeader({
-  floating,
-  menuOpen,
-  onMenu,
-}: {
-  floating: boolean;
-  menuOpen: boolean;
-  onMenu: () => void;
-}) {
+export function ShellHeader({ floating }: { floating: boolean }) {
   const { data: user } = useQuery(currentUserQueryOptions());
   const side = SIDE;
   const centre = floating ? 62 : 48;
   return (
     <header
       className={cn(
-        "duet-face z-20 flex items-start justify-between px-4",
+        "duet-face z-20 flex items-start justify-between px-4 lg:hidden",
         floating
           ? "pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(var(--duet-surface)_52%,transparent)] pt-3"
           : "relative h-16 shrink-0 items-center border-border border-b bg-background",
       )}
     >
-      <Disc
-        aria-expanded={menuOpen}
-        aria-label="Menu"
-        className={floating ? "mt-2" : undefined}
-        onClick={onMenu}
-        size={side}
-      >
-        <DuetIcon name="menu" size={21} />
-      </Disc>
+      {/* The settings disc's width on the left too, so the orb stays in the middle. */}
+      <span aria-hidden className="shrink-0" style={{ width: side }} />
       {/* The span between the discs, so the pill under the orb can never reach under either. */}
       <div className="flex min-w-0 flex-1 flex-col items-center gap-1 px-2">
         <Link
@@ -85,8 +71,14 @@ export function ShellHeader({
       </div>
       <Link
         aria-label="Your settings"
-        className={cn(DISC, "pointer-events-auto", floating && "mt-2")}
+        className={cn(
+          DISC,
+          // The press still scales; a pointer that can hover also tints it, as the desktop bar's does.
+          "pointer-events-auto transition-[scale,background-color] hover:bg-duet-tile",
+          floating && "mt-2",
+        )}
         style={{ width: side, height: side }}
+        title="Settings"
         to="/settings"
       >
         <span className="type-nav font-semibold">
@@ -97,11 +89,22 @@ export function ShellHeader({
   );
 }
 
-/** Its own component, so a keystroke in Chat re-renders the orb and not the whole header. */
-function ChatOrb({ size }: { size: number }) {
+/**
+ * Its own component, so a keystroke in Chat re-renders the orb and not the whole header. It is
+ * where the startup intro's orb lands (`INTRO_ORB_TARGET`).
+ */
+export function ChatOrb({ size }: { size: number }) {
   const { state, keystrokes } = useChatOrb();
   const colour = useAvatarColour();
-  return <MicOrb colour={colour} keystrokes={keystrokes} size={size} state={state} />;
+  return (
+    <MicOrb
+      className={INTRO_ORB_TARGET}
+      colour={colour}
+      keystrokes={keystrokes}
+      size={size}
+      state={state}
+    />
+  );
 }
 
 /**
@@ -115,7 +118,7 @@ function ChatOrb({ size }: { size: number }) {
  * slides only for somebody who has not asked for less motion; for them it fades, and its words
  * stop shimmering, as a running tool line's do.
  */
-function ChatStep() {
+export function ChatStep() {
   const step = useChatStep();
   const [held, setHeld] = useState(step);
   if (step !== null && step !== held) setHeld(step);

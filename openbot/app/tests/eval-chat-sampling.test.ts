@@ -289,7 +289,7 @@ describe("chat eval reads the app's actual turn markers", () => {
     expect(readChatSnapshot(question).turn).toBe("busy");
     transcript.remove();
     const stop = document.createElement("button");
-    stop.setAttribute("aria-label", "Stop the Bot");
+    stop.setAttribute("aria-label", "Stop");
     document.body.append(stop);
     expect(readChatSnapshot(question).turn).toBe("busy");
     stop.remove();

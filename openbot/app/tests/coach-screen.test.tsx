@@ -18,6 +18,7 @@ import { act, cleanup, render, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CoachScreen } from "@/components/coach/coach-screen";
 import { agentKeys } from "@/lib/agents/queries";
+import { authKeys } from "@/lib/auth/queries";
 import {
   COACH_STORAGE_KEY,
   getCoachState,
@@ -26,6 +27,7 @@ import {
   resetCoachCache,
   restartWithDemo,
   setTimer,
+  updateCoach,
 } from "@/lib/coach/store";
 import { settleReactWork } from "./settle-react-work";
 
@@ -63,7 +65,8 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-function draw() {
+/** The Coach screen, signed in as an account with no name unless one is given. */
+function draw(account: { name?: string } = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -76,6 +79,13 @@ function draw() {
       visibility: "public",
     },
   ]);
+  client.setQueryData(authKeys.currentUser(), {
+    id: "student-1",
+    email: "student@example.com",
+    role: "user",
+    onboarding: null,
+    ...account,
+  });
   const router = createRouter({
     routeTree: createRootRoute({ component: CoachScreen }),
     history: createMemoryHistory({ initialEntries: ["/coach"] }),
@@ -91,7 +101,8 @@ test("first open shows the demo week: goal, streak, do next, catch-up, load, ass
   const view = draw();
   await view.findByRole("heading", { name: "Coach" });
   expect(view.getByText(/Jordan\./)).toBeTruthy();
-  expect(view.getByText(/· demo week/)).toBeTruthy();
+  expect(view.getByText(/This is a sample week\./)).toBeTruthy();
+  expect(view.queryByText(/demo week/)).toBeNull();
   expect(view.getByTestId("streak").textContent).toMatch(/\d+-day streak/);
   expect(view.getByTestId("do-next-title").textContent).toBeTruthy();
   expect(view.getByLabelText("Catch-up mode").textContent).toContain(
@@ -108,6 +119,28 @@ test("first open shows the demo week: goal, streak, do next, catch-up, load, ass
     expect(getCoachState().unlocked["first-focus"]).toBeTruthy(),
   );
   expect(view.queryByTestId("celebration")).toBeNull();
+});
+
+test("the sample week greets the signed-in student by their first name", async () => {
+  const view = draw({ name: "Viren Shah" });
+  expect(await view.findByText(/Viren\./)).toBeTruthy();
+  expect(view.queryByText(/Jordan/)).toBeNull();
+  expect(getCoachState().profile.name).toBe("Viren");
+});
+
+test("a sample week saved in the old colours takes the calendar's", async () => {
+  updateCoach((s) => ({
+    ...s,
+    classes: s.classes.map((c) =>
+      c.id === "apush" ? { ...c, color: "red" } : c,
+    ),
+  }));
+  draw();
+  await waitFor(() =>
+    expect(getCoachState().classes.find((c) => c.id === "apush")?.color).toBe(
+      "blue",
+    ),
+  );
 });
 
 test("the check-in sets today's pace", async () => {
@@ -198,9 +231,12 @@ test("handing work to the coach starts a task with the teacher's rule in it", as
     name: /Coach me|Plan my time/,
   });
   await user.click(button);
+  await view.findByRole("dialog", { name: "Get help with this" });
   const field = (await view.findByLabelText(
     "What to ask",
   )) as HTMLTextAreaElement;
+  // The written-out request is folded away until the student opens it.
+  expect(field.closest("details")?.open).toBe(false);
   expect(field.value).toMatch(/AI help: (Full help|Hints only|No help)\./);
   await user.click(view.getByRole("button", { name: "Start" }));
   await waitFor(() => expect(posted).toHaveLength(1));
@@ -253,7 +289,7 @@ test("setup saves the name, goal and a new class", async () => {
     setupDone: true,
   });
   expect(state.classes.map((c) => c.name)).toContain("Robotics");
-  expect(view.queryByText(/Make it yours/)).toBeNull();
+  expect(view.queryByText(/sample week/)).toBeNull();
   // Saved to this browser for next time.
   expect(window.localStorage.getItem(COACH_STORAGE_KEY)).toContain("Robotics");
 });

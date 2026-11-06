@@ -49,7 +49,7 @@ describe("ThreadBusyError", () => {
   test("says the parity spec's sentence and is recognised by name", () => {
     const error = new ThreadBusyError();
     expect(error.message).toBe(
-      "OpenDuet is still finishing something. I'll send this next.",
+      "Your coach is still finishing something. I'll send this next.",
     );
     expect(isThreadBusyError(error)).toBe(true);
     expect(isThreadBusyError(new Error(error.message))).toBe(false);
@@ -137,7 +137,9 @@ describe("sayableReason", () => {
       "Failed to fetch",
       "TypeError: NetworkError when attempting to fetch resource.",
     ]) {
-      expect(sayableReason(raw)).toBe("Couldn't reach the Bot. Try again.");
+      expect(sayableReason(raw)).toBe(
+        "Couldn't reach your coach. Check your connection and try again.",
+      );
     }
   });
 
@@ -178,7 +180,9 @@ describe("sayableReason", () => {
       "connect ECONNREFUSED 127.0.0.1:4210",
       "fetch failed",
     ]) {
-      expect(sayableReason(raw)).toBe("Couldn't reach the Bot. Try again.");
+      expect(sayableReason(raw)).toBe(
+        "Couldn't reach your coach. Check your connection and try again.",
+      );
     }
   });
 });

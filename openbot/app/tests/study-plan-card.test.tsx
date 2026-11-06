@@ -395,7 +395,7 @@ describe("answering it", () => {
     });
 
     expect(view.getByRole("status").textContent).toBe(
-      "Removed from your Calendar tab",
+      "Removed from your calendar",
     );
     expect(view.queryByRole("button")).toBeNull();
     expect(view.queryByRole("link", { name: "View on calendar" })).toBeNull();
@@ -442,7 +442,7 @@ describe("answering it", () => {
 
     view.rerender(draw({ ...applied, status: "discarded" }));
     const status = view.getByRole("status");
-    expect(status.textContent).toBe("Removed from your Calendar tab");
+    expect(status.textContent).toBe("Removed from your calendar");
     expect(document.activeElement).toBe(status);
   });
 
