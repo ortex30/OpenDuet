@@ -56,7 +56,7 @@ export function ShellHeader({
   return (
     <header
       className={cn(
-        "duet-face z-20 flex items-start justify-between px-4",
+        "duet-face z-20 flex items-start justify-between px-4 lg:hidden",
         floating
           ? "pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(var(--duet-surface)_52%,transparent)] pt-3"
           : "relative h-16 shrink-0 items-center border-border border-b bg-background",
@@ -98,10 +98,12 @@ export function ShellHeader({
 }
 
 /** Its own component, so a keystroke in Chat re-renders the orb and not the whole header. */
-function ChatOrb({ size }: { size: number }) {
+export function ChatOrb({ size }: { size: number }) {
   const { state, keystrokes } = useChatOrb();
   const colour = useAvatarColour();
-  return <MicOrb colour={colour} keystrokes={keystrokes} size={size} state={state} />;
+  return (
+    <MicOrb colour={colour} keystrokes={keystrokes} size={size} state={state} />
+  );
 }
 
 /**
@@ -115,7 +117,7 @@ function ChatOrb({ size }: { size: number }) {
  * slides only for somebody who has not asked for less motion; for them it fades, and its words
  * stop shimmering, as a running tool line's do.
  */
-function ChatStep() {
+export function ChatStep() {
   const step = useChatStep();
   const [held, setHeld] = useState(step);
   if (step !== null && step !== held) setHeld(step);

@@ -12,6 +12,7 @@ import { SelfHostBanner } from "@/components/layout/self-host-banner";
 import { useChannelEvents } from "@/lib/channels/use-channel-events";
 import { useDuetChannels } from "@/lib/duet-channels/use-channel";
 import { ChannelSheet } from "./channel-sheet";
+import { DesktopSidebar } from "./desktop-sidebar";
 import {
   ChatPresenceProvider,
   useChatServerBusy,
@@ -24,8 +25,9 @@ import { PageChromeProvider, usePageChromeState } from "./page-chrome";
 import { TabBar, tabForPath } from "./tab-bar";
 
 /**
- * The signed-in app, as the launch film shows it: one column the width of a phone, centred on a
- * wide screen, with the header floating over it and Chat, Tasks and Make at its foot.
+ * The signed-in app. On a phone: one column with the header floating over it and the tabs at its
+ * foot. On a wide screen (`lg` and up): a sidebar on the left with the tabs, and each screen laid out
+ * across the room it has.
  *
  * Everything that is not a tab is a page pushed over the app, in one chrome (parity-spec 2.9): a
  * back disc, the page's title in a pill, and no menu disc, avatar or tab bar. Bots, Connections,
@@ -60,20 +62,28 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AttentionNotifier />
         <FinishedForYou />
         <SelfHostBanner />
-        {tab ? (
-          <TabColumn tab={tab}>
-            <ShellHeader
-              floating
-              menuOpen={menuOpen}
-              onMenu={() => setMenuOpen(true)}
-            />
-            <main className="flex min-h-0 flex-1 flex-col">{children}</main>
-          </TabColumn>
-        ) : (
-          <PageChromeProvider>
-            <PageColumn>{children}</PageColumn>
-          </PageChromeProvider>
-        )}
+        {/* On a wide screen the sidebar holds what the phone's header and tab bar do. */}
+        <div className="flex min-h-0 flex-1">
+          <DesktopSidebar
+            current={tab}
+            menuOpen={menuOpen}
+            onMenu={() => setMenuOpen(true)}
+          />
+          {tab ? (
+            <TabColumn tab={tab}>
+              <ShellHeader
+                floating
+                menuOpen={menuOpen}
+                onMenu={() => setMenuOpen(true)}
+              />
+              <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+            </TabColumn>
+          ) : (
+            <PageChromeProvider>
+              <PageColumn>{children}</PageColumn>
+            </PageChromeProvider>
+          )}
+        </div>
         <MenuSheet
           onNewChannel={() => {
             setMenuOpen(false);
@@ -119,7 +129,7 @@ function TabColumn({
   useTabSpace(column);
   return (
     <div
-      className="duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:86px]"
+      className="duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:86px] lg:max-w-none"
       ref={column}
     >
       {children}
@@ -141,11 +151,14 @@ export function useTabSpace(column: RefObject<HTMLElement | null>) {
     const host = column.current;
     const bar = host?.querySelector<HTMLElement>('nav[aria-label="Main"]');
     if (!host || !bar) return;
-    const apply = () =>
+    // On a wide screen the bar is hidden (the sidebar replaces it): leave only a margin.
+    const apply = () => {
+      const height = Math.ceil(bar.getBoundingClientRect().height);
       host.style.setProperty(
         "--duet-tab-space",
-        `${Math.ceil(bar.getBoundingClientRect().height) + TAB_BAR_GAP}px`,
+        `${height > 0 ? height + TAB_BAR_GAP : 16}px`,
       );
+    };
     apply();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(apply);
@@ -168,7 +181,7 @@ function PageColumn({ children }: { children: ReactNode }) {
       onTouchStart={swipe.onTouchStart}
       className={
         chrome?.column === "phone"
-          ? "duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)]"
+          ? "duet-face relative mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] lg:max-w-3xl"
           : "duet-face relative flex min-h-0 w-full flex-1 flex-col text-duet-ink"
       }
     >

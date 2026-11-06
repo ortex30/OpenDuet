@@ -166,53 +166,65 @@ function LearnBody({
         </div>
       </DuetCard>
 
-      <section aria-labelledby="learn-classes" className="flex flex-col gap-2">
-        <div id="learn-classes">
-          <SectionLabel>Mastery by class</SectionLabel>
-        </div>
-        {overview.subjects.map((subject) => (
-          <SubjectCard
-            busy={busy || !canStart}
-            key={subject.subject}
-            onReview={() => onBegin(STUDY_ASKS.subject(subject.subject))}
-            subject={subject}
-            topics={overview.topics.filter(
-              (topic) =>
-                topic.subject.toLowerCase() === subject.subject.toLowerCase(),
-            )}
-          />
-        ))}
-      </section>
-
-      {overview.due.length > 0 ? (
-        <section aria-labelledby="learn-due" className="flex flex-col gap-2">
-          <div id="learn-due">
-            <SectionLabel>Due for review</SectionLabel>
+      {/* On a desktop: classes on the left, what's due and what to fix on the right. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <section
+          aria-labelledby="learn-classes"
+          className="flex flex-col gap-2"
+        >
+          <div id="learn-classes">
+            <SectionLabel>Mastery by class</SectionLabel>
           </div>
-          <DuetCard className="divide-y divide-duet-hair-2">
-            {overview.due.slice(0, 8).map((topic) => (
-              <div className="px-4 py-3" key={topic.id}>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="type-body font-medium [overflow-wrap:anywhere]">
-                    {topic.topic}
-                  </p>
-                  <LevelPill level={topic.level} />
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <BoxDots box={topic.box} />
-                  <p className="type-label min-w-0 text-duet-ink-2">
-                    {topic.subject} · last time {RESULT_WORDS[topic.lastResult]}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </DuetCard>
+          {overview.subjects.map((subject) => (
+            <SubjectCard
+              busy={busy || !canStart}
+              key={subject.subject}
+              onReview={() => onBegin(STUDY_ASKS.subject(subject.subject))}
+              subject={subject}
+              topics={overview.topics.filter(
+                (topic) =>
+                  topic.subject.toLowerCase() === subject.subject.toLowerCase(),
+              )}
+            />
+          ))}
         </section>
-      ) : null}
 
-      {overview.mistakes.length > 0 ? (
-        <MistakeList mistakes={overview.mistakes} />
-      ) : null}
+        <div className="flex min-w-0 flex-col gap-5">
+          {overview.due.length > 0 ? (
+            <section
+              aria-labelledby="learn-due"
+              className="flex flex-col gap-2"
+            >
+              <div id="learn-due">
+                <SectionLabel>Due for review</SectionLabel>
+              </div>
+              <DuetCard className="divide-y divide-duet-hair-2">
+                {overview.due.slice(0, 8).map((topic) => (
+                  <div className="px-4 py-3" key={topic.id}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="type-body font-medium [overflow-wrap:anywhere]">
+                        {topic.topic}
+                      </p>
+                      <LevelPill level={topic.level} />
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <BoxDots box={topic.box} />
+                      <p className="type-label min-w-0 text-duet-ink-2">
+                        {topic.subject} · last time{" "}
+                        {RESULT_WORDS[topic.lastResult]}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </DuetCard>
+            </section>
+          ) : null}
+
+          {overview.mistakes.length > 0 ? (
+            <MistakeList mistakes={overview.mistakes} />
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

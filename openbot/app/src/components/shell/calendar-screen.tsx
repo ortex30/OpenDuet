@@ -178,7 +178,7 @@ export function CalendarScreen({
 
   return (
     <ScreenScroll>
-      <div className="flex min-h-full flex-col">
+      <div className="flex min-h-full flex-1 flex-col">
         <CalendarToolbar
           headingRef={heading}
           label={

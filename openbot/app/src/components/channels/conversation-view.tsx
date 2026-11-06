@@ -588,7 +588,7 @@ export function ConversationView({
             {...(inShell
               ? {
                   contentClassName:
-                    "max-w-none gap-[14px] px-4 pt-[100px] pb-[calc(var(--duet-dock,0px)+24px)]",
+                    "max-w-none gap-[14px] px-4 pt-[100px] pb-[calc(var(--duet-dock,0px)+24px)] lg:mx-auto lg:max-w-3xl lg:px-6 lg:pt-10",
                 }
               : {})}
             folded={folded}
@@ -628,7 +628,7 @@ export function ConversationView({
       <div
         className={
           inShell
-            ? "absolute inset-x-0 bottom-0 z-10 px-4 pb-[calc(var(--duet-tab-space,0px)+10px)]"
+            ? "absolute inset-x-0 bottom-0 z-10 mx-auto px-4 pb-[calc(var(--duet-tab-space,0px)+10px)] lg:max-w-3xl lg:px-6 lg:pb-6"
             : "max-w-2xl mx-auto w-full px-0 pb-4 shrink-0"
         }
         ref={dock}

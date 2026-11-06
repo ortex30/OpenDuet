@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useRef, useState } from "react";
 import { DuetIcon, type DuetIconName } from "@/components/duet/icons";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { agentListQueryOptions } from "@/lib/agents/queries";
 import type { SortOrder } from "@/lib/tasks/groups";
@@ -49,6 +50,8 @@ export function TasksScreen() {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
+  // A desktop has room for both lists side by side, so it shows them together.
+  const desktop = useIsDesktop();
   const show = (next: TasksView) => {
     setView(next);
     rememberView(next);
@@ -67,7 +70,7 @@ export function TasksScreen() {
            */
           <button
             aria-label="Add a task"
-            className="absolute right-[16px] bottom-[calc(var(--duet-tab-space,0px)+14px)] z-20 grid size-[56px] place-items-center rounded-full bg-duet-black text-duet-on-black shadow-duet-raised transition-[filter,transform] hover:brightness-125 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
+            className="absolute right-[16px] bottom-[calc(var(--duet-tab-space,0px)+14px)] z-20 grid lg:right-10 lg:bottom-8 size-[56px] place-items-center rounded-full bg-duet-black text-duet-on-black shadow-duet-raised transition-[filter,transform] hover:brightness-125 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
             onClick={() => setAdding(true)}
             type="button"
           >
@@ -77,6 +80,7 @@ export function TasksScreen() {
       }
     >
       <TasksSwitch
+        both={desktop}
         onClose={() => {
           setSearching(false);
           setQuery("");
@@ -97,27 +101,60 @@ export function TasksScreen() {
           Couldn't load your Bots. Reload the page.
         </p>
       )}
-      <div
-        aria-labelledby={`tasks-tab-${view}`}
-        id="tasks-panel"
-        role="tabpanel"
-      >
-        {view === "active" ? (
-          <ActiveView
-            agents={agents.data}
-            bot={bot}
-            order={order}
-            query={query}
-          />
-        ) : (
-          <UpNextView
-            agents={agents.data}
-            bot={bot}
-            order={order}
-            query={query}
-          />
-        )}
-      </div>
+      {desktop ? (
+        <div className="grid grid-cols-2 items-start gap-8">
+          <section aria-labelledby="tasks-col-active">
+            <h2
+              className="type-title mb-3 px-1 font-semibold text-duet-ink"
+              id="tasks-col-active"
+            >
+              Active
+            </h2>
+            <ActiveView
+              agents={agents.data}
+              bot={bot}
+              order={order}
+              query={query}
+            />
+          </section>
+          <section aria-labelledby="tasks-col-up-next">
+            <h2
+              className="type-title mb-3 px-1 font-semibold text-duet-ink"
+              id="tasks-col-up-next"
+            >
+              Up next
+            </h2>
+            <UpNextView
+              agents={agents.data}
+              bot={bot}
+              order={order}
+              query={query}
+            />
+          </section>
+        </div>
+      ) : (
+        <div
+          aria-labelledby={`tasks-tab-${view}`}
+          id="tasks-panel"
+          role="tabpanel"
+        >
+          {view === "active" ? (
+            <ActiveView
+              agents={agents.data}
+              bot={bot}
+              order={order}
+              query={query}
+            />
+          ) : (
+            <UpNextView
+              agents={agents.data}
+              bot={bot}
+              order={order}
+              query={query}
+            />
+          )}
+        </div>
+      )}
       {/*
        * Room for the last row to scroll clear of the +: its 56px and its 14px lift, less the 32px the
        * list already ends with, and a little air. Pixels, as the button is.
@@ -150,6 +187,7 @@ export function TasksScreen() {
  * onto a second line when they must, and sort and search drop under them, kept at the right.
  */
 function TasksSwitch({
+  both,
   view,
   onView,
   order,
@@ -160,6 +198,8 @@ function TasksSwitch({
   onQuery,
   onClose,
 }: {
+  /** Both lists are on screen (desktop): the title stands where the switch would. */
+  both: boolean;
   view: TasksView;
   onView: (view: TasksView) => void;
   order: SortOrder;
@@ -176,25 +216,31 @@ function TasksSwitch({
   return (
     <div
       className={cn(
-        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2",
+        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2 lg:top-[-40px] lg:pt-5",
         // Solid up to the header's discs, and a short fade under it, so rows don't show through.
         "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-[14px] before:bg-duet-surface before:content-['']",
         "after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-4 after:bg-[linear-gradient(var(--duet-surface),transparent)] after:content-['']",
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div
-          aria-label="Tasks"
-          className="flex min-w-0 flex-wrap items-baseline gap-x-4"
-          role="tablist"
-        >
-          <SwitchTab id="active" onView={onView} view={view}>
-            Active
-          </SwitchTab>
-          <SwitchTab id="up_next" onView={onView} view={view}>
-            Up next
-          </SwitchTab>
-        </div>
+        {both ? (
+          <h1 className="type-display font-semibold text-duet-ink lg:text-[34px] lg:leading-[40px]">
+            Tasks
+          </h1>
+        ) : (
+          <div
+            aria-label="Tasks"
+            className="flex min-w-0 flex-wrap items-baseline gap-x-4"
+            role="tablist"
+          >
+            <SwitchTab id="active" onView={onView} view={view}>
+              Active
+            </SwitchTab>
+            <SwitchTab id="up_next" onView={onView} view={view}>
+              Up next
+            </SwitchTab>
+          </div>
+        )}
         <div className="ml-auto flex shrink-0 gap-1">
           <IconButton icon="sort" label={sortLabel} onClick={onOrder} />
           <IconButton

@@ -19,3 +19,21 @@ export function useIsMobile() {
 
   return !!isMobile;
 }
+
+/** Tailwind's `lg`: from here up the app lays out as a desktop web app, with a sidebar. */
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+function subscribeDesktop(onChange: () => void) {
+  const mql = window.matchMedia(DESKTOP_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
+/** True on a screen wide enough for the desktop layout. */
+export function useIsDesktop(): boolean {
+  return React.useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
+}
