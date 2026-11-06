@@ -966,7 +966,7 @@ test("Slides opens the + sheet with its starter and the blank selected; Start no
   );
 });
 
-test("Save for Up next from Make says where it went", async () => {
+test("Save for later from Make says where it went", async () => {
   reducedMotion(true);
   listed = [];
   serving();
@@ -992,7 +992,7 @@ test("Save for Up next from Make says where it went", async () => {
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(field, "our glaze suppliers", { skipClick: true });
   fireEvent.click(
-    within(sheet).getByRole("button", { name: "Save for Up next" }),
+    within(sheet).getByRole("button", { name: "Save for later" }),
   );
   expect(await view.findByText("Saved for Up next on Tasks.")).toBeTruthy();
   expect(saved).toEqual([
