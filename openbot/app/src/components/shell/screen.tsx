@@ -25,7 +25,7 @@ export function ScreenScroll({
 }) {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-[100px] pb-[calc(var(--duet-tab-space,0px)+32px)] lg:px-10 lg:pt-10">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-[100px] pb-[calc(var(--duet-tab-space,0px)+32px)] @container lg:px-8 lg:pt-6">
         <div
           className={cn(
             "mx-auto flex min-h-full w-full flex-col",

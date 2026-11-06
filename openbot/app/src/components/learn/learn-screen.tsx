@@ -167,7 +167,7 @@ function LearnBody({
       </DuetCard>
 
       {/* On a desktop: classes on the left, what's due and what to fix on the right. */}
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div className="flex flex-col gap-5 @3xl:grid @3xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] @3xl:items-start @3xl:gap-6">
         <section
           aria-labelledby="learn-classes"
           className="flex flex-col gap-2"

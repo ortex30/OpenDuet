@@ -149,7 +149,7 @@ export function CoachScreen() {
       ) : null}
 
       {/* One column on a phone; on a desktop, today's plan on the left and the week on the right. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-5">
+      <div className="@3xl:grid @3xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] @3xl:items-start @3xl:gap-5">
         <div className="min-w-0">
           <TodayHero now={now} pace={pace} state={state} />
           <CheckInCard

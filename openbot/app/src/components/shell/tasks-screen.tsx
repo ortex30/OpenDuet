@@ -51,7 +51,7 @@ export function TasksScreen() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   // A desktop has room for both lists side by side, so it shows them together.
-  const desktop = useIsDesktop();
+  const desktop = useIsDesktop("(min-width: 1280px)");
   const show = (next: TasksView) => {
     setView(next);
     rememberView(next);
@@ -216,7 +216,7 @@ function TasksSwitch({
   return (
     <div
       className={cn(
-        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2 lg:top-[-40px] lg:pt-5",
+        "sticky top-[-20px] z-30 -mx-4 mb-3 bg-duet-surface px-5 pt-1 pb-2 lg:top-[-24px] lg:pt-3",
         // Solid up to the header's discs, and a short fade under it, so rows don't show through.
         "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-[14px] before:bg-duet-surface before:content-['']",
         "after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-4 after:bg-[linear-gradient(var(--duet-surface),transparent)] after:content-['']",
