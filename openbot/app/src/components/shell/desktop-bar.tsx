@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { currentUserQueryOptions } from "@/lib/auth/queries";
 import { appConfig } from "@/lib/generated/application-config";
 import { ChatOrb, ChatStep, initialOf } from "./header";
+import { INTRO_NAME_TARGET } from "./startup-intro";
 
 /**
  * The desktop's one bar across the top, kept as plain as School Chat's: the coach's orb and name on
@@ -20,7 +21,7 @@ export function DesktopBar() {
         to="/"
       >
         <ChatOrb size={40} />
-        <span className="type-nav font-semibold">
+        <span className={`${INTRO_NAME_TARGET} type-nav font-semibold`}>
           {appConfig.brand.productName}
         </span>
       </Link>

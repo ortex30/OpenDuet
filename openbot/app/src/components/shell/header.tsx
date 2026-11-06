@@ -19,6 +19,7 @@ import {
   useUnownedServerWork,
 } from "./chat-presence";
 import { usePageChromeState } from "./page-chrome";
+import { INTRO_ORB_TARGET } from "./startup-intro";
 
 const DISC =
   "duet-glass grid shrink-0 place-items-center rounded-full text-duet-ink shadow-duet-glass transition-transform duration-[var(--duet-dur-tap)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40 active:scale-95";
@@ -82,12 +83,21 @@ export function ShellHeader({ floating }: { floating: boolean }) {
   );
 }
 
-/** Its own component, so a keystroke in Chat re-renders the orb and not the whole header. */
+/**
+ * Its own component, so a keystroke in Chat re-renders the orb and not the whole header. It is
+ * where the startup intro's orb lands (`INTRO_ORB_TARGET`).
+ */
 export function ChatOrb({ size }: { size: number }) {
   const { state, keystrokes } = useChatOrb();
   const colour = useAvatarColour();
   return (
-    <MicOrb colour={colour} keystrokes={keystrokes} size={size} state={state} />
+    <MicOrb
+      className={INTRO_ORB_TARGET}
+      colour={colour}
+      keystrokes={keystrokes}
+      size={size}
+      state={state}
+    />
   );
 }
 

@@ -15,6 +15,7 @@ import { DesktopBar } from "./desktop-bar";
 import { FinishedForYou } from "./finished-for-you";
 import { PageHeader, ShellHeader, useBack } from "./header";
 import { PageChromeProvider, usePageChromeState } from "./page-chrome";
+import { StartupIntro } from "./startup-intro";
 import { type ShellTab, tabForPath } from "./tab-bar";
 
 /**
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <ChatPresenceProvider serverWork={chatServerWork}>
       {/* `duet-touch`: every control drawn in the shell is a 44px target (styles.css). */}
       <div className="duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface">
+        <StartupIntro />
         <AttentionNotifier />
         <FinishedForYou />
         <SelfHostBanner />

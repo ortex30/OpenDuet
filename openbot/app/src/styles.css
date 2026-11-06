@@ -660,6 +660,161 @@ body {
   }
 }
 
+/*
+ * The startup intro (components/shell/startup-intro.tsx). The orb wakes in the middle with a bloom
+ * of its own colour behind it, the name writes itself in beside it and a band of that colour
+ * sweeps across it once, and then both fly into the header while the screen behind dissolves. The
+ * component steps `data-phase` on timers and sets the flight's transform; this is how each looks.
+ *
+ * Each entrance animates only `from` its start (`backwards`), so when it ends the element is simply
+ * at rest, and a later phase can transition it from there.
+ */
+[data-startup-intro] :is(.startup-target-orb, .startup-target-name) {
+  opacity: 0;
+}
+
+.startup-intro {
+  --intro-bloom-mix: 24%;
+}
+.dark .startup-intro {
+  --intro-bloom-mix: 36%;
+}
+
+/* It waits a moment to dissolve, so a name with nowhere to land is gone before the app shows. */
+.startup-intro-backdrop {
+  transition: opacity 420ms var(--duet-ease-out) 60ms;
+}
+.startup-intro:is([data-phase="fly"], [data-phase="land"])
+  .startup-intro-backdrop {
+  opacity: 0;
+}
+
+/* Skipped, or the still version's end: everything fades together. */
+.startup-intro[data-phase="leave"] {
+  opacity: 0;
+  transition: opacity var(--intro-skip) var(--duet-ease-out);
+}
+
+/* What flies: it scales from its left middle, the point the component lines up with the header's. */
+.startup-intro-flight {
+  transform-origin: left center;
+  transition:
+    transform var(--intro-fly) var(--intro-flight-ease),
+    opacity var(--intro-land) linear;
+}
+.startup-intro[data-phase="land"] .startup-intro-flight {
+  opacity: 0;
+}
+.startup-intro-flight[data-stranded] {
+  transform-origin: center;
+  opacity: 0;
+  transform: translateY(-12px) scale(0.94);
+  transition:
+    opacity 140ms var(--duet-ease-out),
+    transform 320ms var(--duet-ease-out);
+}
+
+.startup-intro-orb {
+  animation: duet-intro-orb 560ms cubic-bezier(0.34, 1.45, 0.64, 1) backwards;
+}
+@keyframes duet-intro-orb {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.startup-intro-bloom {
+  position: absolute;
+  inset: -150%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--intro-bloom) var(--intro-bloom-mix), transparent),
+    transparent
+  );
+  transition: opacity 240ms var(--duet-ease-out);
+  animation: duet-intro-bloom 900ms var(--duet-ease-out) backwards;
+}
+.startup-intro:not([data-phase="enter"]) .startup-intro-bloom {
+  opacity: 0;
+}
+@keyframes duet-intro-bloom {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+/* One ring of the orb's colour spreads out from it as it wakes: its own ping, screen-sized. */
+.startup-intro-ripple {
+  position: absolute;
+  inset: 14%;
+  border-radius: 9999px;
+  opacity: 0;
+  box-shadow:
+    0 0 0 1.5px color-mix(in oklab, var(--intro-bloom) 55%, transparent),
+    0 0 28px 6px color-mix(in oklab, var(--intro-bloom) 22%, transparent);
+  animation: duet-intro-ripple 760ms var(--duet-ease-out) 260ms;
+}
+@keyframes duet-intro-ripple {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(4.4);
+  }
+}
+
+/*
+ * The name: written in from the orb's side, then one sweep of the orb's colour across it. The fill
+ * is the gradient, so `-webkit-text-fill-color` is transparent rather than `color` (see
+ * `.tool-line-running`); at rest the gradient shows only its ink.
+ */
+.startup-intro-name {
+  background-image: linear-gradient(
+    100deg,
+    var(--duet-ink) 40%,
+    var(--intro-bloom) 50%,
+    var(--duet-ink) 60%
+  );
+  background-size: 300% 100%;
+  background-position: 0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation:
+    duet-intro-write 480ms var(--duet-ease-out) 180ms backwards,
+    duet-intro-shine 600ms ease-in-out 520ms backwards;
+}
+@keyframes duet-intro-write {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    transform: translateX(-10px);
+  }
+}
+@keyframes duet-intro-shine {
+  from {
+    background-position: 100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-intro-orb,
+  .startup-intro-bloom,
+  .startup-intro-ripple,
+  .startup-intro-name {
+    animation: none;
+  }
+  .startup-intro-name {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
 .tool-line[open] .tool-line-chevron {
   transform: rotate(90deg);
 }
