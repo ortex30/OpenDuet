@@ -30,38 +30,58 @@ import { ScreenScroll, ScreenTitle } from "./screen";
  */
 
 /**
- * What the + offers, top to bottom, each with the line the sheet opens with: study things, one per
- * stored kind. The starter only words the ask; the coach picks the kind it makes.
+ * Closes every ask from the + but a study plan's, which no teacher's rule pauses. A page has no
+ * rule check in code, unlike make_quiz and make_flashcards (server/src/openduet/study/guard.ts), so
+ * this is the coach's own check, from the class's Classroom notices: a level set only on the
+ * Teacher rules screen reaches the coach through a refused make_quiz or make_flashcards, not here.
+ */
+const FOLLOW_THE_RULE =
+  "If my teacher set this class to No help, make nothing and tell me why.";
+
+/**
+ * What the + offers, top to bottom: study things, one per stored kind. Each has the line the sheet
+ * opens with, and the line that follows the person's ask (`steer`) so what is made lands here,
+ * under the chip that was picked. Left to itself, "Make a practice quiz on …" makes a quiz card
+ * (make_quiz) and "Make a study plan for …" a plan card (propose_study_plan), which stay in the
+ * task's conversation and leave nothing here, and a page can be saved as a kind another chip
+ * shows. The task and a card saved for Up next show it as the person's own words, so it is written
+ * in their voice and names each kind as make_page does: doc, page (Web page), slides, dashboard.
  */
 export const MAKE_KINDS: readonly {
   id: PageKind;
   label: string;
   icon: DuetIconName;
   starter: string;
+  steer: string;
 }[] = [
   {
     id: "doc",
     label: "Study guide",
     icon: "page",
     starter: "Make a study guide for …",
+    steer: `Save it as a doc, so it shows up in Made for you. ${FOLLOW_THE_RULE}`,
   },
   {
     id: "page",
     label: "Practice quiz",
-    icon: "question",
+    icon: "checkCircle",
     starter: "Make a practice quiz on …",
+    steer: `Save it as a web page with the answers after all the questions, not as a quiz card, so it shows up in Made for you. ${FOLLOW_THE_RULE}`,
   },
   {
     id: "slides",
     label: "Slides",
     icon: "deck",
     starter: "Make slides about …",
+    steer: `Save them as slides, so they show up in Made for you. ${FOLLOW_THE_RULE}`,
   },
   {
     id: "dashboard",
     label: "Study plan",
     icon: "calendar",
     starter: "Make a study plan for …",
+    steer:
+      "Save it as a dashboard, not as a plan card, so it shows up in Made for you.",
   },
 ];
 export type MakeKind = (typeof MAKE_KINDS)[number];
@@ -375,6 +395,8 @@ export function MakeScreen() {
       {kind && bot ? (
         <NewTaskSheet
           bot={bot}
+          // After the ask, not before it: a task is named after the first line it was asked.
+          instructionSuffix={kind.steer}
           onAdded={(where, task) => {
             setKind(null);
             if (where === "up_next" || !task) {

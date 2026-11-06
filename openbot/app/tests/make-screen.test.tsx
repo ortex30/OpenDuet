@@ -925,9 +925,15 @@ test("Slides opens the + sheet with its starter and the blank selected; Start no
   expect(field.value).toBe("Make slides about the Hearth order");
   expect(startNow.hasAttribute("disabled")).toBe(false);
   fireEvent.click(startNow);
+  // The ask leads, so the task is named after it, and the line after it asks for a deck saved here.
+  const slides = MAKE_KINDS.find((kind) => kind.id === "slides");
+  expect(slides?.steer).toContain("as slides, so they show up in Made for you");
   await waitFor(() =>
     expect(started).toEqual([
-      { botId: "openduet", instruction: "Make slides about the Hearth order" },
+      {
+        botId: "openduet",
+        instruction: `Make slides about the Hearth order\n\n${slides?.steer}`,
+      },
     ]),
   );
   await waitFor(() =>
@@ -995,12 +1001,34 @@ test("Save for later from Make says where it went", async () => {
     within(sheet).getByRole("button", { name: "Save for later" }),
   );
   expect(await view.findByText("Saved for Up next on Tasks.")).toBeTruthy();
+  // Saved with the same line after the ask, so it lands here whenever it is started.
+  const guide = MAKE_KINDS.find((kind) => kind.id === "doc");
+  expect(guide?.steer).toContain("as a doc, so it shows up in Made for you");
   expect(saved).toEqual([
     {
       botId: "openduet",
-      instruction: "Make a study guide for our glaze suppliers",
+      instruction: `Make a study guide for our glaze suppliers\n\n${guide?.steer}`,
     },
   ]);
+});
+
+test("each option asks for a page of its own kind, so what is made lands under its chip", () => {
+  const steer = (id: string) =>
+    MAKE_KINDS.find((kind) => kind.id === id)?.steer ?? "";
+  // Each kind in the words make_page uses for it.
+  expect(steer("doc")).toContain("Save it as a doc,");
+  expect(steer("page")).toContain("Save it as a web page");
+  expect(steer("slides")).toContain("Save them as slides,");
+  expect(steer("dashboard")).toContain("Save it as a dashboard,");
+  for (const kind of MAKE_KINDS)
+    expect(kind.steer).toMatch(/shows? up in Made for you\./);
+  // Left to itself, a quiz or a plan is made as its own card, which stays in the task.
+  expect(steer("page")).toContain("not as a quiz card");
+  expect(steer("dashboard")).toContain("not as a plan card");
+  // A page checks no teacher's rule in code, so the coach is told to; planning is never paused.
+  for (const id of ["doc", "page", "slides"])
+    expect(steer(id)).toContain("set this class to No help, make nothing");
+  expect(steer("dashboard")).not.toContain("No help");
 });
 
 test("a task started here stops being drawn once a page arrives for it or it stops", () => {

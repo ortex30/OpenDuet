@@ -35,6 +35,7 @@ export function NewTaskSheet({
   starter = "",
   question: asked,
   instructionPrefix = "",
+  instructionSuffix = "",
 }: {
   bot: AgentProfile;
   onClose: () => void;
@@ -46,6 +47,11 @@ export function NewTaskSheet({
   question?: string;
   /** Context the task needs, kept outside the person’s editable ask. */
   instructionPrefix?: string;
+  /**
+   * Context that follows the person's ask, also kept outside it. A task is named after the first
+   * line of what it was asked, so context that must not name it goes here, not in the prefix.
+   */
+  instructionSuffix?: string;
 }) {
   const [draft, setDraft] = useState(starter);
   const field = useRef<HTMLTextAreaElement>(null);
@@ -57,7 +63,9 @@ export function NewTaskSheet({
   const instruction = draft.trim() === starter.trim() ? "" : draft.trim();
   const ask = {
     botId: bot.id,
-    instruction: [instructionPrefix, instruction].filter(Boolean).join("\n\n"),
+    instruction: [instructionPrefix, instruction, instructionSuffix]
+      .filter(Boolean)
+      .join("\n\n"),
   };
   const question = asked ?? "What can I help with?";
   /*
@@ -122,7 +130,9 @@ export function NewTaskSheet({
                 className="type-body mt-3 min-h-28 w-full resize-none rounded-[20px] bg-duet-card px-4 py-3 text-duet-ink shadow-[inset_0_0_0_1px_var(--duet-hair)] outline-none placeholder:text-duet-ink-3 focus-visible:ring-3 focus-visible:ring-duet-violet/25"
                 disabled={busy}
                 maxLength={
-                  4000 - (instructionPrefix ? instructionPrefix.length + 2 : 0)
+                  4000 -
+                  (instructionPrefix ? instructionPrefix.length + 2 : 0) -
+                  (instructionSuffix ? instructionSuffix.length + 2 : 0)
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onFocus={() => {
