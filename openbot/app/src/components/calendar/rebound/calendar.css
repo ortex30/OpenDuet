@@ -3,12 +3,17 @@
  * tokens its timeline reads, mapped onto OpenDuet's so the calendar reads as part of this app in light
  * and dark. app/src/styles.css is left alone: tests/visual-system.test.ts pins its tokens.
  *
+ * The same tokens dress the whole Calendar screen (`.academic-calendar-screen`, its toolbar and
+ * bars), so the screen is one surface in Rebound's look: white paper, hairlines, the accent's soft
+ * pill for the arrows, and colour left to the student's classes.
+ *
  * NOTHING HERE SETS LAYOUT ON .academic-calendar ITSELF. This file is not in a cascade layer, and
  * unlayered CSS outranks every Tailwind utility however specific, so a `min-height` written here
  * would silently beat the `min-h-*` the screen gives the calendar. Layout stays in class names.
  */
 
-.academic-calendar {
+.academic-calendar,
+.academic-calendar-screen {
   /* The shadcn names the timeline's utilities read (bg-card, text-primary...), as OpenDuet's roles. */
   --background: var(--duet-surface);
   --foreground: var(--duet-ink);
@@ -21,8 +26,15 @@
   --primary-foreground: var(--duet-on-accent);
   --muted: var(--duet-tile);
   --muted-foreground: var(--duet-ink-2);
+  /* Rebound's lavender pill (its round arrows, a hovered heading): the accent's own soft tint. */
+  --accent: var(--duet-accent-soft);
+  --accent-foreground: var(--duet-accent);
   --border: var(--duet-hair);
   --ring: var(--duet-accent);
+  /* Rebound's one shadow for paper that floats (its --rc-elevation-8): the details card. */
+  --academic-calendar-elevation:
+    0 5px 5px -3px rgb(0 0 0 / 0.06), 0 8px 10px 1px rgb(0 0 0 / 0.03),
+    0 3px 14px 2px rgb(0 0 0 / 0.05);
   /*
    * Rebound's own tokens, which OpenDuet has none of. --chip-ink is every chip's text before its hue is
    * mixed in, so it is the app's ink. The now line keeps Rebound's brick: a calm signal, not an alarm.
@@ -40,9 +52,94 @@
   --shell-layer-popover: 70;
 }
 
-.dark .academic-calendar {
+.dark .academic-calendar,
+.dark .academic-calendar-screen {
   --calendar-now: color-mix(in oklab, #cd5e5a 85%, white);
-  --calendar-event-border: rgb(255 255 255 / 0.2);
+  /* The paper's own colour, as in light: it parts two neighbours and draws no outline of its own. */
+  --calendar-event-border: var(--card);
+  --academic-calendar-elevation: 0 10px 26px -14px rgb(0 0 0 / 0.6);
+}
+
+/*
+ * What owns no hours, in the row under the day headings (AcademicCalendar.tsx): a chip on its
+ * class's tint, the height of one line, as a calendar app draws an all-day event. "+N more" is the
+ * same size with no fill, and opens the day.
+ */
+.academic-calendar .academic-calendar-chip {
+  display: flex;
+  height: 20px;
+  min-width: 0;
+  flex: none;
+  align-items: center;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  transition: filter var(--calendar-motion-control)
+    var(--calendar-ease-standard);
+}
+
+.academic-calendar .academic-calendar-chip:hover {
+  filter: brightness(0.97) saturate(1.08);
+}
+
+.dark .academic-calendar .academic-calendar-chip:hover {
+  filter: brightness(1.12);
+}
+
+.academic-calendar .academic-calendar-chip:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--ring);
+}
+
+.academic-calendar .academic-calendar-chip[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in oklab, var(--primary) 55%, transparent);
+}
+
+.academic-calendar .academic-calendar-more {
+  justify-content: flex-start;
+  color: var(--muted-foreground);
+  background: transparent;
+  font-weight: 500;
+}
+
+.academic-calendar .academic-calendar-more:hover {
+  background: var(--muted);
+  filter: none;
+}
+
+/* In one day the chips sit side by side and the row scrolls sideways, with no bar drawn. */
+.academic-calendar .academic-calendar-chip-row {
+  scrollbar-width: none;
+}
+
+.academic-calendar .academic-calendar-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Rebound's later grid fade: a block cut by the headings dissolves into the paper over 14px under
+ * them, instead of ending in a hard bar of colour with its words hidden.
+ */
+.academic-calendar [data-calendar-grid-fade="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 14px;
+  background: linear-gradient(
+    to bottom,
+    var(--card) 0,
+    var(--card) 40%,
+    transparent 100%
+  );
 }
 
 /* Rebound's warm ink, used only by the notice a refused drag shows: a warning, so the status colour. */
@@ -83,29 +180,26 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Reclaim reference treatment: solid fill, no border, an 8px radius, and a
-   small neutral shadow. Color comes from the fill, never a cap, stripe, or
-   outline. */
+/* Rebound's product skin (its calendar-clone-shell.module.css): blocks are
+   flat. A 5px radius, a hairline in the paper's colour that is the only thing
+   separating two same-coloured neighbours, and no shadow. Color comes from the
+   fill, never a cap, stripe, or outline. Hover brightens a touch and nothing
+   moves. */
 .academic-calendar .reclaim-calendar-card {
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(37 38 49 / 0.12);
-  scroll-margin-block: 48px 92px;
-  transition:
-    transform 130ms ease,
-    box-shadow 130ms ease,
-    filter 130ms ease;
+  border: 0.67px solid var(--calendar-event-border);
+  border-radius: 5px;
+  box-shadow: none;
+  scroll-margin-block: calc(var(--calendar-sticky-chrome, 40px) + 8px) 92px;
+  transition: filter 130ms ease;
 }
 
 .academic-calendar .reclaim-calendar-card:hover {
-  transform: translateY(-1px) scale(1.01);
-  filter: saturate(1.05);
-  box-shadow: 0 6px 14px rgb(37 38 49 / 0.16);
+  filter: saturate(1.08) brightness(0.98);
 }
 
 .academic-calendar .reclaim-calendar-card[aria-pressed="true"] {
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--primary) 38%, transparent),
-    0 1px 3px rgb(37 38 49 / 0.12);
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in oklab, var(--primary) 55%, transparent);
 }
 
 /* The block detail panel scales up out of the block that opened it. Nothing
@@ -171,7 +265,6 @@
 .academic-calendar .calendar-commitment-card:hover {
   transform: none;
   filter: none;
-  box-shadow: 0 4px 10px rgb(37 38 49 / 0.1);
 }
 
 /* Finished work stops competing with what is still open: the fill drains out
@@ -213,10 +306,11 @@
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
+  border-radius: 5px;
   background-color: color-mix(in oklab, var(--muted) 72%, var(--card));
   border-color: color-mix(in oklab, var(--border) 86%, var(--foreground));
-  box-shadow: 0 1px 3px rgb(37 38 49 / 0.08);
-  scroll-margin-block: 48px 92px;
+  box-shadow: none;
+  scroll-margin-block: calc(var(--calendar-sticky-chrome, 40px) + 8px) 92px;
   transition:
     background-color 130ms ease,
     border-color 130ms ease,
@@ -230,14 +324,14 @@
 
 .academic-calendar .calendar-busy-wash[aria-pressed="true"] {
   background-color: color-mix(in oklab, var(--primary) 8%, var(--card));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--primary) 34%, transparent),
-    0 1px 3px rgb(37 38 49 / 0.08);
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in oklab, var(--primary) 45%, transparent);
 }
 
 .academic-calendar .calendar-busy-wash-label {
   position: sticky;
-  top: 44px;
+  /* Clear of the headings and the all-day row, however tall the row is. */
+  top: calc(var(--calendar-sticky-chrome, 40px) + 4px);
   left: 0;
   display: flex;
   width: 100%;

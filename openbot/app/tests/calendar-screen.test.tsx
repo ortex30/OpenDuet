@@ -28,10 +28,10 @@ import { applyPlanMutationOptions } from "@/lib/study/plans";
 import { settleReactWork } from "./settle-react-work";
 
 /**
- * The Calendar tab over the demo student's week: Wednesday's classes and a study block on Rebound's
- * timeline, what is due with each teacher's AI-help level above it, Day and Week, stepping through
- * days, what could not be read, and a proposed plan laid over it from `?plan=`, applied in Chat or
- * taken off again from its banner.
+ * The Calendar screen over the demo student's week: Wednesday's classes and a study block on
+ * Rebound's timeline, what is due as chips under the day headings with each teacher's AI-help level
+ * in its details, Day and Week, stepping through days, what could not be read, and a proposed plan
+ * laid over it from `?plan=`, applied in Chat or taken off again from its bar.
  */
 
 beforeAll(() => {
@@ -412,10 +412,21 @@ function draw(initial: CalendarSearch = {}) {
 
 const heading = (view: ReturnType<typeof render>) =>
   view.getByRole("heading", { level: 1 }).textContent;
-const lines = (strip: HTMLElement) =>
-  within(strip)
-    .getAllByRole("listitem")
-    .map((line) => line.textContent);
+/** The row under a day's heading, where what owns no hours sits. */
+const lane = (view: ReturnType<typeof render>, date: string) => {
+  const found = view.container.querySelector<HTMLElement>(
+    `[data-calendar-all-day='${date}']`,
+  );
+  if (!found) throw new Error(`no all-day row for ${date}`);
+  return found;
+};
+/** A day's chips, as they are said; "+N more" is not one. */
+const chips = (view: ReturnType<typeof render>, date: string) =>
+  Array.from(
+    lane(view, date).querySelectorAll<HTMLElement>("[data-calendar-item-id]"),
+  );
+const chipNames = (view: ReturnType<typeof render>, date: string) =>
+  chips(view, date).map((chip) => chip.getAttribute("aria-label"));
 
 test("opens on the student's today: its classes, a study block, and what is due with each help level", async () => {
   let land = () => {};
@@ -423,7 +434,7 @@ test("opens on the student's today: its classes, a study block, and what is due 
     land = resolve;
   });
   serving();
-  const { view } = draw();
+  const { view, user } = draw();
   expect(await view.findByText("Loading your calendar…")).toBeTruthy();
   land();
 
@@ -464,10 +475,42 @@ test("opens on the student's today: its classes, a study block, and what is due 
   ).toHaveLength(1);
   expect(view.queryByText("Picture retakes")).toBeNull();
 
-  expect(lines(view.getByRole("region", { name: "All day" }))).toEqual([
-    "Unit 4 homework: section 4.3Precalculus · Due 11:59 PMAI help: Full help",
-    "DBQ documents and rubricAP US History · MaterialAI help: No help",
+  // What is due sits as chips under the day's heading, each in its class, by time, no time last.
+  expect(chipNames(view, DAY)).toEqual([
+    "Due: Unit 4 homework: section 4.3",
+    "Material: DBQ documents and rubric",
   ]);
+  expect(
+    chips(view, DAY).map((chip) => [
+      chip.getAttribute("data-calendar-course-id"),
+      chip.getAttribute("title"),
+    ]),
+  ).toEqual([
+    ["precalc4", "Unit 4 homework: section 4.3 · Due 11:59 PM"],
+    ["apush1", "DBQ documents and rubric · Material"],
+  ]);
+  // Pressed, a chip says when, the class, and the teacher's AI-help level.
+  const homework = view.getByRole("button", {
+    name: "Due: Unit 4 homework: section 4.3",
+  });
+  await user.click(homework);
+  expect(homework.getAttribute("aria-pressed")).toBe("true");
+  const details = view.getByRole("region", {
+    name: "Unit 4 homework: section 4.3, details",
+  });
+  expect(within(details).getByText("Wed, Nov 4 · Due 11:59 PM")).toBeTruthy();
+  expect(within(details).getByText("Precalculus")).toBeTruthy();
+  expect(within(details).getByText("AI help: Full help")).toBeTruthy();
+  await user.click(
+    view.getByRole("button", { name: "Material: DBQ documents and rubric" }),
+  );
+  const rubric = view.getByRole("region", {
+    name: "DBQ documents and rubric, details",
+  });
+  expect(within(rubric).getByText("Wed, Nov 4 · Material")).toBeTruthy();
+  expect(within(rubric).getByText("AI help: No help")).toBeTruthy();
+  // One card at a time.
+  expect(view.queryByRole("region", { name: /homework.*details$/ })).toBeNull();
 });
 
 test("Week shows the seven days and the week's deadlines, and a day's heading opens that day", async () => {
@@ -483,22 +526,44 @@ test("Week shows the seven days and the week's deadlines, and a day's heading op
   expect(heading(view)).toBe("Nov 1 – 7");
   expect(view.getByRole("button", { name: "Previous week" })).toBeTruthy();
 
-  const strip = view.getByRole("region", { name: "All day this week" });
-  // Seven lines is more than the strip shows at once.
-  expect(lines(strip)).toEqual([
-    "Unit 4 homework: section 4.3Wed · Precalculus · Due 11:59 PMAI help: Full help",
-    "DBQ documents and rubricWed · AP US History · MaterialAI help: No help",
-    "Picture retakesThu · All day",
+  // Each day's chips under its heading: two a day in a week, all-day events first.
+  expect(chipNames(view, DAY)).toEqual([
+    "Due: Unit 4 homework: section 4.3",
+    "Material: DBQ documents and rubric",
   ]);
-  await user.click(within(strip).getByRole("button", { name: "Show 4 more" }));
-  expect(lines(strip).slice(3)).toEqual([
-    "Lab 6 report: Reaction RatesThu · Chemistry · Due 11:59 PMAI help: Hints only",
-    "Unit 4 quiz: trig identitiesThu · Precalculus · QuizAI help: Full help",
-    "DBQ essay: Causes of the Civil WarFri · AP US History · Due 8 AMAI help: No help",
-    // The notice gave no level, so none is shown rather than one guessed.
-    "Vocab test: Unidad 5Fri · Spanish III · Test",
+  expect(chipNames(view, "2026-11-06")).toEqual([
+    "Due: DBQ essay: Causes of the Civil War",
+    "Test: Vocab test: Unidad 5",
+  ]);
+  expect(chipNames(view, "2026-11-02")).toEqual([]);
+  // The notice gave no level, so none is shown rather than one guessed.
+  await user.click(
+    view.getByRole("button", { name: "Test: Vocab test: Unidad 5" }),
+  );
+  const vocab = view.getByRole("region", {
+    name: "Vocab test: Unidad 5, details",
+  });
+  expect(within(vocab).getByText("Fri, Nov 6 · Test")).toBeTruthy();
+  expect(within(vocab).getByText("Spanish III")).toBeTruthy();
+  expect(within(vocab).queryByText(/AI help/)).toBeNull();
+  // Three on Thursday is more than a week's row holds: one, and how many more, which opens the day.
+  expect(chipNames(view, TOMORROW)).toEqual(["All day: Picture retakes"]);
+  await user.click(
+    within(lane(view, TOMORROW)).getByRole("button", {
+      name: "2 more on Thursday, November 5",
+    }),
+  );
+  expect(seen.at(-1)).toMatchObject({ date: TOMORROW });
+  expect(seen.at(-1)?.view ?? "day").toBe("day");
+  expect(heading(view)).toBe("Thu, Nov 5");
+  // One day lays them all side by side.
+  expect(chipNames(view, TOMORROW)).toEqual([
+    "All day: Picture retakes",
+    "Due: Lab 6 report: Reaction Rates",
+    "Quiz: Unit 4 quiz: trig identities",
   ]);
 
+  await user.click(view.getByRole("radio", { name: "Week" }));
   await user.click(
     view.getByRole("button", { name: "Open Thursday, November 5" }),
   );
@@ -532,10 +597,10 @@ test("stepping through days reads a new week only on leaving this one, and Today
     }),
   ).toBeTruthy();
   expect(view.queryByRole("button", { name: /^AP US History/ })).toBeNull();
-  expect(lines(view.getByRole("region", { name: "All day" }))).toEqual([
-    "Picture retakesAll day",
-    "Lab 6 report: Reaction RatesChemistry · Due 11:59 PMAI help: Hints only",
-    "Unit 4 quiz: trig identitiesPrecalculus · QuizAI help: Full help",
+  expect(chipNames(view, TOMORROW)).toEqual([
+    "All day: Picture retakes",
+    "Due: Lab 6 report: Reaction Rates",
+    "Quiz: Unit 4 quiz: trig identities",
   ]);
 
   for (let step = 0; step < 4; step++)
@@ -633,7 +698,7 @@ test("?plan= lays a proposed plan over the calendar, dashed and named, beside wh
   const banner = await view.findByRole("status", { name: "Study plan" });
   expect(within(banner).getByText("Proposed plan")).toBeTruthy();
   expect(banner.textContent).toContain(
-    "2 sessions, 1 hr 15 min, drawn dashed. They go on your calendar when you apply the plan in Chat.",
+    "2 sessions, 1 hr 15 min. Dashed until you add it in Chat.",
   );
   const proposed = await view.findByRole("button", {
     name: /^Proposed: Lab 6 report: data table and graph, 8:30 PM to 9:15 PM/,
@@ -729,9 +794,7 @@ test("an applied plan is already on the calendar, so nothing of it is drawn a se
   const banner = await view.findByRole("status", { name: "Study plan" });
   expect(banner.textContent).toContain("Plan applied");
   // The Calendar tab, which is where it is: nothing is written to Google Calendar.
-  expect(banner.textContent).toContain(
-    "Its sessions are on your Calendar tab.",
-  );
+  expect(banner.textContent).toContain("Its sessions are on your calendar.");
   await view.findByRole("button", { name: /^AP US History/ });
   expect(view.queryByRole("button", { name: /^Proposed:/ })).toBeNull();
 });
@@ -796,7 +859,7 @@ test("an applied plan comes off the calendar from its banner, at once, and the b
     within(banner).getByRole("button", { name: "Remove from calendar" }),
   );
   expect(await within(banner).findByText("Plan removed")).toBeTruthy();
-  expect(banner.textContent).toContain("Removed from your Calendar tab.");
+  expect(banner.textContent).toContain("Removed from your calendar.");
   expect(requests).toContain("POST /api/openduet/study/plans/plan-1/remove");
   // Off the timeline before the calendar is read again.
   expect(
@@ -856,7 +919,7 @@ test("a proposal overtaken by another plan is still drawn, and says it can't be 
   const banner = await view.findByRole("status", { name: "Study plan" });
   expect(within(banner).getByText("Proposed plan, out of date")).toBeTruthy();
   expect(banner.textContent).toContain(
-    "drawn dashed. Your schedule changed since this plan was made. Ask for a fresh one.",
+    "2 sessions, 1 hr 15 min. Your schedule changed since this plan was made. Ask for a fresh one.",
   );
   expect(
     await view.findByRole("button", {
@@ -874,7 +937,7 @@ test("a proposal whose session has already begun says that, not that the schedul
   const banner = await view.findByRole("status", { name: "Study plan" });
   expect(within(banner).getByText("Proposed plan, out of date")).toBeTruthy();
   expect(banner.textContent).toContain(
-    "drawn dashed. A session in this plan has already started. Ask for a fresh plan.",
+    "2 sessions, 1 hr 15 min. A session in this plan has already started. Ask for a fresh plan.",
   );
   expect(banner.textContent).not.toContain("Your schedule changed");
 });
@@ -983,13 +1046,14 @@ test("an event that runs to midnight ends at 12 AM wherever its time is written"
   expect(lockin.getAttribute("data-calendar-busy-wash")).toBe("true");
   expect(lockin.getAttribute("title")).toBe("Lock-in · 7 PM – 12 AM");
   expect(lockin.querySelector("time")?.textContent).toBe("7 PM – 12 AM");
-  // The hours run to midnight too, and their last mark is written the same way.
+  // The hours run to midnight too, and their last mark is midnight, as Rebound writes the hours.
   const hours = Array.from(
     view.container.querySelectorAll("time[datetime]"),
     (mark) => mark.textContent,
   );
-  expect(hours.at(-1)).toBe("12 AM");
-  expect(hours).not.toContain("11:59 PM");
+  expect(hours.at(-1)).toBe("12am");
+  expect(hours).not.toContain("11:59pm");
+  expect(hours.at(-2)).toBe("11pm");
 });
 
 test("while a week holding today loads, the now line keeps the student's time, and the view comes back to now once it lands", async () => {

@@ -81,7 +81,7 @@ const SCREEN_NAMES: Record<Exclude<ShellTab, "chat">, string> = {
  *
  * Wide: the chat takes what the screen leaves, and the screen a column on the right, wider for the
  * calendar's week. Narrow: the screen covers the chat, under a bar with its name and a close button.
- * Escape closes it too.
+ * Escape closes it too, unless the screen used that Escape to close something of its own.
  */
 function ChatWithScreen({
   tab,
@@ -98,7 +98,12 @@ function ChatWithScreen({
   useEffect(() => {
     if (!screen) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !document.querySelector("[role=dialog]"))
+      // A screen that used the Escape itself (the calendar closing an item's details) keeps it.
+      if (
+        event.key === "Escape" &&
+        !event.defaultPrevented &&
+        !document.querySelector("[role=dialog]")
+      )
         void navigate({ to: "/" });
     };
     window.addEventListener("keydown", onKey);

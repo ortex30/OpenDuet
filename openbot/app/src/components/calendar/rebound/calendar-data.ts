@@ -1,4 +1,7 @@
 import type {
+  AssignmentKind,
+  CalendarAllDay,
+  CalendarDeadline,
   CalendarEvent,
   ClassColor,
   SchoolClass,
@@ -25,10 +28,48 @@ import type { AgendaItem, Block, Course } from "./lib/types";
 /** One day, or the week around it, Sunday first. */
 export type CalendarMode = "day" | "week";
 
-/** What an item on the timeline is, for the detail card. `key` is the timeline's occurrence key. */
+/**
+ * What an item on the calendar is, for the detail card. `key` is the timeline's occurrence key. An
+ * item with hours is drawn on the timeline; what is due and an all-day event sit in the row under
+ * the day headings.
+ */
 export type CalendarItem =
   | { kind: "event"; key: string; event: CalendarEvent }
-  | { kind: "block"; key: string; block: StudyBlock; proposed: boolean };
+  | { kind: "block"; key: string; block: StudyBlock; proposed: boolean }
+  | { kind: "due"; key: string; deadline: CalendarDeadline }
+  | { kind: "allDay"; key: string; event: CalendarAllDay };
+
+/** One chip in the row under the day headings. */
+export type AllDayChip = {
+  /** The chip's id on the calendar, `due:` or `all-day:` and the source's own id. */
+  id: string;
+  date: string;
+  title: string;
+  /** What it is said as, its kind first: "Due: Lab 6 report", "Quiz: Unit 4", "All day: Retakes". */
+  label: string;
+  /** Its title and when, for a pointer resting on it: "Lab 6 report · Due 11:59 PM". */
+  hint: string;
+  /** Its class, as the timeline's items name theirs; anything without a known class is neutral. */
+  courseId: string;
+  /** Its class's colour; an all-day event has no class and is drawn neutral. */
+  color: ClassColor;
+  item: CalendarItem;
+};
+
+/** What each kind of deadline is called, before its time. */
+export const KIND_WORD: Record<AssignmentKind, string> = {
+  assignment: "Due",
+  quiz: "Quiz",
+  test: "Test",
+  announcement: "Note",
+  material: "Material",
+};
+
+/** When a deadline is, in words: "Due 11:59 PM", or its kind alone with no time, "Quiz". */
+export function deadlineWhen(deadline: CalendarDeadline): string {
+  const word = KIND_WORD[deadline.kind];
+  return deadline.time ? `${word} ${clockLabel(deadline.time)}` : word;
+}
 
 export type CalendarData = {
   /** The items of each visible day, in the order of the dates asked for. */
@@ -53,6 +94,83 @@ export const UNCLASSED_COURSE_ID = "academic-os:unclassed";
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** "HH:mm" on a 24-hour clock. "24:00" is allowed as an end: an event that runs to midnight. */
 const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$|^24:00$/;
+
+/**
+ * The visible days' all-day events and what is due, one list per date in `dates`: a day's all-day
+ * events first, then what is due by its time (no time is the end of the day), then by title.
+ */
+export function allDayChips(input: {
+  dates: readonly string[];
+  classes: readonly SchoolClass[];
+  allDay: readonly CalendarAllDay[];
+  deadlines: readonly CalendarDeadline[];
+}): AllDayChip[][] {
+  const colorOf = new Map(
+    input.classes.map((schoolClass) => [schoolClass.id, schoolClass.color]),
+  );
+  const known = (classId: string) => colorOf.has(classId);
+  return input.dates.map((date) => {
+    const day: { chip: AllDayChip; order: string }[] = [];
+    const seen = new Set<string>();
+    const add = (chip: AllDayChip, order: string) => {
+      // The same id twice on one day is one chip.
+      if (seen.has(chip.id)) return;
+      seen.add(chip.id);
+      day.push({ chip, order });
+    };
+    for (const event of input.allDay) {
+      if (event.date !== date) continue;
+      const id = `all-day:${event.id}`;
+      add(
+        {
+          id,
+          date,
+          title: event.title,
+          label: `All day: ${event.title}`,
+          hint: `${event.title} · All day`,
+          courseId: UNCLASSED_COURSE_ID,
+          color: "slate",
+          item: {
+            kind: "allDay",
+            key: calendarOccurrenceKey({ id, date }),
+            event,
+          },
+        },
+        "",
+      );
+    }
+    for (const deadline of input.deadlines) {
+      if (deadline.date !== date) continue;
+      const id = `due:${deadline.assignmentId}`;
+      add(
+        {
+          id,
+          date,
+          title: deadline.title,
+          label: `${KIND_WORD[deadline.kind]}: ${deadline.title}`,
+          hint: `${deadline.title} · ${deadlineWhen(deadline)}`,
+          courseId: known(deadline.classId)
+            ? deadline.classId
+            : UNCLASSED_COURSE_ID,
+          color: colorOf.get(deadline.classId) ?? "slate",
+          item: {
+            kind: "due",
+            key: calendarOccurrenceKey({ id, date }),
+            deadline,
+          },
+        },
+        deadline.time ?? "24:00",
+      );
+    }
+    return day
+      .sort(
+        (a, b) =>
+          a.order.localeCompare(b.order) ||
+          a.chip.title.localeCompare(b.chip.title),
+      )
+      .map((entry) => entry.chip);
+  });
+}
 
 /** True for a real day written "YYYY-MM-DD", such as a link's `?date=`; false for "2026-02-30". */
 export function isCalendarDate(text: string): boolean {

@@ -372,7 +372,7 @@ describe("the study plan card", () => {
       }),
     );
     const status = await within(card).findByText(
-      "Removed from your Calendar tab",
+      "Removed from your calendar",
     );
     expect(state.asked).toContainEqual({
       method: "POST",

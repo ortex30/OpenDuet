@@ -67,7 +67,8 @@ const SEMANTIC_ICONS: Partial<Record<string, Icon>> = {
   "at-risk": IconAlertTriangle,
   locked: IconLock,
   rebounded: IconRotate,
-  fixed: IconLock,
+  // Academic OS change: no glyph on fixed time. Rebound's later blocks dropped the lock, and in a
+  // calendar where nothing moves it marked every class.
 };
 
 function visibleOverlayRects(): OverlayRect[] {
@@ -100,11 +101,19 @@ function formatEnd(end: string | number): string {
   return formatTime(typeof end === "number" ? minToTime(end) : end);
 }
 
+/** Academic OS change, after Rebound's later timeline: an hour in the hours column as "8am",
+ * "12pm" or, at the end of the day, "12am". */
+function hourLabel(hour: number): string {
+  return formatEnd(hour * 60)
+    .replace(" ", "")
+    .toLowerCase();
+}
+
 /** A finger owns the scroll until it proves otherwise: a block only takes the
  * gesture after a stationary hold, so ordinary swipes still pan the timeline. */
 const TOUCH_DRAG_HOLD_MS = 300;
 const TOUCH_DRAG_SLOP_PX = 8;
-const CALENDAR_STICKY_HEADER_HEIGHT_PX = 36;
+const CALENDAR_STICKY_HEADER_HEIGHT_PX = 40;
 
 interface TimelineDragState {
   block: Block;
@@ -166,6 +175,10 @@ export interface CalendarTimelineProps {
   selectedItemId?: string | null;
   atRiskTaskIds?: ReadonlySet<string>;
   singleDay?: boolean;
+  /** Academic OS change: a row under the day headings for what owns no hours
+   * (all-day events and what is due), one cell per date in `dates`, held
+   * under the headings while the hours scroll. Absent, nothing is drawn. */
+  allDayLane?: { height: number; cells: readonly React.ReactNode[] };
   className?: string;
   onSelectItem: (item: AgendaItem, anchor: HTMLButtonElement) => void;
   onDoubleClickBlock?: (block: Block) => void;
@@ -196,6 +209,7 @@ export function CalendarTimeline({
   selectedItemId,
   atRiskTaskIds,
   singleDay = false,
+  allDayLane,
   className,
   onSelectItem,
   onDoubleClickBlock,
@@ -229,9 +243,13 @@ export function CalendarTimeline({
   const gridTop = Math.floor(wakeMinute / 60) * 60;
   const gridBottom = Math.ceil(sleepMinute / 60) * 60;
   const visibleHours = Math.max(1, (gridBottom - gridTop) / 60);
+  // Academic OS change: one day draws no heading row (the toolbar's title says the day), as
+  // Rebound's later day view collapses it; what sits under the headings is then at the very top.
+  const headerHeight = singleDay ? 0 : CALENDAR_STICKY_HEADER_HEIGHT_PX;
+  const stickyChrome = headerHeight + (allDayLane?.height ?? 0);
   const fitPxPerHour = Math.max(
     0,
-    (timelineViewportHeight - CALENDAR_STICKY_HEADER_HEIGHT_PX) / visibleHours,
+    (timelineViewportHeight - stickyChrome) / visibleHours,
   );
   const pxPerHour = Math.max(basePxPerHour, fitPxPerHour);
   const pxPerMinute = pxPerHour / 60;
@@ -960,6 +978,13 @@ export function CalendarTimeline({
         "app-scroll-region relative min-h-0 flex-1 overflow-auto rounded-2xl border border-border bg-card",
         className,
       )}
+      style={
+        {
+          // Academic OS change: how much of the top the day headings (and the all-day row) hold,
+          // for what has to stay clear of them (calendar.css).
+          "--calendar-sticky-chrome": `${stickyChrome}px`,
+        } as React.CSSProperties
+      }
     >
       {/* Mounted empty rather than with its first message: a live region that
           appears together with its text is routinely skipped. */}
@@ -982,20 +1007,29 @@ export function CalendarTimeline({
         </div>
       )}
       <div className="flex min-w-full w-max">
-        <div className="sticky left-0 z-30 w-[72px] shrink-0 border-r border-border bg-card">
-          <div
-            data-calendar-time-gutter-header="true"
-            className="sticky top-0 z-40 h-9 border-b border-border bg-card"
-          />
+        <div className="sticky left-0 z-30 w-16 shrink-0 border-r border-border bg-card">
+          {singleDay ? null : (
+            <div
+              data-calendar-time-gutter-header="true"
+              className="sticky top-0 z-40 h-10 border-b border-border bg-card"
+            />
+          )}
+          {allDayLane ? (
+            <div
+              data-calendar-all-day-gutter="true"
+              className="sticky z-40 border-b border-border bg-card"
+              style={{ top: headerHeight, height: allDayLane.height }}
+            />
+          ) : null}
           <div className="relative" style={{ height: gridHeight }}>
             {hours.map((hour) => (
               <time
                 key={hour}
                 dateTime={minToTime(hour * 60)}
-                className="absolute right-3 -translate-y-1/2 text-[10px] font-medium tabular-nums text-muted-foreground"
+                className="absolute right-2.5 -translate-y-1/2 text-[10px] font-normal tabular-nums text-muted-foreground"
                 style={{ top: (hour * 60 - gridTop) * pxPerMinute }}
               >
-                {formatEnd(hour * 60)}
+                {hourLabel(hour)}
               </time>
             ))}
           </div>
@@ -1047,40 +1081,57 @@ export function CalendarTimeline({
                 singleDay && "min-w-0",
               )}
             >
-              <button
-                type="button"
-                data-calendar-sticky-header="true"
-                className={cn(
-                  "sticky top-0 z-30 flex h-9 w-full items-center justify-center gap-2 border-b border-border bg-card px-2 text-sm outline-none transition-colors",
-                  "hover:border-primary/60 hover:bg-muted focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-inset",
-                  // Opaque tint: tailwind-merge drops bg-card under a second
-                  // bg-*, and a translucent header lets scrolled all-day
-                  // pills bleed through the sticky row.
-                  isToday &&
-                    "bg-[color-mix(in_oklab,var(--primary)_10%,var(--card))]",
-                )}
-                onClick={() => onActivateDay?.(date)}
-                aria-label={onActivateDay ? `Open ${dayLabel}` : dayLabel}
-              >
-                <span
+              {singleDay ? null : (
+                <button
+                  type="button"
+                  data-calendar-sticky-header="true"
                   className={cn(
-                    "font-medium text-muted-foreground",
-                    isToday && "font-semibold text-primary",
+                    "sticky top-0 z-30 flex h-10 w-full items-center justify-center gap-1.5 border-b border-border bg-card px-2 text-[0.8125rem] outline-none transition-colors",
+                    "hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-inset",
                   )}
+                  onClick={() => onActivateDay?.(date)}
+                  aria-label={onActivateDay ? `Open ${dayLabel}` : dayLabel}
                 >
-                  {parsed.toLocaleDateString("en-US", {
-                    weekday: singleDay ? "long" : "short",
-                  })}
-                </span>
-                <span
-                  className={cn(
-                    "grid size-7 place-items-center rounded-full font-semibold tabular-nums",
-                    isToday && "bg-primary text-primary-foreground",
-                  )}
+                  <span
+                    className={cn(
+                      "font-normal text-muted-foreground",
+                      isToday && "font-semibold text-foreground",
+                    )}
+                  >
+                    {parsed.toLocaleDateString("en-US", {
+                      weekday: singleDay ? "long" : "short",
+                    })}
+                  </span>
+                  <span
+                    className={cn(
+                      "grid size-6 place-items-center rounded-full tabular-nums",
+                      isToday
+                        ? "bg-primary font-semibold text-primary-foreground"
+                        : "font-normal text-muted-foreground",
+                    )}
+                  >
+                    {parsed.getDate()}
+                  </span>
+                </button>
+              )}
+              {allDayLane ? (
+                <div
+                  data-calendar-all-day={date}
+                  className="sticky z-30 flex min-w-0 flex-col gap-0.5 overflow-hidden border-b border-border bg-card px-1 py-[3px]"
+                  style={{ top: headerHeight, height: allDayLane.height }}
                 >
-                  {parsed.getDate()}
-                </span>
-              </button>
+                  {allDayLane.cells[dayIndex]}
+                </div>
+              ) : null}
+              {/* Academic OS change, after Rebound's later timeline: a block that began before the
+                  hours in view is cut by the headings; this zero-height wash under them dissolves
+                  whatever crosses the edge (calendar.css) instead of leaving a hard bar of colour. */}
+              <div
+                data-calendar-grid-fade="true"
+                aria-hidden="true"
+                className="pointer-events-none sticky z-20 h-0"
+                style={{ top: stickyChrome }}
+              />
 
               {/* biome-ignore lint/a11y/useKeyWithClickEvents: a click on the empty grid only creates at a time, which the read-only calendar never offers. */}
               {/* biome-ignore lint/a11y/noStaticElementInteractions: the grid is the drop and click surface behind the items, and every item is its own button. */}
@@ -1583,10 +1634,6 @@ export function CalendarTimeline({
                                 {formatTime(item.start)} – {formatEnd(item.end)}
                               </time>
                             </span>
-                            <IconLock
-                              className="size-3 shrink-0"
-                              aria-hidden="true"
-                            />
                           </span>
                         </button>
                       );
