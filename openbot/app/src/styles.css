@@ -944,3 +944,12 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+/*
+ * PromptArea opens its `/` and `@` menus 4px from the caret's line, which is 21px from this box's
+ * edge, so a menu sat over the box and, on a phone, over the send button. This moves it out past
+ * the edge with an 8px gap. The menu is placed by an inline `top` or `bottom`, so only the margin
+ * on the side it opens towards does anything, and no transform makes it lose its place.
+ */
+.duet-composer-editor > [role="listbox"] {
+  margin-block: 25px;
+}
