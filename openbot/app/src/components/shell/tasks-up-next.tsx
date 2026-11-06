@@ -97,7 +97,7 @@ export function UpNextView({
     : undefined;
   const researchOff = Boolean(bot && settings.data && !setting?.enabled);
   const botName = (id: string) =>
-    agents?.find((agent) => agent.id === id)?.name ?? "Your Bot";
+    agents?.find((agent) => agent.id === id)?.name ?? "Your coach";
 
   if (suggestions.isPending) return null;
   const open = suggestions.data ?? [];

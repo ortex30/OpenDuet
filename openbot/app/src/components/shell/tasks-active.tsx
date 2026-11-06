@@ -249,7 +249,7 @@ function EmptyActive({ query }: { query: string }) {
   return (
     <div className="px-1">
       <p className="type-row font-semibold">Nothing in progress.</p>
-      <p className="type-sub mt-0.5 text-duet-ink-2">
+      <p className="type-sub mt-0.5 text-pretty text-duet-ink-2">
         Ask your coach in the chat, or use + to start something.
       </p>
     </div>
