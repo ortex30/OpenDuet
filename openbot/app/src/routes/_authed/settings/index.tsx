@@ -36,7 +36,8 @@ type Place = {
 
 /** What a student sets up here, one row each. */
 const PLACES: readonly Place[] = [
-  { label: "School accounts", icon: "plug", to: "/connections" },
+  // Named as the page it opens is, and as every "Open Connections" elsewhere in the app names it.
+  { label: "Connections", icon: "plug", to: "/connections" },
   { label: "Teacher rules", icon: "shield", to: "/settings/teacher-rules" },
 ];
 

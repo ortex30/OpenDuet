@@ -58,7 +58,9 @@ export function StandingInstructions() {
       description="Your coach keeps this in mind in every chat."
       title="About you"
     >
-      {stored.isPending ? null : stored.error ? (
+      {/* The box is drawn while the saved text loads, shut until it lands, so the page under it
+          never jumps down when it does. */}
+      {stored.error ? (
         <p className="mt-4 text-destructive text-sm" role="alert">
           {stored.error.message}
         </p>
@@ -67,7 +69,7 @@ export function StandingInstructions() {
           <Textarea
             aria-label="About you"
             className="min-h-40"
-            disabled={save.isPending}
+            disabled={stored.isPending || save.isPending}
             onChange={(event) => {
               setDraft(event.target.value);
               setSaved(false);
@@ -98,7 +100,9 @@ export function StandingInstructions() {
                 <span className="text-muted-foreground text-xs">Saved</span>
               ) : null}
               <Button
-                disabled={save.isPending || over || unchanged}
+                disabled={
+                  stored.isPending || save.isPending || over || unchanged
+                }
                 onClick={submit}
                 size="sm"
               >

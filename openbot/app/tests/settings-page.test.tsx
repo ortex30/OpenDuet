@@ -28,8 +28,14 @@ afterAll(async () => {
   GlobalRegistrator.unregister();
 });
 
-/** The real route's page, with who is asking and their saved instructions already read. */
-function drawSettings(role: AuthenticatedUser["role"]) {
+/**
+ * The real route's page, with who is asking and their saved instructions already read, or, given
+ * null, still on their way.
+ */
+function drawSettings(
+  role: AuthenticatedUser["role"],
+  instructions: string | null = "",
+) {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
@@ -41,7 +47,8 @@ function drawSettings(role: AuthenticatedUser["role"]) {
     role,
     onboarding: null,
   } satisfies AuthenticatedUser);
-  client.setQueryData(settingsKeys.instructions(), "");
+  if (instructions !== null)
+    client.setQueryData(settingsKeys.instructions(), instructions);
   const Page = SettingsRoute.options.component as ComponentType;
   const router = createRouter({
     routeTree: createRootRoute({ component: () => <Page /> }),
@@ -67,7 +74,7 @@ test("a student gets two places to set things up, and the platform's pages folde
 
   const main = await view.findByRole("navigation", { name: "Settings" });
   expect(places(main)).toEqual([
-    ["School accounts", "/connections"],
+    ["Connections", "/connections"],
     ["Teacher rules", "/settings/teacher-rules"],
   ]);
 
@@ -114,4 +121,20 @@ test("the coach's box is about the student, the theme follows the device, and no
   ).toEqual(["Automatic", "Light", "Dark"]);
   expect(view.queryByText("Keyboard shortcuts")).toBeNull();
   expect(document.body.textContent).not.toContain("Bot's role");
+});
+
+test("while the saved text loads, the coach's box already holds its place, shut", async () => {
+  const fetching = globalThis.fetch;
+  globalThis.fetch = (() => new Promise(() => {})) as unknown as typeof fetch;
+  try {
+    const view = drawSettings("user", null);
+    const box = await view.findByRole("textbox", { name: "About you" });
+    expect((box as HTMLTextAreaElement).disabled).toBe(true);
+    expect(
+      (view.getByRole("button", { name: "Save" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  } finally {
+    globalThis.fetch = fetching;
+  }
 });
