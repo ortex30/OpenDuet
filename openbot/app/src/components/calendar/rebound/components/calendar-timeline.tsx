@@ -1,5 +1,5 @@
-import * as React from "react";
 import {
+  type Icon,
   IconAlertTriangle,
   IconCheck,
   IconCircleDashed,
@@ -8,41 +8,41 @@ import {
   IconRepeat,
   IconRotate,
   IconX,
-  type Icon,
 } from "@tabler/icons-react";
+import * as React from "react";
 
 import {
   blockStateSemantics,
   fixedItemSemantics,
 } from "../lib/calendar-context";
 import {
-  CALENDAR_EVENT_MIN_HEIGHT,
-  CALENDAR_PX_PER_HOUR,
-  calendarOpenSlotSuggestion,
-  calendarOccurrenceKey,
-  calendarOverlapLayout,
-  calendarDropMinute,
-  calendarItemIntersectsWindow,
-  isCalendarBusyWash,
-} from "../lib/calendar-layout";
-import {
   CALENDAR_RESIZE_KEYBOARD_STEP_MINUTES,
   CALENDAR_RESIZE_MIN_MINUTES,
   CALENDAR_TASK_DRAG_MIME,
+  type CalendarMoveOptions,
+  type CalendarMoveResult,
   calendarTaskDragDuration,
   resizeTaskFromCalendar,
   scheduleTaskFromCalendar,
-  type CalendarMoveOptions,
-  type CalendarMoveResult,
 } from "../lib/calendar-drag";
 import {
+  CALENDAR_EVENT_MIN_HEIGHT,
+  CALENDAR_PX_PER_HOUR,
+  calendarDropMinute,
+  calendarItemIntersectsWindow,
+  calendarOccurrenceKey,
+  calendarOpenSlotSuggestion,
+  calendarOverlapLayout,
+  isCalendarBusyWash,
+} from "../lib/calendar-layout";
+import {
+  type CalendarPlacementContext,
+  type CalendarPlacementDecision,
+  type CalendarPlacementSlot,
   calendarBlockDuration,
   calendarDiscouragedWindows,
   classifyCalendarPlacement,
   rankCalendarPlacementSlots,
-  type CalendarPlacementContext,
-  type CalendarPlacementDecision,
-  type CalendarPlacementSlot,
 } from "../lib/calendar-placement";
 import {
   blockColors,
@@ -51,12 +51,12 @@ import {
   parseDateStr,
   timeToMin,
 } from "../lib/helpers";
-import { usePace } from "../lib/store";
-import { deriveProfile } from "../lib/quiz";
 import {
-  overlaySafePopoverPosition,
   type OverlayRect,
+  overlaySafePopoverPosition,
 } from "../lib/overlay-layout";
+import { deriveProfile } from "../lib/quiz";
+import { usePace } from "../lib/store";
 import type { AgendaItem, Block, Course } from "../lib/types";
 import { cn } from "../lib/utils";
 
@@ -1121,7 +1121,7 @@ export function CalendarTimeline({
                 </button>
               )}
               {/* Academic OS change: the cell's width comes from its day, never from its chips, so a
-                  long title is cut short in its chip instead of widening every day of the week. */}
+                  long title wraps inside the chip instead of widening every day of the week. */}
               {allDayLane ? (
                 <div
                   data-calendar-all-day={date}
@@ -1837,16 +1837,13 @@ export function CalendarTimeline({
                             if (dragRef.current?.active) cancelDrag(false);
                           }}
                         >
-                          {/* Every line must FIT before it draws: a partially
-                          clipped row reads as a rendering bug, not truncation.
-                          Budgets (worst case = resizable pb-3): one title line
-                          + time needs 45px, a second title line needs 59px —
-                          so the time waits for 48px and the second title line
-                          waits for 62px. The full range and title stay in the
-                          tooltip and aria-label. */}
+                          {/* A class period is often under an hour. Two wrapped lines
+                          fit once the block is about 40px; shorter than that,
+                          one line, so a half-drawn word is not left behind.
+                          The full title stays in the tooltip and aria-label. */}
                           <p
                             className={cn(
-                              "flex w-full items-start gap-1 text-[11px] leading-[14px] tracking-[-0.005em]",
+                              "flex w-full items-start gap-1 text-[12px] leading-[15px] tracking-[-0.005em]",
                               fixed
                                 ? "font-medium opacity-90"
                                 : "font-semibold",
@@ -1860,8 +1857,8 @@ export function CalendarTimeline({
                             )}
                             <span
                               className={cn(
-                                "calendar-card-title",
-                                height >= 62 ? "line-clamp-2" : "truncate",
+                                "calendar-card-title min-w-0 [overflow-wrap:anywhere]",
+                                height >= 40 ? "line-clamp-2" : "truncate",
                               )}
                             >
                               {item.title}

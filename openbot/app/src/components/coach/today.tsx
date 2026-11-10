@@ -1,6 +1,18 @@
 import { useState } from "react";
+import { DeskMark } from "@/components/duet/desk-mark";
 import { DuetIcon } from "@/components/duet/icons";
-import { type CoachState, formatMinutes, isOverdue } from "@/lib/coach/model";
+import {
+  type CoachState,
+  classOf,
+  formatMinutes,
+  isOverdue,
+} from "@/lib/coach/model";
+import {
+  catchUpPlan,
+  type Ranked,
+  rankAssignments,
+  whyFirst,
+} from "@/lib/coach/plan";
 import {
   type Achievement,
   bedtimeNudge,
@@ -9,14 +21,7 @@ import {
   streak,
   todaysCheckIn,
 } from "@/lib/coach/progress";
-import {
-  catchUpPlan,
-  type Ranked,
-  rankAssignments,
-  whyFirst,
-} from "@/lib/coach/plan";
 import { saveCheckIn } from "@/lib/coach/store";
-import { classOf } from "@/lib/coach/model";
 import { cn } from "@/lib/utils";
 import { startFocus } from "./focus-timer";
 import {
@@ -83,7 +88,8 @@ export function TodayHero({
           </span>
         </Ring>
         <div className="min-w-0 flex-1">
-          <p className="type-title font-semibold">
+          <p className="study-display type-title font-semibold">
+            <DeskMark className="mr-1.5 inline size-7 align-[-6px]" />
             {greeting(now)}
             {state.profile.name ? `, ${state.profile.name}` : ""}.
           </p>

@@ -143,6 +143,21 @@ bash scripts/academic-os-dev.sh
 
 Open <http://127.0.0.1:3010>. Postgres runs locally. The Bot computer from `scripts/start.sh` is not started.
 
+### On a Mac
+
+Apple Silicon, with Homebrew, bun, and git. Docker and sudo are not required. `postgresql@16` is the only database, and pgvector is built into that install.
+
+```sh
+bash scripts/cloud-install.sh
+bash scripts/academic-os-dev.sh
+```
+
+The dev script starts Postgres, then opens the app in the browser. Stop the app, the API, and the Postgres this script started:
+
+```sh
+bash scripts/academic-os-stop.sh
+```
+
 Live chat uses `OPENAI_API_KEY`. The dev script copies it into `openbot/.env` when it is already in the environment. `ACADEMIC_OS_MODEL` picks the OpenAI model. Unset, it stays `gpt-5.6-terra`.
 
 OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACADEMIC_OS_PROVIDER=openrouter`. `OPENROUTER_MODEL` names the model.

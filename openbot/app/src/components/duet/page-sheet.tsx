@@ -137,7 +137,7 @@ export function PageSheet({
             ...(morph.fading ? { transitionDuration: `${FADE_MS}ms` } : {}),
           }}
         >
-          <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col px-3 pt-[max(env(safe-area-inset-top),12px)] pb-[max(env(safe-area-inset-bottom),10px)] lg:max-w-3xl">
+          <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col px-3 pt-[max(env(safe-area-inset-top),12px)] pb-[max(env(safe-area-inset-bottom),10px)] md:max-w-3xl lg:max-w-6xl">
             <div
               className={cn(
                 // A size container, so the header below can ask how much room it has.

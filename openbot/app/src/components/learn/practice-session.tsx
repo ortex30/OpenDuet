@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { PageText } from "@/components/duet/page-text";
+import { ConfettiBurst } from "@/components/duet/study/delight";
 import { SmallPill } from "@/components/shell/suggestion-card";
 import type {
   PracticeItem,
   PracticePaper,
   PracticeResult,
 } from "@/lib/study/practice";
+import { cn } from "@/lib/utils";
 
 /**
  * A quiz or a practice test. Timed is a choice before it starts. Math in the
@@ -234,11 +236,29 @@ function Question({
 }
 
 function Results({ result }: { result: PracticeResult }) {
+  const clean = result.points > 0 && result.earned === result.points;
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-duet-tile px-4 py-4">
-      <p className="type-display font-semibold">{result.summary}</p>
+    <div className="relative flex flex-col gap-3 rounded-2xl bg-duet-tile px-4 py-4">
+      {clean ? <ConfettiBurst /> : null}
+      <p
+        className={cn(
+          "study-display type-display font-semibold",
+          clean && "study-bounce",
+        )}
+      >
+        {result.summary}
+      </p>
+      {clean ? (
+        <p className="type-sub text-duet-ink">Clean run. That one stuck.</p>
+      ) : null}
       {result.items.map((item) => (
-        <div key={item.id} className="flex flex-col gap-1">
+        <div
+          className={cn(
+            "flex flex-col gap-1",
+            item.correct ? "study-bounce" : "study-shake",
+          )}
+          key={item.id}
+        >
           <p className="type-sub font-semibold">
             {item.topic.replace(/[.\s]+$/g, "")}. {item.earned} of {item.points}
             .

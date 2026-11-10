@@ -157,6 +157,13 @@ export function WorkshopPanel({
           {error}
         </p>
       ) : null}
+      {busy ? (
+        <div aria-hidden className="mb-3 flex flex-col gap-2">
+          <div className="study-shimmer h-3 w-2/5 rounded-full" />
+          <div className="study-shimmer h-3 w-full rounded-full" />
+          <div className="study-shimmer h-24 w-full rounded-2xl" />
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <SmallPill
           disabled={busy !== ""}
@@ -197,7 +204,9 @@ export function WorkshopPanel({
             setBusy("grade");
             try {
               const result = await gradePractice(paper.id, answers);
-              remember(null);
+              // Keep the scored paper on screen so the student sees what landed
+              // and what missed. The saved copy is cleared because it is finished.
+              remember({ ...paper, result });
               void queryClient.invalidateQueries({ queryKey: ["study"] });
               return result;
             } finally {

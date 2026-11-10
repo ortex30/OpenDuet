@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { DuetIcon } from "@/components/duet/icons";
+import { ConfettiBurst, cheerFor } from "@/components/duet/study/delight";
+import { cn } from "@/lib/utils";
 
 type Block = {
   id: string;
@@ -122,6 +124,8 @@ export function TonightPlan() {
   const [asked, setAsked] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false);
+  const [cheer, setCheer] = useState("");
+  const [burst, setBurst] = useState("");
 
   useEffect(() => {
     const saved = readSaved();
@@ -152,7 +156,17 @@ export function TonightPlan() {
       hidden,
     };
     window.localStorage.setItem(STORE, JSON.stringify(next));
-  }, [ready, rows, summary, warnings, remaining, planId, skip, minutes, hidden]);
+  }, [
+    ready,
+    rows,
+    summary,
+    warnings,
+    remaining,
+    planId,
+    skip,
+    minutes,
+    hidden,
+  ]);
 
   async function load(
     nextSkip: string[],
@@ -191,10 +205,21 @@ export function TonightPlan() {
     }
   }
 
+  useEffect(() => {
+    if (!cheer) return;
+    const id = window.setTimeout(() => setCheer(""), 2600);
+    return () => window.clearTimeout(id);
+  }, [cheer]);
+
   function checkOff(id: string) {
     const next = skip.includes(id) ? skip : [...skip, id];
+    setBurst(id);
+    setCheer(cheerFor(id));
     setSkip(next);
-    void load(next, Boolean(planId));
+    // Leave the finished row on screen long enough for the pop, then replan.
+    window.setTimeout(() => {
+      void load(next, Boolean(planId));
+    }, 700);
   }
 
   function startOver() {
@@ -222,14 +247,22 @@ export function TonightPlan() {
   return (
     <section
       aria-label="Tonight"
-      className="mb-3 rounded-[20px] bg-duet-card px-4 py-4 shadow-duet-card"
+      className="study-rise relative mb-3 rounded-[20px] bg-duet-card px-4 py-4 shadow-duet-card"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="type-sub font-semibold">Tonight</h2>
+          <h2 className="study-display type-nav font-semibold">Tonight</h2>
           <p className="type-caption mt-0.5 text-duet-ink-2 [overflow-wrap:anywhere]">
             {summary || "A short plan from what's actually due."}
           </p>
+          {cheer ? (
+            <p
+              className="study-bounce type-sub mt-2 inline-flex rounded-full bg-duet-status-done-soft px-3 py-1.5 font-semibold text-duet-status-done"
+              role="status"
+            >
+              {cheer}
+            </p>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <label className="type-caption text-duet-ink-2">
@@ -249,7 +282,7 @@ export function TonightPlan() {
             />
           </label>
           <button
-            className="type-caption min-h-11 rounded-full bg-duet-ink px-4 font-semibold text-duet-surface disabled:opacity-50"
+            className="type-caption min-h-11 rounded-full bg-duet-ink px-4 font-semibold text-duet-surface transition-transform active:scale-[0.97] disabled:opacity-50 motion-reduce:active:scale-100"
             disabled={busy !== ""}
             onClick={() => void load(skip, false)}
             type="button"
@@ -278,11 +311,17 @@ export function TonightPlan() {
       {rows.length > 0 ? (
         <ul className="mt-3 flex flex-col gap-2">
           {rows.map((row, index) => (
-            <li key={row.id}>
-              <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-duet-tile px-3 py-2.5">
+            <li className="relative" key={row.id}>
+              {burst === row.id ? <ConfettiBurst /> : null}
+              <label
+                className={cn(
+                  "flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-duet-tile px-3 py-2.5",
+                  burst === row.id && "study-bounce",
+                )}
+              >
                 <input
-                  className="mt-1 size-4 shrink-0"
-                  checked={false}
+                  className="study-check mt-1 size-4 shrink-0"
+                  checked={burst === row.id}
                   type="checkbox"
                   onChange={() => checkOff(row.id)}
                 />

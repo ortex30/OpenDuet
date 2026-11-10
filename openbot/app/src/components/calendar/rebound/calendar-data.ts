@@ -65,10 +65,14 @@ export const KIND_WORD: Record<AssignmentKind, string> = {
   material: "Material",
 };
 
-/** The part of a long title that still reads in a narrow week column. */
-function shortChip(title: string): string {
-  const last = title.split(" - ").at(-1)?.trim() || title;
-  return last.length > 32 ? `${last.slice(0, 30).trimEnd()}…` : last;
+/**
+ * The title drawn on a chip. A "Class - work" title keeps the work, which is
+ * what the narrow week column is for. It is not cut to a fixed character count:
+ * the chip wraps, and the full title stays in the chip's name and hint.
+ */
+function chipTitle(title: string): string {
+  const last = title.split(" - ").at(-1)?.trim();
+  return last && last.length > 0 ? last : title;
 }
 
 /** When a deadline is, in words: "Due 11:59 PM", or its kind alone with no time, "Quiz". */
@@ -131,7 +135,7 @@ export function allDayChips(input: {
         {
           id,
           date,
-          title: shortChip(event.title),
+          title: chipTitle(event.title),
           label: `All day: ${event.title}`,
           hint: `${event.title} · All day`,
           courseId: UNCLASSED_COURSE_ID,
@@ -152,7 +156,7 @@ export function allDayChips(input: {
         {
           id,
           date,
-          title: shortChip(deadline.title),
+          title: chipTitle(deadline.title),
           label: `${KIND_WORD[deadline.kind]}: ${deadline.title}`,
           hint: `${deadline.title} · ${deadlineWhen(deadline)}`,
           courseId: known(deadline.classId)

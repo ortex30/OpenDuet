@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { TypingDots } from "@/components/duet/kit";
 import { PageText } from "@/components/duet/page-text";
 import { SmallPill } from "@/components/shell/suggestion-card";
 import { client } from "@/lib/client";
+import { cn } from "@/lib/utils";
 
 /**
  * A tutor turn from the notes: a short explanation, a check, and a simpler
@@ -157,8 +159,14 @@ export function TutorSession({
               Quiz me on this
             </SmallPill>
           </div>
+          {busy ? <TypingDots label="Thinking" /> : null}
           {turn ? (
-            <p className="type-sub text-duet-ink-2">
+            <p
+              className={cn(
+                "type-sub text-duet-ink-2",
+                turn.understood ? "study-bounce" : "study-shake",
+              )}
+            >
               <PageText text={turn.feedback} />
             </p>
           ) : null}

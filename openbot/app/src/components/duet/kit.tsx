@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
-import { cn } from "@/lib/utils";
 import { useAvatarColour } from "@/lib/avatar-preference";
+import { cn } from "@/lib/utils";
 import { DuetIcon, type DuetIconName } from "./icons";
 import { MicOrb } from "./mic-orb";
 
@@ -182,11 +182,22 @@ export function TypingDots({ label = "Thinking" }: { label?: string }) {
       <span aria-hidden className="grid size-9 place-items-center">
         <MicOrb colour={colour} size={34} state="thinking" />
       </span>
+      <span aria-hidden className="flex items-end gap-1 pb-0.5">
+        <span className="duet-typing-dot size-1.5 rounded-full bg-duet-accent" />
+        <span
+          className="duet-typing-dot size-1.5 rounded-full bg-duet-accent"
+          style={{ animationDelay: "120ms" }}
+        />
+        <span
+          className="duet-typing-dot size-1.5 rounded-full bg-duet-accent"
+          style={{ animationDelay: "240ms" }}
+        />
+      </span>
       <span
         aria-hidden
         className="duet-thinking-word type-sub font-medium text-duet-ink-2"
       >
-        {label}
+        {label === "Thinking" ? "Thinking it over" : label}
       </span>
     </div>
   );

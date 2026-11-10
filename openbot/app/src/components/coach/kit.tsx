@@ -4,23 +4,23 @@ import { DuetIcon } from "@/components/duet/icons";
 import type { ClassColor } from "@/lib/coach/model";
 import { cn } from "@/lib/utils";
 
-/** Class colours as literal Tailwind classes, so the build keeps them. */
+/** Class colours as literal classes, so each class keeps its own hue. */
 export const SOFT: Record<ClassColor | string, string> = {
-  violet: "bg-duet-violet-soft text-duet-violet",
-  blue: "bg-duet-blue-soft text-duet-blue",
-  green: "bg-duet-green-soft text-duet-green",
-  amber: "bg-duet-amber-soft text-duet-amber",
-  red: "bg-duet-red-soft text-duet-red",
-  accent: "bg-duet-accent-soft text-duet-accent",
+  violet: "study-class-violet",
+  blue: "study-class-blue",
+  green: "study-class-green",
+  amber: "study-class-amber",
+  red: "study-class-red",
+  accent: "study-class-accent",
 };
 
 export const SOLID: Record<ClassColor | string, string> = {
-  violet: "bg-duet-violet",
-  blue: "bg-duet-blue",
-  green: "bg-duet-green",
-  amber: "bg-duet-amber",
-  red: "bg-duet-red",
-  accent: "bg-duet-accent",
+  violet: "study-solid-violet",
+  blue: "study-solid-blue",
+  green: "study-solid-green",
+  amber: "study-solid-amber",
+  red: "study-solid-red",
+  accent: "study-solid-accent",
   // Study that belongs to no class, in grey so it never looks like one.
   general: "bg-duet-ink-3",
 };
@@ -34,7 +34,7 @@ export function Card({
   return (
     <section
       className={cn(
-        "mb-3 rounded-[24px] bg-duet-card p-4 shadow-duet-card",
+        "study-rise mb-3 rounded-[24px] bg-duet-card p-4 shadow-duet-card",
         className,
       )}
       {...props}
@@ -56,7 +56,7 @@ export function CardTitle({
   return (
     <div className="mb-2 flex items-center justify-between gap-2">
       <h2
-        className="type-label font-semibold text-duet-ink-2 uppercase tracking-wide"
+        className="study-display type-sub font-semibold text-duet-ink"
         id={id}
       >
         {children}
@@ -195,10 +195,10 @@ export function Ring({
           r={r}
           stroke={share >= 1 ? "var(--duet-green)" : "var(--duet-accent)"}
           strokeDasharray={c}
+          className="study-ring-value"
           strokeDashoffset={c * (1 - share)}
           strokeLinecap="round"
           strokeWidth={stroke}
-          style={{ transition: "stroke-dashoffset 600ms ease-out" }}
         />
       </svg>
       <div className="relative text-center">{children}</div>

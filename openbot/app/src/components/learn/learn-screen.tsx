@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { DeskMark } from "@/components/duet/desk-mark";
 import { DuetIcon } from "@/components/duet/icons";
 import { DuetCard, SectionLabel } from "@/components/duet/kit";
 import { WorkshopPanel } from "@/components/learn/workshop-panel";
@@ -76,10 +77,15 @@ export function LearnScreen() {
         </p>
       ) : null}
       {study.isPending ? (
-        <DuetCard className="px-5 py-6 text-center">
+        <DuetCard className="px-5 py-6">
           <p className="type-sub text-duet-ink-2" role="status">
             Loading what you know…
           </p>
+          <div aria-hidden className="mt-4 flex flex-col gap-2">
+            <div className="study-shimmer h-3 w-1/3 rounded-full" />
+            <div className="study-shimmer h-16 w-full rounded-2xl" />
+            <div className="study-shimmer h-3 w-2/3 rounded-full" />
+          </div>
         </DuetCard>
       ) : study.error ? (
         <DuetCard className="px-5 py-6 text-center" role="alert">
@@ -115,13 +121,13 @@ function EmptyLearn({
 }) {
   return (
     <DuetCard className="px-5 py-6 text-center" data-learn-empty="">
-      <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-duet-accent-soft text-duet-accent">
-        <DuetIcon name="bulb" size={24} />
-      </div>
-      <p className="type-row font-semibold">Nothing practiced yet</p>
+      <DeskMark className="mx-auto mb-3 size-12" />
+      <p className="study-display type-nav font-semibold">
+        Nothing practiced yet
+      </p>
       <p className="type-sub mx-auto mt-1 max-w-[280px] text-duet-ink-2">
-        Take a quick quiz and every topic you practice shows up here, with
-        reviews spaced so it sticks.
+        A short quiz is enough to start. Topics land here, and reviews come back
+        when you might forget them.
       </p>
       <div className="mx-auto mt-4 flex max-w-[220px]">
         <SmallPill disabled={busy || !canStart} onClick={onStart} primary>
@@ -367,9 +373,7 @@ function record(topic: StudyTopic): string {
     [
       topic.correctCount ? `${topic.correctCount} right` : "",
       topic.partlyCount ? `${topic.partlyCount} partly` : "",
-      topic.openMistakes.length
-        ? `${topic.openMistakes.length} missed`
-        : "",
+      topic.openMistakes.length ? `${topic.openMistakes.length} missed` : "",
     ]
       .filter(Boolean)
       .join(", ") || "not tried"

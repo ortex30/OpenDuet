@@ -12,7 +12,7 @@ import {
   remainingMin,
 } from "@/lib/coach/model";
 import { workload, workloadAdvice } from "@/lib/coach/plan";
-import { type Achievement, ACHIEVEMENTS } from "@/lib/coach/progress";
+import { ACHIEVEMENTS, type Achievement } from "@/lib/coach/progress";
 import { removeAssignment, saveAssignment, setDone } from "@/lib/coach/store";
 import { cn } from "@/lib/utils";
 import {
@@ -494,20 +494,11 @@ export function Celebration({
         Nice
       </button>
       <Confetti />
-      <style>{CELEBRATION_CSS}</style>
     </div>
   );
 }
 
-const CELEBRATION_CSS = `
-@keyframes coach-pop { 0% { transform: scale(0.2) rotate(-20deg); } 60% { transform: scale(1.25) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
-@keyframes coach-confetti { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(540deg); opacity: 0; } }
-.coach-pop { display: inline-block; animation: coach-pop 600ms cubic-bezier(.34,1.56,.64,1) both; }
-.coach-confetti { animation: coach-confetti 1100ms ease-out both; }
-@media (prefers-reduced-motion: reduce) { .coach-pop, .coach-confetti { animation: none; } .coach-confetti { display: none; } }
-`;
-
-const CONFETTI_COLORS = ["#6430ab", "#f5a524", "#17c964", "#006fee", "#f31260"];
+const CONFETTI_COLORS = ["#9a3412", "#f5a524", "#146c34", "#1d4ed8", "#be123c"];
 
 function Confetti() {
   return (

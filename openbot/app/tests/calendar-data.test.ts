@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
-  CLASS_COLORS,
   type CalendarEvent,
+  CLASS_COLORS,
   type SchoolClass,
   type StudyBlock,
 } from "@openbot/shared/study";
 import {
+  allDayChips,
   classColor,
   clockLabel,
   dayWindow,
@@ -401,5 +402,37 @@ describe("times", () => {
       zonedNow(new Date("2026-11-05T06:00:00.000Z"), "America/Chicago"),
     ).toEqual({ day: "2026-11-05", minute: 0 });
     expect(zonedNow(evening, "Mars/Olympus")).toBeNull();
+  });
+});
+
+describe("week chips", () => {
+  test("a long title stays whole so a narrow week column can wrap it", () => {
+    const title =
+      "AP US History - DBQ essay: The market revolution and what it did to labor in the North";
+    const whole =
+      "Vocabulario de la unidad cinco: la naturaleza y el medio ambiente";
+    const days = allDayChips({
+      dates: ["2026-11-06"],
+      classes,
+      allDay: [{ id: "long-day", title: whole, date: "2026-11-06" }],
+      deadlines: [
+        {
+          assignmentId: "long",
+          classId: "apush1",
+          title,
+          date: "2026-11-06",
+          time: "23:59",
+          kind: "assignment",
+          help: "full",
+        },
+      ],
+    });
+    const chips = days[0] ?? [];
+    expect(chips.map((chip) => chip.title)).toEqual([
+      whole,
+      "DBQ essay: The market revolution and what it did to labor in the North",
+    ]);
+    expect(chips.some((chip) => chip.title.endsWith("…"))).toBe(false);
+    expect(chips[1]?.label).toBe(`Due: ${title}`);
   });
 });

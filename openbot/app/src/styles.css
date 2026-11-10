@@ -4,6 +4,7 @@
 /* Composer chips/dropdown. Reads the shadcn tokens declared below, so it themes itself. */
 @import "prompt-area/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces/wght.css";
 @import "katex/dist/katex.min.css";
 
 /*
@@ -24,20 +25,20 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #f6f1e7;
+  --foreground: #1c1917;
+  --card: #fffcf6;
+  --card-foreground: #1c1917;
+  --popover: #fffcf6;
+  --popover-foreground: #1c1917;
+  --primary: #9a3412;
+  --primary-foreground: #ffffff;
+  --secondary: #efe6d6;
+  --secondary-foreground: #1c1917;
+  --muted: #efe6d6;
+  --muted-foreground: #57534e;
+  --accent: #fde8d4;
+  --accent-foreground: #9a3412;
   --destructive: oklch(0.577 0.245 27.325);
   --success: oklch(0.6 0.118 184.704);
   --border: oklch(0.922 0 0);
@@ -48,7 +49,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.55rem;
+  --radius: 0.8rem;
   --sidebar: oklch(0.97 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -64,50 +65,50 @@
    * `.dark` below; `tests/visual-system.test.ts` fails if one is missing or a colour falls under its
    * contrast floor, and `lib/theme-tokens.ts` carries the same values to the generated-UI prompt.
    */
-  --duet-surface: #f6f6f8;
-  --duet-card: #ffffff;
-  --duet-bubble: #ececf0;
-  --duet-user: #e7e3f7;
-  --duet-ink: #18181b;
-  --duet-ink-2: #55555e;
-  --duet-ink-3: #6b6b75;
-  --duet-hair: rgb(24 24 27 / 9%);
-  --duet-hair-2: rgb(24 24 27 / 6%);
-  --duet-tile: #f1f1f4;
+  --duet-surface: #f6f1e7;
+  --duet-card: #fffcf6;
+  --duet-bubble: #e9e0d2;
+  --duet-user: #f8e6d0;
+  --duet-ink: #1c1917;
+  --duet-ink-2: #44403c;
+  --duet-ink-3: #57534e;
+  --duet-hair: rgb(28 25 23 / 10%);
+  --duet-hair-2: rgb(28 25 23 / 6%);
+  --duet-tile: #efe6d6;
   /*
    * The one accent: the Tasks badge, the unread dot, the + button, a selected chip, a link to a
    * task, the focus ring, the Everything icon. Not a heading colour. `on-accent` is what sits on it.
    */
-  --duet-accent: #6430ab;
-  --duet-accent-soft: #f0ebfa;
+  --duet-accent: #9a3412;
+  --duet-accent-soft: #fde8d4;
   --duet-on-accent: #ffffff;
   /* Pop: the quiz's four answers and the study cards' faces. Bright, school-notebook colours. */
   --duet-pop-a: #2f6fed;
   --duet-pop-a-soft: #e6eefe;
   --duet-pop-b: #15a36b;
   --duet-pop-b-soft: #e3f7ee;
-  --duet-pop-c: #f08a0c;
-  --duet-pop-c-soft: #fff1e0;
-  --duet-pop-d: #e3407a;
-  --duet-pop-d-soft: #fde7ef;
+  --duet-pop-c: #c2410c;
+  --duet-pop-c-soft: #ffedd8;
+  --duet-pop-d: #be185d;
+  --duet-pop-d-soft: #fde7f0;
   --duet-face-gradient: linear-gradient(
     135deg,
-    #6a3df0 0%,
-    #b04ce8 55%,
-    #ff7bb0 100%
+    #9a3412 0%,
+    #be123c 52%,
+    #c2410c 100%
   );
   /* How work stands: ready for review, needs you, working, couldn't finish. Only on status. */
-  --duet-status-done: #147a3a;
-  --duet-status-done-soft: #e6f4ea;
-  --duet-status-needs: #a34a06;
-  --duet-status-needs-soft: #fdf3e1;
+  --duet-status-done: #146c34;
+  --duet-status-done-soft: #e4f5e8;
+  --duet-status-needs: #9a3412;
+  --duet-status-needs-soft: #fde8d4;
   --duet-status-working: #1d4ed8;
-  --duet-status-working-soft: #eaf0fd;
+  --duet-status-working-soft: #e5edfc;
   --duet-status-problem: #b91c1c;
-  --duet-status-problem-soft: #fbeaea;
-  /* The primary button: near-black on light, white on dark. */
-  --duet-black: #111114;
-  --duet-on-black: #ffffff;
+  --duet-status-problem-soft: #fde8e8;
+  /* The primary button: near-black on light, warm paper on dark. */
+  --duet-black: #1c1917;
+  --duet-on-black: #fffcf6;
   /*
    * The names the components were written against, kept as aliases of the roles so a screen that
    * still says `violet` or `green` draws the role's colour. New code names the role.
@@ -137,8 +138,8 @@
    * `--duet-veil` is the same material laid over a whole screen, for a sheet that the screen stays
    * visible behind.
    */
-  --duet-glass: rgb(255 255 255 / 80%);
-  --duet-veil: rgb(246 246 248 / 74%);
+  --duet-glass: rgb(255 252 246 / 82%);
+  --duet-veil: rgb(246 241 231 / 74%);
   --duet-glass-edge: inset 0 0.5px 0 rgb(255 255 255 / 80%);
   --duet-shadow-glass: var(--duet-glass-edge), var(--duet-shadow-float);
   /* Shape (parity-spec 2.4) and the smallest thing a finger can hit (2.11). */
@@ -172,20 +173,20 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #1c1714;
+  --foreground: #f7f3ec;
+  --card: #29221c;
+  --card-foreground: #f7f3ec;
+  --popover: #29221c;
+  --popover-foreground: #f7f3ec;
+  --primary: #f6c48a;
+  --primary-foreground: #3b220c;
+  --secondary: #342c24;
+  --secondary-foreground: #f7f3ec;
+  --muted: #342c24;
+  --muted-foreground: #c4b8aa;
+  --accent: #3d2a1c;
+  --accent-foreground: #f6c48a;
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.704 0.14 182.503);
   --border: oklch(1 0 0 / 10%);
@@ -209,18 +210,18 @@
    * Duet's dark is near-black and neutral (it samples #0E0E0E behind, #232323 for the Bot's bubble).
    * These keep the same roles, and the primary action turns light.
    */
-  --duet-surface: #111113;
-  --duet-card: #1c1c1f;
-  --duet-bubble: #26262b;
-  --duet-user: #2f2845;
-  --duet-ink: #f4f4f5;
-  --duet-ink-2: #a1a1aa;
-  --duet-ink-3: #8e8e98;
+  --duet-surface: #1c1714;
+  --duet-card: #29221c;
+  --duet-bubble: #342c24;
+  --duet-user: #3a2a1c;
+  --duet-ink: #f7f3ec;
+  --duet-ink-2: #d4cdc3;
+  --duet-ink-3: #c4b8aa;
   --duet-hair: rgb(255 255 255 / 10%);
   --duet-hair-2: rgb(255 255 255 / 7%);
-  --duet-tile: #26262b;
-  --duet-accent: #b49ae8;
-  --duet-accent-soft: #2a2140;
+  --duet-tile: #342c24;
+  --duet-accent: #f6c48a;
+  --duet-accent-soft: #3d2a1c;
   --duet-pop-a: #7faaff;
   --duet-pop-a-soft: #1b2a4a;
   --duet-pop-b: #4fd39b;
@@ -231,29 +232,29 @@
   --duet-pop-d-soft: #3f1b2a;
   --duet-face-gradient: linear-gradient(
     135deg,
-    #5a2fd6 0%,
-    #9a3fd0 55%,
-    #e0679a 100%
+    #9a3412 0%,
+    #be123c 48%,
+    #f6c48a 100%
   );
-  /* Dark text on the light lilac: white on it was 2.4:1. */
-  --duet-on-accent: #1a1033;
+  /* Dark ink on the lamp-light accent. White on it was too faint. */
+  --duet-on-accent: #3b220c;
   --duet-status-done: #4ade80;
   --duet-status-done-soft: #14301f;
   --duet-status-needs: #fbbf24;
   --duet-status-needs-soft: #3a2a0c;
-  --duet-status-working: #7aa2ff;
-  --duet-status-working-soft: #18233d;
-  --duet-status-problem: #f87171;
-  --duet-status-problem-soft: #3a1717;
-  --duet-black: #f4f4f5;
-  --duet-on-black: #111114;
+  --duet-status-working: #93c5fd;
+  --duet-status-working-soft: #1a2744;
+  --duet-status-problem: #fca5a5;
+  --duet-status-problem-soft: #3f1d1d;
+  --duet-black: #f7f3ec;
+  --duet-on-black: #1c1714;
   --duet-shadow-float:
     0 0 0 0.5px rgb(255 255 255 / 10%), 0 4px 12px -4px rgb(0 0 0 / 50%);
   --duet-shadow-card: 0 0 0 1px var(--duet-hair);
   --duet-shadow-raised:
     0 0 0 1px var(--duet-hair), 0 10px 26px -14px rgb(0 0 0 / 60%);
-  --duet-glass: rgb(28 28 31 / 82%);
-  --duet-veil: rgb(17 17 19 / 72%);
+  --duet-glass: rgb(41 34 28 / 84%);
+  --duet-veil: rgb(28 23 20 / 74%);
   --duet-glass-edge: inset 0 0.5px 0 rgb(255 255 255 / 8%);
   --duet-shadow-glass: var(--duet-glass-edge), var(--duet-shadow-float);
   --duet-ch-berry: #d0709a;
@@ -295,7 +296,7 @@ body {
  */
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: "Fraunces Variable", Fraunces, Georgia, serif;
   --font-sans: "Inter Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -999,4 +1000,241 @@ body {
 div[style*="z-index: 99999"]:has(a[href="https://copilotkit.ai/pricing"]) {
   /* biome-ignore lint/complexity/noImportantStyles: the banner sets an inline display. */
   display: none !important;
+}
+
+/*
+ * Night desk. A warm paper app for studying at night: one lamp-colored accent, a soft display
+ * face on greetings, and short motion (transform and opacity only). Interaction motion stays
+ * inside 200–320ms. The skeleton sweep is a loop, so it runs a little longer than a tap.
+ */
+.study-desk {
+  background:
+    radial-gradient(
+      1100px 420px at 8% -10%,
+      rgb(253 232 212 / 80%),
+      transparent 58%
+    ),
+    radial-gradient(
+      800px 360px at 100% 0%,
+      rgb(255 237 213 / 55%),
+      transparent 52%
+    ),
+    var(--duet-surface);
+}
+.dark .study-desk {
+  background:
+    radial-gradient(900px 380px at 0% 0%, rgb(154 52 18 / 22%), transparent 56%),
+    var(--duet-surface);
+}
+.study-display {
+  font-family:
+    "Fraunces Variable", Fraunces, "Iowan Old Style", Palatino, Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+/* One hue per class, separate from status colours, so a pill reads as that class. */
+.study-class-violet {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.study-class-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.study-class-green {
+  background: #d1fae5;
+  color: #065f46;
+}
+.study-class-amber {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.study-class-red {
+  background: #ffe4e6;
+  color: #be123c;
+}
+.study-class-accent {
+  background: var(--duet-accent-soft);
+  color: var(--duet-accent);
+}
+.dark .study-class-violet {
+  background: #2e1065;
+  color: #ddd6fe;
+}
+.dark .study-class-blue {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+.dark .study-class-green {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+.dark .study-class-amber {
+  background: #7c2d12;
+  color: #ffedd5;
+}
+.dark .study-class-red {
+  background: #881337;
+  color: #ffe4e6;
+}
+.study-solid-violet {
+  background: #7c3aed;
+}
+.study-solid-blue {
+  background: #2563eb;
+}
+.study-solid-green {
+  background: #059669;
+}
+.study-solid-amber {
+  background: #ea580c;
+}
+.study-solid-red {
+  background: #e11d48;
+}
+.study-solid-accent {
+  background: var(--duet-accent);
+}
+
+@keyframes study-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.study-rise {
+  animation: study-rise 250ms var(--duet-ease-out) both;
+}
+
+@keyframes study-bounce {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.study-bounce {
+  animation: study-bounce 280ms var(--duet-ease-out) both;
+}
+
+@keyframes study-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-4px);
+  }
+  70% {
+    transform: translateX(4px);
+  }
+}
+.study-shake {
+  animation: study-shake 280ms var(--duet-ease-out) both;
+}
+
+@keyframes study-flip {
+  0% {
+    transform: rotateY(0);
+  }
+  45% {
+    transform: rotateY(90deg);
+  }
+  55% {
+    transform: rotateY(-90deg);
+  }
+  100% {
+    transform: rotateY(0);
+  }
+}
+.study-flip {
+  animation: study-flip 280ms var(--duet-ease-out);
+  transform-origin: center;
+}
+
+.study-ring-value {
+  transition: stroke-dashoffset 320ms var(--duet-ease-out);
+}
+
+@keyframes study-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.study-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--duet-tile);
+}
+.study-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 252 246 / 72%),
+    transparent
+  );
+  animation: study-shimmer 700ms var(--duet-ease-out) infinite;
+}
+
+@keyframes coach-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes coach-confetti {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(180deg);
+    opacity: 0;
+  }
+}
+.coach-pop {
+  display: inline-block;
+  animation: coach-pop 320ms var(--duet-ease-out) both;
+}
+.coach-confetti {
+  animation: coach-confetti 400ms var(--duet-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-rise,
+  .study-bounce,
+  .study-shake,
+  .study-flip,
+  .coach-pop,
+  .coach-confetti,
+  .study-shimmer::after {
+    animation: none;
+  }
+  .study-ring-value {
+    transition: none;
+  }
+  .coach-confetti {
+    display: none;
+  }
 }

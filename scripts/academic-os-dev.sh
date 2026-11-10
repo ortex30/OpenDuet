@@ -2,8 +2,22 @@
 # One command for the Academic OS demo: Postgres, API, and the app.
 # A school pack in data/private/ is used when it is there. Otherwise Jordan's sample week is.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit
+# shellcheck source=env.sh
 . scripts/env.sh
+
+if [ "${ACADEMIC_OS_PLATFORM_CHECK:-}" = "1" ]; then
+  if [ "$(uname -s)" = "Darwin" ]; then
+    echo "postgres:brew-or-pg_ctl"
+    echo "databases:current-user"
+    echo "browser:open"
+  else
+    echo "postgres:pg_ctlcluster"
+    echo "databases:sudo-postgres"
+    echo "browser:no"
+  fi
+  exit 0
+fi
 
 APP_PORT="${APP_PORT:-3010}"
 SERVER_PORT="${SERVER_PORT:-3001}"
@@ -14,8 +28,71 @@ if ! command -v bun >/dev/null 2>&1; then
   exit 1
 fi
 
+postgres_ready() {
+  pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1
+}
+
+wait_for_postgres() {
+  local _
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    postgres_ready && return 0
+    sleep 0.5
+  done
+  echo "Postgres did not accept connections on 127.0.0.1:5432." >&2
+  exit 1
+}
+
+# Homebrew postgresql@16, as the current user. No sudo. brew services when it
+# can start the server, otherwise pg_ctl on the formula's data directory.
+start_postgres_macos() {
+  local prefix datadir
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "Homebrew is required. Run: bash scripts/cloud-install.sh" >&2
+    exit 1
+  fi
+  prefix="$(brew --prefix postgresql@16 2>/dev/null || true)"
+  if [ -z "$prefix" ] || [ ! -x "$prefix/bin/pg_isready" ]; then
+    echo "Postgres is not installed. Run: bash scripts/cloud-install.sh" >&2
+    exit 1
+  fi
+  export PATH="$prefix/bin:$PATH"
+  if postgres_ready; then
+    return 0
+  fi
+  datadir="$(brew --prefix)/var/postgresql@16"
+  if [ ! -s "$datadir/PG_VERSION" ]; then
+    mkdir -p "$datadir"
+    initdb -D "$datadir" --username="$(id -un)" --auth=trust --encoding=UTF8 --locale=C
+  fi
+  if brew services start postgresql@16 >/dev/null 2>&1; then
+    echo brew >openbot/.logs/postgres.owner
+    wait_for_postgres
+    return 0
+  fi
+  pg_ctl -D "$datadir" -l openbot/.logs/postgres.log start
+  echo pg_ctl >openbot/.logs/postgres.owner
+  wait_for_postgres
+}
+
+ensure_databases_macos() {
+  local db
+  if ! psql -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='openbot'" | grep -q 1; then
+    psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE USER openbot WITH PASSWORD 'openbot' SUPERUSER LOGIN;"
+  fi
+  for db in openbot openbot_test; do
+    if ! psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${db}'" | grep -q 1; then
+      psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db} OWNER openbot;"
+    fi
+    psql -d "$db" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS vector;" >/dev/null
+  done
+}
+
 start_postgres() {
-  if pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1; then
+  if [ "$(uname -s)" = "Darwin" ]; then
+    start_postgres_macos
+    return 0
+  fi
+  if postgres_ready; then
     return 0
   fi
   if command -v pg_ctlcluster >/dev/null 2>&1; then
@@ -24,15 +101,14 @@ start_postgres() {
     echo "Postgres is not running, and pg_ctlcluster is not installed." >&2
     exit 1
   fi
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1 && return 0
-    sleep 0.5
-  done
-  echo "Postgres did not accept connections on 127.0.0.1:5432." >&2
-  exit 1
+  wait_for_postgres
 }
 
 ensure_databases() {
+  if [ "$(uname -s)" = "Darwin" ]; then
+    ensure_databases_macos
+    return 0
+  fi
   sudo -u postgres psql -v ON_ERROR_STOP=1 -tc "SELECT 1 FROM pg_roles WHERE rolname='openbot'" \
     | grep -q 1 || sudo -u postgres psql -c "CREATE USER openbot WITH PASSWORD 'openbot' SUPERUSER;"
   sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='openbot'" \
@@ -208,6 +284,7 @@ fi
 if ! listening "$APP_PORT" "/"; then
   nohup bash -c "cd openbot/app && bun run dev --port $APP_PORT --strictPort --host 127.0.0.1" \
     >openbot/.logs/app.log 2>&1 &
+  echo "$!" >openbot/.logs/app.pid
 fi
 
 for _ in $(seq 1 90); do
@@ -234,6 +311,9 @@ if [ ! -f openbot/.logs/demo-seeded ]; then
 fi
 
 echo "Academic OS is at http://127.0.0.1:$APP_PORT"
+if [ "$(uname -s)" = "Darwin" ]; then
+  open "http://127.0.0.1:$APP_PORT" >/dev/null 2>&1 || true
+fi
 if grep -q '^ACADEMIC_OS_PRIVATE_DEMO=1' openbot/.env; then
   echo "School pack: on. Spring 2026 rows are not deadlines."
 else

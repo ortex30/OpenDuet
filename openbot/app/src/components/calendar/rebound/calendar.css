@@ -73,12 +73,12 @@
   max-width: 100%;
   flex: none;
   align-items: center;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border: 0;
-  border-radius: 5px;
-  font-size: 11px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 14px;
+  line-height: 15px;
   text-align: left;
   white-space: normal;
   cursor: pointer;
@@ -94,6 +94,11 @@
   -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+/* A phone's week column is narrow. Four lines keep a long title readable. */
+.academic-calendar[data-calendar-mode="week"] .academic-calendar-chip > span {
+  -webkit-line-clamp: 4;
 }
 
 .academic-calendar .academic-calendar-chip:hover {

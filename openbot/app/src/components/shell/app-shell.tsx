@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
        * a phone's keyboard) can push the top bar off the screen. Hidden where a browser can't clip
        * (Safari before 16), rather than not cut off at all.
        */}
-      <div className="duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface supports-[overflow:clip]:overflow-clip">
+      <div className="study-desk duet-touch flex h-svh flex-col overflow-hidden bg-duet-surface supports-[overflow:clip]:overflow-clip">
         <StartupIntro tab={tab} />
         <AttentionNotifier />
         <FinishedForYou />
@@ -135,10 +135,12 @@ function ChatWithScreen({
       className={cn(
         "relative flex min-h-0 flex-1",
         screen === "calendar"
-          ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(560px,920px)]"
-          : screen
-            ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(400px,500px)]"
-            : null,
+          ? "lg:grid lg:grid-cols-[minmax(300px,0.72fr)_minmax(680px,1.4fr)]"
+          : screen === "learn" || screen === "make" || screen === "coach"
+            ? "lg:grid lg:grid-cols-[minmax(300px,0.7fr)_minmax(640px,1.3fr)]"
+            : screen
+              ? "lg:grid lg:grid-cols-[minmax(360px,1fr)_minmax(400px,520px)]"
+              : null,
       )}
     >
       <section
@@ -155,7 +157,7 @@ function ChatWithScreen({
       {screen ? (
         <aside
           aria-label={SCREEN_NAMES[screen]}
-          className="duet-face absolute inset-0 z-30 flex min-h-0 flex-col bg-duet-surface text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] [--screen-sticky:0px] [--screen-top:16px] motion-safe:animate-in motion-safe:fade-in lg:static lg:z-auto lg:border-duet-hair-2 lg:border-l motion-safe:lg:slide-in-from-right-4"
+          className="duet-face absolute inset-0 z-30 flex min-h-0 flex-col bg-duet-surface text-duet-ink [--duet-tab-space:max(env(safe-area-inset-bottom),12px)] [--screen-sticky:0px] [--screen-top:16px] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 lg:static lg:z-auto lg:border-duet-hair-2 lg:border-l motion-safe:lg:slide-in-from-right-4"
         >
           {/* The bar shares the content's column, and its 20px inset is the screen text's. */}
           <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col lg:max-w-none">

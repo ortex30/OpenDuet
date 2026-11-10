@@ -10,6 +10,7 @@ import { BuildIn } from "../build-in";
 import { DuetIcon } from "../icons";
 import { DuetCard, Rule } from "../kit";
 import { PageText } from "../page-text";
+import { ConfettiBurst } from "./delight";
 
 const LETTERS = ["A", "B", "C", "D"] as const;
 /* Each answer has its own colour: a soft tint at rest, the full colour once chosen. */
@@ -305,9 +306,13 @@ function QuizResults({
   const explain = missed ? onExplain : null;
   return (
     <>
-      <BuildIn className="px-4 pt-4" order={1}>
+      <BuildIn className="relative px-4 pt-4" order={1}>
+        {perfect ? <ConfettiBurst /> : null}
         <p
-          className="type-display font-bold tabular-nums outline-none bg-[image:var(--duet-face-gradient)] bg-clip-text text-transparent w-fit"
+          className={cn(
+            "type-display w-fit bg-[image:var(--duet-face-gradient)] bg-clip-text font-bold text-transparent tabular-nums outline-none",
+            perfect && "study-bounce",
+          )}
           ref={score}
           tabIndex={-1}
         >
@@ -319,6 +324,9 @@ function QuizResults({
             ? "Perfect score."
             : `${attempt.total - attempt.correct} to look at.`}
         </p>
+        {perfect ? (
+          <p className="type-sub text-duet-ink">That one stuck.</p>
+        ) : null}
       </BuildIn>
       <BuildIn order={2}>
         <ol aria-label="Your answers" className="mt-3">
@@ -371,7 +379,10 @@ function choiceText(result: QuizResult, choice: number): string {
 function ResultRow({ number, result }: { number: number; result: QuizResult }) {
   return (
     <div
-      className="px-4 py-3"
+      className={cn(
+        "px-4 py-3",
+        result.correct ? "study-bounce" : "study-shake",
+      )}
       data-result={result.correct ? "correct" : "missed"}
     >
       <div className="flex items-center justify-between gap-3">

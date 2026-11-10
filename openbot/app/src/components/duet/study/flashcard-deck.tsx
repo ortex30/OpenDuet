@@ -106,6 +106,7 @@ function DeckBody({
   const [touched, setTouched] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [focusOn, setFocusOn] = useState<"face" | "summary" | null>(null);
+  const [flipping, setFlipping] = useState(false);
   const face = useRef<HTMLButtonElement>(null);
   const summary = useRef<HTMLParagraphElement>(null);
   const reduced = useReducedMotionPreference();
@@ -143,6 +144,10 @@ function DeckBody({
     `Card ${next.at + 1} of ${next.cards.length}. ${deck.cards[next.cards[next.at] ?? 0]?.front ?? ""}`;
   const flip = () => {
     const next = { ...round, flipped: !round.flipped };
+    if (!reduced) {
+      setFlipping(false);
+      window.requestAnimationFrame(() => setFlipping(true));
+    }
     show(next, next.flipped ? `Answer: ${card.back}` : `Prompt: ${card.front}`);
   };
   const move = (step: number) => {
@@ -235,19 +240,26 @@ function DeckBody({
         aria-label={`${side}: ${text}${marked ? ` (marked ${MARK_WORD[marked]})` : ""}`}
         className={cn(
           "flex min-h-[176px] w-full flex-col rounded-[18px] px-5 pt-4 pb-3 text-left transition-[background-color,box-shadow,transform] duration-[var(--duet-dur-swap)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40 active:scale-[0.99] motion-reduce:active:scale-100",
+          flipping && "study-flip",
           // The answer side lifts onto the card's own white, so the two sides read as two faces.
           round.flipped
             ? "bg-duet-pop-b-soft shadow-[inset_0_0_0_2px_var(--duet-pop-b)]"
             : "bg-[image:var(--duet-face-gradient)] text-white",
         )}
         data-side={round.flipped ? "answer" : "prompt"}
+        onAnimationEnd={() => setFlipping(false)}
         onClick={flip}
         onKeyDown={arrows}
         ref={face}
         type="button"
       >
         <span className="flex min-h-6 items-center justify-between gap-3">
-          <span className={cn("type-caption font-medium", round.flipped ? "text-duet-pop-b" : "text-white/80")}>
+          <span
+            className={cn(
+              "type-caption font-medium",
+              round.flipped ? "text-duet-pop-b" : "text-white/80",
+            )}
+          >
             {side}
           </span>
           {marked ? (
@@ -289,7 +301,13 @@ function DeckBody({
         >
           {text}
         </motion.span>
-        <span aria-hidden className={cn("type-caption text-right", round.flipped ? "text-duet-ink-3" : "text-white/70")}>
+        <span
+          aria-hidden
+          className={cn(
+            "type-caption text-right",
+            round.flipped ? "text-duet-ink-3" : "text-white/70",
+          )}
+        >
           Tap to flip
         </span>
       </button>

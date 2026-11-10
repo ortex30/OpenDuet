@@ -39,8 +39,14 @@ const READ_ONLY_STORE: Omit<CalendarStoreState, "blocks"> = {
   assistantOpen: false,
 };
 
-/** A chip's height in the row under the headings, the gap between two, and the row's padding. */
-const CHIP_PX = 20;
+/**
+ * A chip's line is 15px (calendar.css). Week chips wrap to three lines so a long
+ * title stays readable in a phone column; day chips sit wider and use two.
+ */
+const CHIP_LINE_PX = 15;
+const CHIP_PAD_PX = 8;
+const WEEK_LINES = 4;
+const DAY_LINES = 2;
 const CHIP_GAP_PX = 2;
 const LANE_PAD_PX = 6;
 /** Chips a day shows stacked in a week before the last one becomes "+N more". */
@@ -127,11 +133,13 @@ export function AcademicCalendar({
     onSelect(chip.item, anchor);
   const most = Math.max(0, ...chips.map((day) => day.length));
   const rows = mode === "day" ? Math.min(most, 1) : Math.min(most, WEEK_CHIPS);
+  const chipPx =
+    (mode === "week" ? WEEK_LINES : DAY_LINES) * CHIP_LINE_PX + CHIP_PAD_PX;
   const allDayLane =
     rows === 0
       ? undefined
       : {
-          height: rows * CHIP_PX + (rows - 1) * CHIP_GAP_PX + LANE_PAD_PX,
+          height: rows * chipPx + (rows - 1) * CHIP_GAP_PX + LANE_PAD_PX,
           cells: chips.map((day, index) => (
             <AllDayCell
               chips={day}
@@ -152,6 +160,7 @@ export function AcademicCalendar({
         "academic-calendar relative isolate flex min-h-0 flex-col",
         className,
       )}
+      data-calendar-mode={mode}
     >
       <CalendarStoreContext.Provider value={store}>
         <CalendarTimeline
