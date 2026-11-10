@@ -18,12 +18,16 @@ import {
 } from "@tanstack/react-router";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { appConfig } from "@/lib/generated/application-config";
 import type {
   PluginConnections,
   PluginServer,
   PluginsPage,
 } from "@/lib/plugins/queries";
-import { Route as ConnectedAccountRoute } from "@/routes/_authed/_app/connections.$key";
+import {
+  Route as ConnectedAccountRoute,
+  scopeWords,
+} from "@/routes/_authed/_app/connections.$key";
 import { settleReactWork } from "./settle-react-work";
 
 /**
@@ -31,7 +35,8 @@ import { settleReactWork } from "./settle-react-work";
  *
  * The page used to offer "Disconnect" and then say it couldn't, leaving the token in place. It now
  * ends the account through the server, which asks Google first, and says what happened: done, or
- * done here with one more step at Google when Google did not confirm it.
+ * done here with one more step at Google when Google did not confirm it. While connected, it says in
+ * words what the account lets the coach do, and the day it was connected.
  *
  * The harness is `composio-unconfigured-account.test.tsx`'s: the exported `Route` is captured and
  * restored around its `.update()`.
@@ -43,6 +48,9 @@ afterAll(async () => {
   await settleReactWork();
   GlobalRegistrator.unregister();
 });
+
+/** The product's name as brand.yaml sets it, which the page's sentences use. */
+const PRODUCT = appConfig.brand.productName;
 
 const originalFetch = global.fetch;
 let connected: boolean;
@@ -202,7 +210,7 @@ test("Disconnect ends the account, says so, and the row offers Connect again", a
 
   expect(
     await view.findByText(
-      "Disconnected. OpenDuet can't use your Google account any more.",
+      `Disconnected. ${PRODUCT} can't use your Google account any more.`,
     ),
   ).toBeTruthy();
   expect(deletes).toEqual(["/api/plugins/servers/google-workspace/connection"]);
@@ -221,7 +229,7 @@ test("when Google did not confirm it, the person is told the one step left", asy
 
   expect(
     await view.findByText(
-      "Disconnected here. Google didn't confirm it, so also remove OpenDuet in your Google account's third-party access settings.",
+      `Disconnected here. Google didn't confirm it, so also remove ${PRODUCT} in your Google account's third-party access settings.`,
     ),
   ).toBeTruthy();
 });
@@ -243,4 +251,34 @@ test("when Google could not be reached, the server's sentence is shown and the a
     "Couldn't reach Google, so nothing was disconnected. Try again in a moment.",
   );
   expect(view.getByRole("button", { name: /Connected/ })).toBeTruthy();
+});
+
+test("while connected, the page says in words what the coach may do, and the day it was connected", async () => {
+  const view = renderAccount();
+
+  expect(await view.findByText("Read your email")).toBeTruthy();
+  expect(
+    view.getByText(
+      "Your coach uses this as you, and sees only what you can see.",
+    ),
+  ).toBeTruthy();
+  expect(
+    view.getByText(new Date("2026-10-20T09:00:00Z").toLocaleDateString()),
+  ).toBeTruthy();
+  expect(document.body.textContent).not.toContain("googleapis.com");
+});
+
+test("each scope Google grants reads as words, and one it doesn't know stays as Google wrote it", () => {
+  expect(
+    scopeWords(
+      "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send  https://www.googleapis.com/auth/calendar.readonly",
+    ),
+  ).toEqual([
+    "Read your email",
+    "Send emails you approve",
+    "Read your calendar",
+  ]);
+  expect(
+    scopeWords("openid https://www.googleapis.com/auth/gmail.readonly openid"),
+  ).toEqual(["openid", "Read your email"]);
 });

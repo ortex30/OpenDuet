@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -27,6 +28,7 @@ import {
   latestTurnToolCalls,
 } from "@/components/channels/conversation-send";
 import { PageSheetHost } from "@/components/duet/page-sheet";
+import { useChatCovered } from "@/components/shell/chat-cover";
 import {
   stepFor,
   usePatientStep,
@@ -37,6 +39,7 @@ import type { ApprovalRequest } from "@/lib/approvals";
 import { attachmentUrl } from "@/lib/channels/attachments";
 import { isThreadBusyError } from "@/lib/channels/run-lifecycle";
 import { useFocusMessage } from "@/lib/tasks/focus-message";
+import { cn } from "@/lib/utils";
 import { newId } from "../../lib/new-id";
 
 export function ConversationView({
@@ -97,9 +100,15 @@ export function ConversationView({
    * drains on this falling.
    */
   pending?: boolean;
-  /** Focus the composer the moment it can take a caret; forwarded to the composer. */
+  /**
+   * Focus the composer the moment it can take a caret; forwarded to the composer. In the shell a
+   * computer gets this anyway, while nothing else has the caret (`focusOnOpen`).
+   */
   autoFocus?: boolean;
-  /** Why the last turn ended without an answer. Drawn at the end of the transcript, not here. */
+  /**
+   * Why the last turn ended without an answer. Drawn at the end of the transcript, not above the
+   * composer; in Chat with nothing in it yet, under its question.
+   */
   stopped?: string;
   /**
    * There is a run for Stop to abort, which is a narrower fact than `pending` and is the honest one
@@ -152,6 +161,27 @@ export function ConversationView({
    */
   const [queued, setQueued] = useState<readonly QueuedMessage[]>([]);
   const queuedRef = useRef<readonly QueuedMessage[]>(queued);
+  /*
+   * On a computer the shell's box takes the caret as the chat opens, so typing comes first. Not on a
+   * phone, where that would put the keyboard up over the screen before anyone asked for it.
+   *
+   * Only while nobody else has it, and only where it can be seen. Decided once the chat is on the
+   * page, so a box this one replaced (the first day's, handing over to the ongoing chat) has let go:
+   * a field that already has the caret keeps it. The composer may wait out a turn before it takes
+   * it, so the first focus anywhere ends the offer, and the person keeps typing where they went.
+   * A screen covering the chat (`useChatCovered`) holds it until the chat shows again.
+   */
+  const covered = useChatCovered();
+  const [focusOnOpen, setFocusOnOpen] = useState(false);
+  useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (!inShell || !finePointer() || (active && active !== document.body))
+      return;
+    setFocusOnOpen(true);
+    const elsewhere = () => setFocusOnOpen(false);
+    document.addEventListener("focusin", elsewhere, { once: true });
+    return () => document.removeEventListener("focusin", elsewhere);
+  }, [inShell]);
 
   /*
    * In the shell the composer floats over the conversation, frosted, rather than below it, so the
@@ -159,12 +189,13 @@ export function ConversationView({
    * message would stop behind the composer. The dock grows and shrinks (a suggestion arrives, the
    * draft wraps), so its height is measured and handed to CSS as `--duet-dock`: written straight on
    * the element, because re-rendering the whole conversation to move a padding is the wrong price.
+   * Measured before the first paint, because an empty chat centres its dock by half this height.
    */
   const root = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
   // Opened from a task on Tasks: show that task's own message, not the conversation's end.
   useFocusMessage(root);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const frame = root.current;
     const docked = dock.current;
     if (!inShell || !frame || !docked || typeof ResizeObserver === "undefined")
@@ -223,6 +254,17 @@ export function ConversationView({
   // The app shell's orb follows Chat: thinking for the turn, listening to the draft. Not while
   // history is restoring: joining the thread is a run of its own, and it is not an answer.
   const working = (busy || inFlight) && !restoring;
+  /*
+   * Chat with nothing in it yet, as School Chat opens: one question and the box to answer it, in
+   * the middle of the screen. The first message sends the box to the foot, where it stays.
+   */
+  const empty =
+    inShell &&
+    messages.length === 0 &&
+    queued.length === 0 &&
+    serverQueued.length === 0 &&
+    !working &&
+    !restoring;
   /*
    * What moves when the turn does: another message, the last one growing as it is written, or a
    * tool call added to it. The pill's quiet clock (`usePatientStep`) starts again on each.
@@ -582,57 +624,94 @@ export function ConversationView({
            * begin with a slash, and its message rows are memoised on primitives — handing them an
            * array would give every message a new prop identity on each refetch and re-render the
            * whole conversation to change nothing.
+           *
+           * The dock floats over the column, so this wrapper stops the scrollport above it. A long
+           * reply then ends in the open area. Padding inside the scroller left the last lines under
+           * the composer until somebody scrolled.
            */}
-          <ChatTranscript
-            busy={busy}
-            {...(inShell
-              ? {
-                  contentClassName:
-                    "max-w-none gap-[14px] px-4 pt-[100px] pb-[calc(var(--duet-dock,0px)+24px)]",
-                }
-              : {})}
-            folded={folded}
-            lead={lead}
-            commandNames={(commands ?? [])
-              .map((command) => command.name)
-              .join(",")}
-            messages={messages}
-            onRemoveQueued={
-              serverQueued.length
-                ? undefined
-                : (id) => {
-                    apply({ id, type: "remove" });
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1",
+              inShell && !empty && "pb-[var(--duet-dock,0px)]",
+            )}
+          >
+            <ChatTranscript
+              busy={busy}
+              {...(inShell
+                ? {
+                    contentClassName:
+                      "max-w-none gap-[14px] px-4 pt-[100px] pb-6 lg:mx-auto lg:max-w-4xl lg:px-8 lg:pt-10",
                   }
-            }
-            queued={[
-              ...queued,
-              ...serverQueued
-                .filter(
-                  (row) =>
-                    !messages.some((message) => message.id === row.messageId),
-                )
-                .map((row) => ({
-                  id: row.messageId,
-                  text: row.text,
-                  attachments: [],
-                  commandIds: [],
-                })),
-            ]}
-            restoring={restoring}
-            {...(stopped ? { stopped } : {})}
-          />
-          {/* A page the Bot made, opened from its card over this conversation. */}
-          <PageSheetHost />
+                : {})}
+              folded={folded}
+              lead={lead}
+              commandNames={(commands ?? [])
+                .map((command) => command.name)
+                .join(",")}
+              messages={messages}
+              onRemoveQueued={
+                serverQueued.length
+                  ? undefined
+                  : (id) => {
+                      apply({ id, type: "remove" });
+                    }
+              }
+              queued={[
+                ...queued,
+                ...serverQueued
+                  .filter(
+                    (row) =>
+                      !messages.some((message) => message.id === row.messageId),
+                  )
+                  .map((row) => ({
+                    id: row.messageId,
+                    text: row.text,
+                    attachments: [],
+                    commandIds: [],
+                  })),
+              ]}
+              restoring={restoring}
+              {...(stopped && !empty ? { stopped } : {})}
+            />
+            {/* A page the Bot made, opened from its card over this conversation. */}
+            <PageSheetHost />
+          </div>
         </ConversationSendContext.Provider>
       </div>
+      {/*
+       * An empty chat's dock is centred with a margin, not a transform: a transform would make it the
+       * containing block of the `/` menu, which is fixed to the caret's place on the screen.
+       */}
       <div
         className={
           inShell
-            ? "absolute inset-x-0 bottom-0 z-10 px-4 pb-[calc(var(--duet-tab-space,0px)+10px)]"
+            ? cn(
+                "absolute inset-x-0 z-10 mx-auto px-4 lg:max-w-4xl lg:px-8",
+                empty
+                  ? "top-1/2 -mt-[calc(var(--duet-dock,0px)/2)]"
+                  : "bottom-0 pb-[calc(var(--duet-tab-space,0px)+10px)] lg:pb-6",
+              )
             : "max-w-2xl mx-auto w-full px-0 pb-4 shrink-0"
         }
         ref={dock}
       >
+        {empty ? (
+          <h2 className="type-display mb-5 text-balance text-center font-semibold text-duet-ink">
+            What are we working on?
+          </h2>
+        ) : null}
+        {/*
+         * An empty transcript has no end to say it at: alone up there it was a line far above the
+         * question and the box that the person is looking at.
+         */}
+        {empty && stopped ? (
+          <p
+            className="type-caption text-balance pb-2 text-center text-duet-red"
+            role="alert"
+          >
+            {stopped}
+          </p>
+        ) : null}
         {/* Chat's Bot's newest suggestion; nothing in any other conversation. */}
         {inShell ? <ChatSuggestionCard /> : null}
         {queuedNotice && queued.length > 0 ? (
@@ -643,7 +722,7 @@ export function ConversationView({
         {notice}
         <Composer
           agents={agents}
-          autoFocus={autoFocus}
+          autoFocus={autoFocus || (focusOnOpen && !covered)}
           {...(channelId ? { channelId } : {})}
           {...(commands ? { commands } : {})}
           className="w-full mt-auto"
@@ -712,6 +791,14 @@ export function ConversationView({
         />
       </div>
     </div>
+  );
+}
+
+/** A mouse or a trackpad is the main pointer: a computer rather than a phone. */
+function finePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: fine)").matches === true
   );
 }
 

@@ -3,7 +3,7 @@
  * A fake Google: just enough of Google's OAuth, Gmail and Calendar to run the Gmail and Google
  * Calendar connector without a Google account.
  *
- *   bun openbot/scripts/fake-google/server.ts --port 4900
+ *   bun openbot/scripts/fake-google/server.ts --port 4900 [--persona student]
  *
  * then, in `openbot/.env`, `OPENDUET_FAKE_GOOGLE_URL=http://127.0.0.1:4900`, which points the
  * `google-workspace` catalogue entry here instead of at Google (see `fakeGoogleOrigin` in
@@ -19,6 +19,15 @@
  * `evals/triage/emails.jsonl`, dated so the newest arrived minutes ago and all of them within the last
  * day, so the connector's default "in:inbox newer_than:1d" finds them. Her calendar for today has a
  * handful of events. The eval's own labels (`label`, `why`) are never served: they are the answers.
+ *
+ * Or, with `--persona student` (FAKE_GOOGLE_PERSONA=student, or `persona: "student"` from a test),
+ * Academic OS's demo student, Jordan Rivera, a high school junior in Chicago: the Google Classroom
+ * notices of five classes and the rest of a student's mail in `student-mailbox.jsonl`, and a school
+ * week on the calendar. The mailbox writes its deadlines as `{{due:+1 23:59}}` and `{{date:+2}}`,
+ * written out against the student's today when the fake starts or resets, so the demo's work is
+ * always due this week, and on a school day: one that would fall on a weekend moves to Monday. Its
+ * message ids carry the day they were written out for, so a fake started on another day holds new
+ * mail rather than old ids saying new things.
  *
  * WHAT IT IS NOT. A faithful Gmail. Search understands the operators a person or a model commonly
  * writes (`in:`, `label:`, `category:`, `is:`, `from:`, `to:`, `subject:`, `newer_than:`,
@@ -44,18 +53,79 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /**
- * Which invented person the fake is. The default is Maya's studio, which the evals and tests use.
- * `--persona student` (or FAKE_GOOGLE_PERSONA=student) serves Academic OS's demo student instead:
- * Jordan Rivera, a high school junior, with Classroom notices, teachers and a school calendar.
+ * Which invented person a fake is. `studio`, Maya's, is the default, which the evals and tests use;
+ * `student` is Academic OS's demo student. Chosen per fake, so one test can run both.
  */
-const STUDENT =
-  (flag("persona") ?? process.env.FAKE_GOOGLE_PERSONA ?? "") === "student";
+export type PersonaName = "studio" | "student";
 
-/** Who is signed in. Every message in the mailbox is to them. */
-export const FAKE_ACCOUNT = STUDENT
-  ? "jordan.rivera@students.lakeviewhs.org"
-  : "maya@marlowceramics.com";
-const OWNER_NAME = STUDENT ? "Jordan Rivera" : "Maya Okafor";
+type Persona = {
+  name: PersonaName;
+  /** Who is signed in. Every message in the mailbox is to them. */
+  account: string;
+  owner: string;
+  timeZone: string;
+  /** Minutes east of UTC that the persona's clocks read at an instant. */
+  offsetAt: (instant: number) => number;
+  /** The JSONL mailbox served unless a test names another. */
+  mailbox: string;
+  /**
+   * Whether the seeds are spread over the morning. The eval set's messages all carry one timestamp,
+   * so they are; the student's each carry their own, in the order the story needs.
+   */
+  spread: boolean;
+  /**
+   * Whether a message's id carries the day its mail was written out for. The student's deadlines
+   * are written against today, so a fake started on another day holds new messages, which a reader
+   * that keeps what it read by id then reads afresh. The eval set's ids never change: evals name them.
+   */
+  idsByDay: boolean;
+};
+
+/**
+ * The studio's offset from UTC. Pacific daylight time, which is what the eval set's own dates carry
+ * and what late October is in the Pacific. Fixed rather than computed from a zone, because the fake
+ * is meant to give the same answer on every machine.
+ */
+const STUDIO_OFFSET_MINUTES = -7 * 60;
+
+const PERSONAS: Record<PersonaName, Persona> = {
+  studio: {
+    name: "studio",
+    account: "maya@marlowceramics.com",
+    owner: "Maya Okafor",
+    timeZone: "America/Los_Angeles",
+    offsetAt: () => STUDIO_OFFSET_MINUTES,
+    mailbox: fileURLToPath(
+      new URL("../../../evals/triage/emails.jsonl", import.meta.url),
+    ),
+    spread: true,
+    idsByDay: false,
+  },
+  student: {
+    name: "student",
+    account: "jordan.rivera@students.lakeviewhs.org",
+    owner: "Jordan Rivera",
+    timeZone: "America/Chicago",
+    /*
+     * Chicago's own offset at each instant, from the zone's rules, rather than a fixed one: the
+     * school week on the calendar can cross a change of clocks, and the demo is run in every season.
+     * The rules are the same on every machine, so the answer still is.
+     */
+    offsetAt: zoneOffsets("America/Chicago"),
+    mailbox: fileURLToPath(new URL("./student-mailbox.jsonl", import.meta.url)),
+    spread: false,
+    idsByDay: true,
+  },
+};
+
+/** The persona a fake is when nobody names one: `--persona student` or FAKE_GOOGLE_PERSONA=student. */
+const DEFAULT_PERSONA: PersonaName =
+  (flag("persona") ?? process.env.FAKE_GOOGLE_PERSONA ?? "") === "student"
+    ? "student"
+    : "studio";
+
+/** Who a fake started without a persona is signed in as. */
+export const FAKE_ACCOUNT = PERSONAS[DEFAULT_PERSONA].account;
 
 /** What a consent grants when the request named no scope, which is what the connector asks for. */
 const DEFAULT_SCOPE = [
@@ -68,18 +138,66 @@ const DEFAULT_SCOPE = [
 const TOKEN_LIFETIME_SECONDS = 3599;
 
 /**
- * The studio's offset from UTC. Pacific daylight time, which is what the eval set's own dates carry
- * and what late October is in the Pacific. Fixed rather than computed from a zone, because the fake
- * is meant to give the same answer on every machine.
+ * A reader of `timeZone`'s offset from UTC, in minutes, at any instant, from Intl's own record of
+ * the zone ("GMT-06:00"). Written here rather than borrowed from the server, so the fake and the code
+ * it tests do not share a mistake.
  */
-const STUDIO_OFFSET_MINUTES = STUDENT ? -6 * 60 : -7 * 60;
-const STUDIO_TIME_ZONE = STUDENT ? "America/Chicago" : "America/Los_Angeles";
+function zoneOffsets(timeZone: string): (instant: number) => number {
+  const format = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    timeZoneName: "longOffset",
+  });
+  return (instant) => {
+    const name =
+      format.formatToParts(instant).find((part) => part.type === "timeZoneName")
+        ?.value ?? "";
+    // "GMT" alone is UTC itself.
+    const match = /([+-])(\d{2}):?(\d{2})?$/.exec(name);
+    if (!match) return 0;
+    const minutes = Number(match[2]) * 60 + Number(match[3] ?? 0);
+    return match[1] === "-" ? -minutes : minutes;
+  };
+}
 
-const MAILBOX = fileURLToPath(
-  STUDENT
-    ? new URL("./student-mailbox.jsonl", import.meta.url)
-    : new URL("../../../evals/triage/emails.jsonl", import.meta.url),
-);
+/** A day on the persona's own calendar. */
+type LocalDay = { year: number; month: number; day: number; weekday: number };
+
+/** The day it is where the persona is, at `instant`. */
+function localDayAt(persona: Persona, instant: number): LocalDay {
+  const local = new Date(instant + persona.offsetAt(instant) * 60_000);
+  return {
+    year: local.getUTCFullYear(),
+    month: local.getUTCMonth() + 1,
+    day: local.getUTCDate(),
+    weekday: local.getUTCDay(),
+  };
+}
+
+/** The day `days` after `from` (before it when negative). */
+function dayAfter(from: LocalDay, days: number): LocalDay {
+  const at = new Date(Date.UTC(from.year, from.month - 1, from.day + days));
+  return {
+    year: at.getUTCFullYear(),
+    month: at.getUTCMonth() + 1,
+    day: at.getUTCDate(),
+    weekday: at.getUTCDay(),
+  };
+}
+
+/**
+ * The instant the persona's clocks read `minutes` past midnight on `day`. The offset is read twice,
+ * once at a first guess and again at the instant that guess gives, because the offset in force at a
+ * time is not known until the time is.
+ */
+function instantOn(
+  persona: Persona,
+  day: Omit<LocalDay, "weekday">,
+  minutes: number,
+): number {
+  const wall = Date.UTC(day.year, day.month - 1, day.day) + minutes * 60_000;
+  const guess = wall - persona.offsetAt(wall) * 60_000;
+  return wall - persona.offsetAt(guess) * 60_000;
+}
 
 /** One line of the eval set. `label` and `why` are deliberately not read. */
 type Seed = {
@@ -175,12 +293,51 @@ function mailDate(instant: number, offsetMinutes: number): string {
   return `${DAYS[local.getUTCDay()]}, ${pad(local.getUTCDate())} ${MONTHS[local.getUTCMonth()]} ${local.getUTCFullYear()} ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())} ${sign}${pad(Math.floor(abs / 60))}${pad(abs % 60)}`;
 }
 
-/** An instant as ISO 8601 in the studio's offset, as Calendar writes `dateTime`. */
-function studioDateTime(instant: number): string {
-  const local = new Date(instant + STUDIO_OFFSET_MINUTES * 60_000);
-  const abs = Math.abs(STUDIO_OFFSET_MINUTES);
-  const sign = STUDIO_OFFSET_MINUTES < 0 ? "-" : "+";
+/** An instant as ISO 8601 in the persona's offset at that instant, as Calendar writes `dateTime`. */
+function localDateTime(persona: Persona, instant: number): string {
+  const offset = persona.offsetAt(instant);
+  const local = new Date(instant + offset * 60_000);
+  const abs = Math.abs(offset);
+  const sign = offset < 0 ? "-" : "+";
   return `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}T${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}:00${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+
+/** A day as Calendar writes an all-day event's date. */
+const isoDay = (day: Omit<LocalDay, "weekday">) =>
+  `${day.year}-${pad(day.month)}-${pad(day.day)}`;
+
+/**
+ * The school day `days` after `today` (before it when negative). One that falls on a weekend moves
+ * to the nearest school day on the same side of today, forward to Monday or back to Friday, so
+ * in-class work is never due on a Saturday. Today stays today: the school week makes it a school
+ * day whatever day it is.
+ */
+function schoolDayAfter(today: LocalDay, days: number): LocalDay {
+  const day = dayAfter(today, days);
+  if (days === 0 || (day.weekday !== 0 && day.weekday !== 6)) return day;
+  if (days > 0) return dayAfter(day, day.weekday === 6 ? 2 : 1);
+  return dayAfter(day, day.weekday === 6 ? -1 : -2);
+}
+
+/**
+ * The mailbox's `{{due:+1 23:59}}` and `{{date:-2}}`, written out on school days counted from the
+ * persona's today (`schoolDayAfter`), the way Classroom writes them: "Fri, Nov 6, 2026, 11:59 PM"
+ * and "Fri, Nov 6".
+ */
+function writeDays(text: string, today: LocalDay): string {
+  return text
+    .replace(
+      /\{\{due:([+-]?\d+) (\d{2}):(\d{2})\}\}/g,
+      (_, days: string, hour: string, minute: string) => {
+        const day = schoolDayAfter(today, Number(days));
+        const clock = Number(hour);
+        return `${DAYS[day.weekday]}, ${MONTHS[day.month - 1]} ${day.day}, ${day.year}, ${clock % 12 || 12}:${minute} ${clock < 12 ? "AM" : "PM"}`;
+      },
+    )
+    .replace(/\{\{date:([+-]?\d+)\}\}/g, (_, days: string) => {
+      const day = schoolDayAfter(today, Number(days));
+      return `${DAYS[day.weekday]}, ${MONTHS[day.month - 1]} ${day.day}`;
+    });
 }
 
 const escapeHtml = (text: string) =>
@@ -209,21 +366,41 @@ function domainOf(address: string): string {
  *
  * Ids are stable too, derived from the set's ids, so a demo script or a test can name a message
  * across restarts. Gmail's ids are sixteen hex digits, and so are these.
+ *
+ * The student's mail is spaced as written instead (its order is the story: an assignment, then its
+ * reminder), and its `{{due:…}}` and `{{date:…}}` days are written out against the student's today.
+ * So its ids carry that day as well (`idsByDay`): mail written out on another day says other things,
+ * and is other messages, while a restart or a reset on the same day keeps the same ids.
  */
-function seedMailbox(path: string, now: number): StoredMessage[] {
+function seedMailbox(
+  persona: Persona,
+  path: string,
+  now: number,
+): StoredMessage[] {
+  const today = localDayAt(persona, now);
   const seeds: Seed[] = readFileSync(path, "utf8")
     .split("\n")
     .filter((line) => line.trim())
-    .map((line) => JSON.parse(line) as Seed);
+    .map((line) => JSON.parse(line) as Seed)
+    .map((seed) => ({
+      ...seed,
+      subject: writeDays(seed.subject, today),
+      body: writeDays(seed.body, today),
+    }));
   const newest = Math.max(...seeds.map((seed) => Date.parse(seed.date)));
   const shift = now - 5 * 60_000 - newest;
 
   return seeds
     .map((seed): StoredMessage => {
-      const digest = hex(`fake-google:${seed.id}`);
+      const digest = hex(
+        persona.idsByDay
+          ? `fake-google:${seed.id}:${isoDay(today)}`
+          : `fake-google:${seed.id}`,
+      );
       const id = digest.slice(0, 16);
-      const stagger =
-        (Number.parseInt(digest.slice(16, 20), 16) % 720) * 60_000;
+      const stagger = persona.spread
+        ? (Number.parseInt(digest.slice(16, 20), 16) % 720) * 60_000
+        : 0;
       const instant = Date.parse(seed.date) + shift - stagger;
       // Bulk mail is HTML, as it usually is, which is also what exercises the adapter's fallback.
       const html = "List-Unsubscribe" in seed.headers;
@@ -266,11 +443,169 @@ function seedMailbox(path: string, now: number): StoredMessage[] {
 }
 
 /**
- * Today's calendar, in the studio's day. Two of the events are the ones the launch film names, and
- * the rest tie back to mail in the inbox, so a brief has something to connect.
+ * Jordan's school week, from the day before today to six days after, so a week drawn from today is
+ * full and yesterday's missed homework has a day to sit on:
+ *
+ * - classes on every weekday, and on today whatever day it is, so a demo on a Saturday still has a
+ *   school day to show; each titled with the class's name first, as the student's own calendar is,
+ *   so the calendar can tell which class an event is;
+ * - soccer practice Monday to Thursday;
+ * - today's chem lab help and (tentative) debate prep, and a dentist appointment two school days
+ *   out, which the mail mentions;
+ * - the week's deadlines as all-day events, the way a student keeps them, on the school days the
+ *   mail gives them (`schoolDayAfter`), so the calendar and the notices agree.
+ *
+ * Every id carries its day, as the instances of a recurring event at Google do, so no two clash.
  */
-function seedCalendar(now: number): FakeEvent[] {
-  const local = new Date(now + STUDIO_OFFSET_MINUTES * 60_000);
+function seedSchoolWeek(persona: Persona, now: number): FakeEvent[] {
+  const today = localDayAt(persona, now);
+  const key = (day: LocalDay) => isoDay(day).replace(/-/g, "");
+  const events: FakeEvent[] = [];
+  const timed = (
+    on: LocalDay,
+    id: string,
+    summary: string,
+    from: [number, number],
+    to: [number, number],
+    extra: { location?: string; status?: FakeEvent["status"] } = {},
+  ) => {
+    const start = instantOn(persona, on, from[0] * 60 + from[1]);
+    const end = instantOn(persona, on, to[0] * 60 + to[1]);
+    events.push({
+      kind: "calendar#event",
+      id,
+      status: extra.status ?? "confirmed",
+      summary,
+      ...(extra.location ? { location: extra.location } : {}),
+      start: {
+        dateTime: localDateTime(persona, start),
+        timeZone: persona.timeZone,
+      },
+      end: {
+        dateTime: localDateTime(persona, end),
+        timeZone: persona.timeZone,
+      },
+      organizer: { email: persona.account, self: true },
+      span: [start, end],
+    });
+  };
+  const allDay = (id: string, summary: string, offsetDays: number) => {
+    const on = schoolDayAfter(today, offsetDays);
+    const next = dayAfter(on, 1);
+    events.push({
+      kind: "calendar#event",
+      id,
+      status: "confirmed",
+      summary,
+      start: { date: isoDay(on) },
+      end: { date: isoDay(next) },
+      organizer: { email: persona.account, self: true },
+      span: [instantOn(persona, on, 0), instantOn(persona, next, 0)],
+    });
+  };
+
+  for (let offset = -1; offset <= 6; offset++) {
+    const on = dayAfter(today, offset);
+    const day = key(on);
+    if ((on.weekday >= 1 && on.weekday <= 5) || offset === 0) {
+      timed(
+        on,
+        `period1apush${day}`,
+        "AP US History (Mr. Grant)",
+        [8, 0],
+        [8, 50],
+        { location: "Room 214" },
+      );
+      timed(
+        on,
+        `period2chem${day}`,
+        "Chemistry (Dr. Okoro)",
+        [8, 55],
+        [9, 45],
+        { location: "Lab 3" },
+      );
+      timed(
+        on,
+        `period3english${day}`,
+        "English 11 (Ms. Alvarez)",
+        [9, 50],
+        [10, 40],
+        { location: "Room 108" },
+      );
+      timed(
+        on,
+        `period4precalc${day}`,
+        "Precalculus (Mr. Chen)",
+        [10, 45],
+        [11, 35],
+        { location: "Room 301" },
+      );
+      timed(on, `lunch${day}`, "Lunch", [11, 40], [12, 15]);
+      timed(
+        on,
+        `period5spanish${day}`,
+        "Spanish III (Sra. Morales)",
+        [12, 20],
+        [13, 10],
+        { location: "Room 122" },
+      );
+      timed(on, `studyhall${day}`, "Study hall", [13, 15], [14, 5], {
+        location: "Library",
+      });
+    }
+    if (on.weekday >= 1 && on.weekday <= 4)
+      timed(on, `soccer${day}`, "Soccer practice", [15, 30], [17, 30], {
+        location: "Field B",
+      });
+  }
+  timed(
+    today,
+    `chemhelp${key(today)}`,
+    "Chem lab help session",
+    [14, 45],
+    [15, 15],
+    { location: "Lab 3" },
+  );
+  timed(
+    today,
+    `debateprep${key(today)}`,
+    "Debate club prep",
+    [19, 30],
+    [20, 15],
+    {
+      location: "Google Meet",
+      status: "tentative",
+    },
+  );
+  // The day Mom's email gives it, `{{date:+2}}`.
+  const dentist = schoolDayAfter(today, 2);
+  timed(
+    dentist,
+    `dentist${key(dentist)}`,
+    "Dentist appointment",
+    [16, 15],
+    [17, 0],
+    {
+      location: "Lakeview Family Dental",
+    },
+  );
+  allDay("precalcquiz", "Precalc quiz: Unit 4 trig identities", 1);
+  allDay("chemlabdue", "Chem lab report due", 1);
+  allDay("apushdbq", "APUSH DBQ essay due", 2);
+  allDay("spanishvocab", "Spanish vocab test: Unidad 5", 3);
+  allDay("englishessay", "English: Gatsby essay due", 6);
+  return events.sort((a, b) => a.span[0] - b.span[0]);
+}
+
+/**
+ * Today's calendar, in the studio's day. Two of the events are the ones the launch film names, and
+ * the rest tie back to mail in the inbox, so a brief has something to connect. The student's is a
+ * school week instead (`seedSchoolWeek`).
+ */
+function seedCalendar(persona: Persona, now: number): FakeEvent[] {
+  if (persona.name === "student") return seedSchoolWeek(persona, now);
+  const offset = persona.offsetAt(now);
+  const local = new Date(now + offset * 60_000);
   const [year, month, day] = [
     local.getUTCFullYear(),
     local.getUTCMonth(),
@@ -278,7 +613,7 @@ function seedCalendar(now: number): FakeEvent[] {
   ];
   /** An hour and minute of the studio's today, as an instant. */
   const at = (hour: number, minute = 0) =>
-    Date.UTC(year, month, day, hour, minute) - STUDIO_OFFSET_MINUTES * 60_000;
+    Date.UTC(year, month, day, hour, minute) - offset * 60_000;
   const date = (offsetDays: number) => {
     const value = new Date(Date.UTC(year, month, day + offsetDays));
     return `${value.getUTCFullYear()}-${pad(value.getUTCMonth() + 1)}-${pad(value.getUTCDate())}`;
@@ -298,13 +633,23 @@ function seedCalendar(now: number): FakeEvent[] {
       id,
       status: "confirmed",
       summary,
-      start: { dateTime: studioDateTime(start), timeZone: STUDIO_TIME_ZONE },
-      end: { dateTime: studioDateTime(end), timeZone: STUDIO_TIME_ZONE },
-      organizer: { email: FAKE_ACCOUNT, self: true },
+      start: {
+        dateTime: localDateTime(persona, start),
+        timeZone: persona.timeZone,
+      },
+      end: {
+        dateTime: localDateTime(persona, end),
+        timeZone: persona.timeZone,
+      },
+      organizer: { email: persona.account, self: true },
       ...(guests.length > 0
         ? {
             attendees: [
-              { email: FAKE_ACCOUNT, responseStatus: "accepted", self: true },
+              {
+                email: persona.account,
+                responseStatus: "accepted",
+                self: true,
+              },
               ...guests.map((email) => ({
                 email,
                 responseStatus: "needsAction",
@@ -317,39 +662,7 @@ function seedCalendar(now: number): FakeEvent[] {
     };
   };
 
-  /** Academic OS's demo student: today's classes, then the week's tests and due dates. */
-  const allDay = (id: string, summary: string, offsetDays: number): FakeEvent => ({
-    kind: "calendar#event",
-    id,
-    status: "confirmed",
-    summary,
-    start: { date: date(offsetDays) },
-    end: { date: date(offsetDays + 1) },
-    organizer: { email: FAKE_ACCOUNT, self: true },
-    span: [at(24 * offsetDays), at(24 * (offsetDays + 1))],
-  });
-  const student: FakeEvent[] = [
-    timed("period1apush", "AP US History (Mr. Grant)", [8, 0], [8, 50], { location: "Room 214" }),
-    timed("period2chem", "Chemistry (Dr. Okoro)", [8, 55], [9, 45], { location: "Lab 3" }),
-    timed("period3english", "English 11 (Ms. Alvarez)", [9, 50], [10, 40], { location: "Room 108" }),
-    timed("period4precalc", "Precalculus (Mr. Chen)", [10, 45], [11, 35], { location: "Room 301" }),
-    timed("lunch", "Lunch", [11, 40], [12, 15]),
-    timed("period5spanish", "Spanish III (Sra. Morales)", [12, 20], [13, 10], { location: "Room 122" }),
-    timed("studyhall", "Study hall", [13, 15], [14, 5], { location: "Library" }),
-    timed("chemhelp", "Chem lab help session", [14, 45], [15, 15], { location: "Lab 3" }),
-    timed("soccer", "Soccer practice", [15, 30], [17, 30], { location: "Field B" }),
-    timed("debateprep", "Debate club prep", [19, 30], [20, 15], {
-      location: "Google Meet",
-      status: "tentative",
-    }),
-    allDay("precalcquiz", "Precalc quiz: Unit 4 trig identities", 1),
-    allDay("chemlabdue", "Chem lab report due", 1),
-    allDay("apushdbq", "APUSH DBQ essay due", 2),
-    allDay("spanishvocab", "Spanish vocab test: Unidad 5", 3),
-    allDay("englishessay", "English: Gatsby essay due", 6),
-  ];
-
-  const events: FakeEvent[] = STUDENT ? student : [
+  const events: FakeEvent[] = [
     {
       kind: "calendar#event",
       id: "kiln2outofservice",
@@ -357,7 +670,7 @@ function seedCalendar(now: number): FakeEvent[] {
       summary: "Kiln 2 out of service",
       start: { date: date(0) },
       end: { date: date(1) },
-      organizer: { email: FAKE_ACCOUNT, self: true },
+      organizer: { email: persona.account, self: true },
       span: [at(0), at(24)],
     },
     timed("glazetestreview", "Glaze test review", [10, 0], [10, 45], {
@@ -529,6 +842,7 @@ function matchesQuery(
   message: StoredMessage,
   query: string,
   now: number,
+  persona: Persona,
 ): boolean {
   const terms = query.match(/-?(?:[a-z_]+:)?(?:"[^"]*"|\S+)/gi) ?? [];
   const field = (name: string) =>
@@ -580,7 +894,7 @@ function matchesQuery(
       // Gmail's own: Unix seconds, or a date taken as the start of that day where the mailbox is.
       case "after":
       case "before": {
-        const instant = instantOf(value);
+        const instant = instantOf(persona, value);
         if (instant === null) {
           result = true;
           break;
@@ -625,14 +939,15 @@ function matchesQuery(
   });
 }
 
-/** `after:` and `before:`'s value as an instant: Unix seconds, or `YYYY/MM/DD` in the studio's day. */
-function instantOf(value: string): number | null {
+/** `after:` and `before:`'s value as an instant: Unix seconds, or `YYYY/MM/DD` in the persona's day. */
+function instantOf(persona: Persona, value: string): number | null {
   if (/^\d+$/.test(value)) return Number(value) * 1000;
   const date = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/.exec(value);
   if (!date) return null;
-  return (
-    Date.UTC(Number(date[1]), Number(date[2]) - 1, Number(date[3])) -
-    STUDIO_OFFSET_MINUTES * 60_000
+  return instantOn(
+    persona,
+    { year: Number(date[1]), month: Number(date[2]), day: Number(date[3]) },
+    0,
   );
 }
 
@@ -743,22 +1058,28 @@ export function startFakeGoogle(
     hostname?: string;
     /** The clock. Real by default; a test may fix it. */
     now?: () => number;
-    /** The JSONL mailbox to serve. The triage eval set by default. */
+    /**
+     * Who is signed in: Maya's studio, or Academic OS's demo student. The studio unless the fake
+     * was started with `--persona student` or FAKE_GOOGLE_PERSONA=student.
+     */
+    persona?: PersonaName;
+    /** The JSONL mailbox to serve. The persona's own by default: the triage eval set for Maya. */
     mailbox?: string;
     /** Print one line per request. Paths only: queries carry codes and states. */
     log?: boolean;
   } = {},
 ): FakeGoogle {
   const now = options.now ?? Date.now;
-  const mailbox = options.mailbox ?? MAILBOX;
+  const persona = PERSONAS[options.persona ?? DEFAULT_PERSONA];
+  const mailbox = options.mailbox ?? persona.mailbox;
 
   let messages: StoredMessage[] = [];
   let events: FakeEvent[] = [];
   let sent: SentMessage[] = [];
   let delivered = 0;
   const reset = () => {
-    messages = seedMailbox(mailbox, now());
-    events = seedCalendar(now());
+    messages = seedMailbox(persona, mailbox, now());
+    events = seedCalendar(persona, now());
     sent = [];
   };
   reset();
@@ -910,14 +1231,14 @@ export function startFakeGoogle(
       labelIds: ["SENT"],
       internalDate: instant,
       headers: [
-        { name: "From", value: `${OWNER_NAME} <${FAKE_ACCOUNT}>` },
+        { name: "From", value: `${persona.owner} <${persona.account}>` },
         ...headers.filter(
           (header) =>
             !/^(from|bcc|date|message-id|content-transfer-encoding)$/i.test(
               header.name,
             ),
         ),
-        { name: "Date", value: mailDate(instant, STUDIO_OFFSET_MINUTES) },
+        { name: "Date", value: mailDate(instant, persona.offsetAt(instant)) },
         { name: "Message-ID", value: `<${id}@mail.gmail.com>` },
       ].map((header) =>
         /^(subject|to|cc)$/i.test(header.name)
@@ -960,10 +1281,10 @@ export function startFakeGoogle(
       internalDate: instant,
       headers: [
         { name: "From", value: delivery.from },
-        { name: "To", value: (delivery.to ?? [FAKE_ACCOUNT]).join(", ") },
+        { name: "To", value: (delivery.to ?? [persona.account]).join(", ") },
         ...(cc.length > 0 ? [{ name: "Cc", value: cc.join(", ") }] : []),
         { name: "Subject", value: delivery.subject },
-        { name: "Date", value: mailDate(instant, STUDIO_OFFSET_MINUTES) },
+        { name: "Date", value: mailDate(instant, persona.offsetAt(instant)) },
         {
           name: "Message-ID",
           value: `<${id}.${digest.slice(16, 24)}@${domainOf(delivery.from)}>`,
@@ -988,7 +1309,7 @@ export function startFakeGoogle(
       const redirectUri = url.searchParams.get("redirect_uri");
       if (!redirectUri) {
         return page(
-          `<p>Fake Google: signed in as <strong>${FAKE_ACCOUNT}</strong>.</p><p>Nothing here is real mail.</p>`,
+          `<p>Fake Google: signed in as <strong>${persona.account}</strong>.</p><p>Nothing here is real mail.</p>`,
         );
       }
       if (!URL.canParse(redirectUri)) {
@@ -1146,7 +1467,7 @@ export function startFakeGoogle(
     }
     if (method === "GET" && path === "/") {
       return page(
-        `<p>Fake Google: signed in as <strong>${FAKE_ACCOUNT}</strong>.</p><p>${messages.length} messages, ${events.length} events today, ${sent.length} sent.</p>`,
+        `<p>Fake Google: signed in as <strong>${persona.account}</strong>.</p><p>${messages.length} messages, ${events.length} events ${persona.name === "student" ? "this week" : "today"}, ${sent.length} sent.</p>`,
       );
     }
 
@@ -1164,7 +1485,7 @@ export function startFakeGoogle(
 
     if (method === "GET" && path === "/gmail/v1/users/me/profile") {
       return Response.json({
-        emailAddress: FAKE_ACCOUNT,
+        emailAddress: persona.account,
         messagesTotal: messages.length,
         threadsTotal: new Set(messages.map((message) => message.threadId)).size,
         historyId: "1",
@@ -1179,7 +1500,7 @@ export function startFakeGoogle(
       );
       const offset = Number(url.searchParams.get("pageToken") ?? 0) || 0;
       const matching = messages.filter((message) =>
-        matchesQuery(message, query, now()),
+        matchesQuery(message, query, now(), persona),
       );
       const listed = matching.slice(offset, offset + max);
       return Response.json({
@@ -1224,9 +1545,9 @@ export function startFakeGoogle(
     if (method === "GET" && path === "/calendar/v3/calendars/primary") {
       return Response.json({
         kind: "calendar#calendar",
-        id: FAKE_ACCOUNT,
-        summary: FAKE_ACCOUNT,
-        timeZone: STUDIO_TIME_ZONE,
+        id: persona.account,
+        summary: persona.account,
+        timeZone: persona.timeZone,
       });
     }
 
@@ -1255,7 +1576,10 @@ export function startFakeGoogle(
         Number(url.searchParams.get("maxResults") ?? 250) || 250,
         1,
       );
-      // Google's bounds: timeMin against an event's end, timeMax against its start, both exclusive.
+      /*
+       * Google's bounds: timeMin against an event's end, timeMax against its start, both exclusive.
+       * Over every day the calendar holds, so a week asked for is a week answered, in start order.
+       */
       const items = events
         .filter(
           ({ span: [start, end] }) =>
@@ -1266,8 +1590,8 @@ export function startFakeGoogle(
         .map(({ span: _span, ...event }) => event);
       return Response.json({
         kind: "calendar#events",
-        summary: FAKE_ACCOUNT,
-        timeZone: STUDIO_TIME_ZONE,
+        summary: persona.account,
+        timeZone: persona.timeZone,
         items,
       });
     }
@@ -1301,7 +1625,7 @@ export function startFakeGoogle(
   };
 }
 
-/** `--port 4900` or `--port=4900`, and the same for `--host`. */
+/** `--port 4900` or `--port=4900`, and the same for `--host` and `--persona`. */
 function flag(name: string): string | undefined {
   const args = process.argv.slice(2);
   for (let index = 0; index < args.length; index++) {

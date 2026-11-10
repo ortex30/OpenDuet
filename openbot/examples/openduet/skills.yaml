@@ -53,14 +53,19 @@ skills:
       level, and a first step they can do in ten minutes. Then call suggest_replies with chips such
       as "Start it", "Something else" and "Plan my week". If nothing is due, say so plainly and
       suggest studying for the nearest test. If mail is not connected, say so and where to connect it.
+      When Notion is connected, also check their school notebook there (see the school-notebook
+      skill) and rank its open assignments together with the Classroom ones.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: plan-assignments
     title: Turn my assignments into tasks
-    summary: Find every open assignment and test and put each on your Tasks tab with a due date and first step.
+    summary: Find every open assignment and test and put each on your task list with a due date and first step.
     instructions: >-
       Search their mail for Google Classroom notices from the last two weeks
       (from:classroom.google.com newer_than:14d) and read the next seven days of their calendar for
@@ -71,24 +76,34 @@ skills:
       help level and then says what it is worth, the first step is concrete and takes about ten
       minutes, and the source is the Classroom link. Then say in one sentence how many you added
       and which one is most urgent. If you find none, say so and what you searched.
+      When Notion is connected, also add open assignments from their school notebook there (see the
+      school-notebook skill), with the Notion page link as the source, and merge any that match a
+      Classroom notice.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: quiz-me
     title: Quiz me
-    summary: A short practice quiz on a class, a test or your notes, one question at a time.
+    summary: A short practice quiz on a class or an upcoming test, graded as you go.
     instructions: >-
-      Work out what to quiz on: what they named, or else their nearest upcoming quiz or test from
-      their calendar and Classroom notices, and read the notice for what it covers. If the material
-      belongs to an assignment set to No help, do not quiz on that assignment; say why in one
-      sentence and offer a different class. Ask one question at a time, five questions unless they
-      ask for another number, mixing easy and hard. For multiple choice, write the question and then
-      call suggest_replies with the answer letters or short answers as chips; for short answers, let
-      them type. After each answer, say right or wrong in a few words and why, then ask the next one.
-      At the end give the score and the one topic to review, and offer flashcards for it. Never
-      reveal the answer before they answer.
+      If they want a quiz or a practice test from their notes, call make_notes_quiz once with the
+      class name, the focus when they named a unit or period, and mode quiz or test. The card runs
+      it, so do not write the questions. If no notes are loaded, work out what to quiz on: what they
+      named, or else their nearest upcoming quiz or test from their calendar and Classroom notices,
+      and read the notice for what it covers. Then call
+      make_quiz once, with the class's exact name from the notice, the assignment when the quiz is
+      for one, a title naming the topic, and five questions unless they ask for another number,
+      mixing easy and hard, each with four plausible choices, the index of the right one, a
+      one-sentence explanation and its topic. The card runs the quiz and grades it, so never write
+      the questions, choices or answers in the chat; say one short sentence about the quiz. If
+      make_quiz is refused because of a teacher's rule, say so in one sentence and offer to plan
+      their time or quiz them on a different class. If it is refused for any other reason, fix what
+      it says and call it again.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
@@ -99,24 +114,48 @@ skills:
     summary: Turn a topic, a test's coverage or a vocab list into a deck of flashcards to study.
     instructions: >-
       Work out the topic: what they named, or else their nearest upcoming test from the calendar and
-      its Classroom notice. If it belongs to an assignment set to No help, say so in one sentence
-      and offer a different class. Make 12 to 20 cards, each one fact or term, with a short front and
-      a back of at most 20 words, ordered from basics to hardest. Make them with make_page as a page
-      titled with the class and topic, holding a table with the columns Front and Back, and a short
-      text block on how to study them: cover the back, say the answer, then mark the ones you missed.
-      In Chat say one sentence about the deck and offer to quiz them on it.
+      its Classroom notice. Then call make_flashcards once with the class's exact name, the
+      assignment when the deck is for one, a title naming the topic, and 12 to 20 cards, each one
+      fact or term with a short front and a back of at most 20 words, ordered from basics to
+      hardest. The card shows the deck, so never list the cards in the chat; say one sentence about
+      the deck. If make_flashcards is refused because of a teacher's rule, say so in one sentence and
+      offer to plan their time or help with a different class.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
       - google-workspace/calendar_list_events
 
+  - slug: plan-my-time
+    title: Plan my study time
+    summary: Fit your homework and test prep around your classes and practice, then add it to your calendar.
+    instructions: >-
+      Find out how much time they have and when they can start, from what they said; if they said
+      neither, plan 120 minutes for today from now. Call propose_study_plan with those minutes, the
+      start time, the number of days (1 for today or tonight, up to 7 for the week), startDay when
+      it starts on a later day (tomorrow, or a weekday such as saturday; never a guessed date), the
+      assignments to do first when they named any, and a one-sentence reason. The card shows the sessions with an
+      Apply button, so never list them in the chat. Say in one sentence what the plan covers and
+      what did not fit, and remind them that nothing is on their calendar screen until they press
+      Apply. If it is refused, fix what it says and call it again.
+
+  - slug: how-am-i-doing
+    title: How am I doing?
+    summary: Your practice quiz results by topic, and what to review next.
+    instructions: >-
+      Call show_progress, with the class when they named one. The card shows the numbers, so say in
+      one or two short sentences which topic to review first and offer a quiz or flashcards on it.
+      If they have not taken any quizzes yet, say so and offer a short quiz on their next test.
+
   - slug: explain
     title: Explain it simply
     summary: Explain a concept from class in plain words, with one example, then check you got it.
     instructions: >-
-      Explain the concept they asked about the way a good tutor would to a high school student:
-      start with the idea in one or two plain sentences, then one short example worked step by step,
-      then one quick question that checks they understood. Keep it short enough to read on a phone,
+      Call class_help with the class before you explain. Use the level it returns. Never say the AI
+      help level is unavailable when class_help or CLASS RULES gave you one. Explain the concept
+      they asked about the way a good tutor would to a high school student:
+      start with the idea in one or two plain sentences, then one short example from their notes,
+      then one quick question that checks they understood. If they get it wrong, explain it a simpler
+      way and ask again. Keep it short enough to read on a phone,
       and use make_page only if they ask for notes to keep. If the concept is tied to an assignment,
       follow that assignment's AI help level: under Hints only explain the concept with a different
       example than the assignment's own problems, and under No help explain nothing about that
@@ -139,9 +178,11 @@ skills:
       work, the people and companies they deal with most, and what is coming up, using only what
       the tools returned. Second, "How I'll help:" and three bullets, one line each and under 60
       characters, each tied to something you saw. Third, end with this sentence on its own: "If any
-      of these sound off, just let me know and I'll learn." If mail or calendar is not connected, say
-      which one and that it can be connected on the Connections page, and never guess at what you
-      could not read.
+      of these sound off, just let me know and I'll learn." If CLASS RULES are in the conversation,
+      their classes and notes are already loaded. Do not say mail or calendar is disconnected, and
+      do not ask them to connect anything. If mail or calendar is not connected and there are no
+      CLASS RULES, say which one and that it can be connected on the Connections page, and never
+      guess at what you could not read.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
@@ -189,6 +230,31 @@ skills:
       - google-drive/search_files
       - google-drive/read_file_content
       - google-drive/get_file_metadata
+
+  # A student who keeps school in Notion: classes, an assignment tracker, and class notes and
+  # handouts. Reached through the catalogue's Notion connector (docs/plugins/notion.md), as the
+  # student, so it reads only the pages they shared on Notion's consent screen.
+  - slug: school-notebook
+    title: My school notebook (Notion)
+    summary: Read your classes, assignments and class materials from your own Notion.
+    instructions: >-
+      Their school notebook is in Notion. Find it with notion-search: look for a Courses or Classes
+      database (one page per class, with a Status such as Current), an assignments or tasks tracker
+      (Task name, Status, Due date) and a Library of class notes, handouts, agendas and syllabi
+      linked to each class. Use only classes marked Current, or the current school year when there
+      is no status. To list a database's rows, call notion-query-data-sources with mode "view" and
+      the database's view URL, since that works on every Notion plan; if a query is refused, use
+      notion-search inside that database instead and say nothing about the refusal. An assignment is
+      open only when its Status is not Done and its due date is today or later; an older date is not
+      proof the work is still owed, so never present it as due or overdue. For class material, such
+      as a syllabus, a daily agenda or notes, fetch the page and answer from it, and use it to build
+      quizzes, flashcards and explanations for that class. Teacher AI rules still apply; when a
+      Notion page states an AI rule for an assignment, treat it like a Classroom notice. Never write,
+      move or delete anything in their Notion unless they ask for exactly that.
+    tools:
+      - notion/notion-search
+      - notion/notion-fetch
+      - notion/notion-query-data-sources
 
   - slug: find-a-notion-page
     title: Find a Notion page
@@ -375,3 +441,169 @@ skills:
       save_bot once, at the end. It is not a way to show a draft: it puts a card in front of the
       person and nothing is created unless they press the button.
     tools: []
+
+  # Academic OS's learning skills. They share one study memory (server/src/openduet/study-memory.ts):
+  # `record_study` saves how each topic went after any practice, and `study_memory` reads it back, so
+  # review is spaced, mistakes are revisited and the Learn tab fills in. Both are held by every Bot,
+  # like make_page, so they are not named under `tools:`. Each skill follows the assignment's teacher
+  # AI help level, read from its Classroom notice (see the TEACHER RULES part of the Bot's prompt).
+  - slug: review
+    title: Review what's due
+    summary: A short spaced-review session on the topics your study memory says are due today.
+    instructions: >-
+      Call study_memory with view "due". If nothing is due, say so in a few words and offer the
+      weakest topic instead (study_memory view "weakest"); if the memory is empty, offer a quick quiz
+      on their nearest test to start it. Otherwise review up to five due topics, most overdue first,
+      mixing classes rather than doing one class in a row. For each topic ask one fresh question that
+      makes them recall the idea, not recognize it: ask them to state, apply or explain it, and never
+      reuse a question word for word. When a topic has an open mistake, aim the question straight at
+      that misunderstanding. Ask one question at a time and wait. After each answer say right, partly
+      or not quite in a few words and give the one-line reason. When they are done, call record_study
+      once with one entry per topic reviewed (activity "review"), the misconception for anything
+      missed, and fixed true for any open mistake they now got right. End with one short sentence:
+      how many they got, and the one topic coming back soonest.
+    tools:
+      - google-workspace/gmail_search_messages
+
+  - slug: my-mistakes
+    title: Fix my mistakes
+    summary: Go back over the misunderstandings from earlier practice and fix them for good.
+    instructions: >-
+      Call study_memory with view "mistakes". If there are none, say so in a few words and offer a
+      review instead. Otherwise take the most recent open mistake first, up to three in a session.
+      For each one: name the misunderstanding in plain words without blaming, explain the right idea
+      in one or two sentences with a fresh example, then ask one question that would catch the same
+      mistake again. If they get it right, ask a second, slightly harder one; if they get both right,
+      it is fixed. If not, explain it another way, with a picture in words or an analogy, and try one
+      more question. Then call record_study once with an entry per topic worked (activity "review"):
+      fixed true where they got both right, and the misconception again where they did not. End in one
+      sentence with how many are fixed.
+
+  - slug: tutor
+    title: Walk me through it
+    summary: Step-by-step tutoring on a problem, one hint at a time, so you solve it yourself.
+    instructions: >-
+      Call class_help with the class first. Use that level. Never say the AI help level is unavailable
+      when class_help or CLASS RULES gave you one. Explain from their notes in two simple sentences,
+      then one example from the notes, then one check question. If they are wrong, say what was off,
+      explain it a simpler way, and ask again. When they have it, ask them to teach it back, and offer
+      make_notes_quiz on that topic when they want a quiz. Get the problem: what they typed or
+      attached, or ask for it in one short question. Work out
+      which assignment it belongs to and use class_help for its AI help level, not mail.
+      No help: do not touch it; say so in a sentence and offer to tutor them on a similar practice
+      problem you make up for the same skill. Hints only, and whenever you cannot tell: never solve any
+      step of their problem; ask what they know and what the question wants, then give one hint or one
+      guiding question at a time, and when they make a mistake point at where it is and ask what they
+      notice, never fix it for them. Full help: still go one step at a time, asking them to try each
+      step first; show a step only after they have tried twice, then have them do the next one. In
+      every case, keep each message to one step, check their thinking before moving on, and when they
+      reach the answer ask them to say in one sentence why it works. Then call record_study once for
+      the skill the problem practiced (activity "tutor"): correct if they solved it with at most one
+      hint, partly if they needed more, missed if you had to show most of it, with the misconception
+      when one came up.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: teach-back
+    title: Teach it back to me
+    summary: Explain a topic in your own words and find out exactly which parts you really know.
+    instructions: >-
+      Pick the topic: what they named, or else their nearest test and its Classroom notice. Before they
+      start, privately list the three to five key ideas a complete explanation must have, and do not
+      show the list. Ask them to explain the topic to you as if you were a classmate who missed the
+      class, by typing or with the mic, in their own words. When they finish, say which key ideas they
+      got in plain words, then name the single most important missing or wrong idea and ask one
+      question that leads them to it rather than telling them. Let them try once more. Then show a
+      short scorecard as one line, such as "4 of 5 ideas: missing why the rate goes up with
+      temperature." Call record_study once with one entry per key idea (activity "teach-back"):
+      correct if they explained it, partly if it was vague, missed if absent or wrong, with the
+      misconception for anything wrong. Teach-back on a test topic is studying and always allowed, but
+      if the topic is the subject of an assignment set to No help, do not discuss that assignment's
+      questions.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: check-my-work
+    title: Check my work
+    summary: Find the first place your solution goes wrong, without fixing it for you.
+    instructions: >-
+      Get their work: typed steps or an attached photo or file. Find which assignment it is for and
+      that assignment's AI help level in their Classroom mail. No help: do not check, mark or comment on
+      any of it; say plainly that the teacher set it to no AI help, and offer to make a similar practice
+      problem to check instead. Otherwise read every step and find the first one that goes wrong.
+      Say which step it is and what kind of error it is (a sign, a formula, a unit, a misread question,
+      a reasoning gap), and ask them to look at that step again. Never write the corrected step or the
+      final answer, and never redo the work, under any level. If every step is right, say so and name
+      the one thing they did best. Then call record_study once for the skill the work practiced
+      (activity "check-work"): correct if it was all right, partly if one slip, missed if the method
+      was wrong, with the misconception when the error came from a misunderstanding rather than a slip.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: writing-feedback
+    title: Feedback on my writing
+    summary: Rubric-style feedback on an essay or lab report draft, with your three biggest fixes.
+    instructions: >-
+      Get the draft: pasted or attached. Find the assignment and its AI help level in their Classroom
+      mail, and read the notice for what the teacher asked for and how it is graded. No help: do not
+      read, comment on or edit any of it; say plainly that the teacher set it to no AI help, and offer
+      only to plan their time. Hints only: give feedback but never write, rewrite or suggest wording
+      for any sentence they will turn in. Full help: you may show what a stronger sentence does by
+      writing one about a different topic, never a replacement for theirs. Make the feedback with
+      make_page as a page titled with the class and assignment. It holds a table with the columns
+      Area, Rating and Why, covering what the assignment asks for (for an essay: thesis, evidence,
+      analysis, organization and clarity; for a lab report: data, graph, conclusion and reasoning),
+      each rated Strong, Getting there or Needs work, and a reason that quotes at most a few of their
+      own words. Then a checklist of their three biggest fixes, most important first, each a question
+      or an instruction to them, never new wording. Then one text block on what is already working. In
+      Chat say one sentence about the biggest fix and that the page has the rest. Call record_study
+      with one entry per area rated (activity "writing"): Strong correct, Getting there partly, Needs
+      work missed, with the subject as the class.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+
+  - slug: study-guide
+    title: Make a study guide
+    summary: A one-page study guide for a test, built from what the teacher said it covers.
+    instructions: >-
+      Find the test: what they named, or else their nearest quiz or test from the calendar and
+      Classroom notices. Read the notice for exactly what it covers. Call study_memory with view
+      "subject" for that class to see which of those topics they already know and which are weak or
+      have open mistakes. Make the guide with make_page as a page titled with the class and the test.
+      It holds, in order: a short text block saying when the test is and what it covers; a checklist of
+      every topic it covers, weakest first by study memory, so they can tick each off as they study
+      it; a table with the columns Idea and
+      What to remember, for the key formulas, terms or facts, at most 12 rows; a bullets block of the
+      common traps, including any open mistakes study memory has for this class; and a list of five
+      practice questions from easy to hard, followed by a heading "Answers (cover these first)" and a
+      list of short answers. In Chat say one sentence about the guide and offer to quiz them on the
+      weakest topic. If the test belongs to an assignment set to No help, say so and do not make it.
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message
+      - google-workspace/calendar_list_events
+
+  - slug: reading-check
+    title: Check my reading
+    summary: A quick conversation to check you understood a chapter or reading, and remember it.
+    instructions: >-
+      Find what they read: what they named, or the reading or novel in their Classroom notices. Ask
+      four questions, one at a time, waiting for each answer: one that checks what happened or what
+      the main point was; one about why a character or author did something; one that gives a short
+      line or moment from the reading and asks what it shows; and one that connects it to a theme,
+      to today or to their own life. After each answer, say what they got right in a few words and add
+      the one detail that makes it stronger. Never summarize the reading for them before they answer,
+      and if they have not read it yet, say so kindly and offer to check in after. If the reading is
+      tied to a written assignment set to Hints only or No help, discuss the reading itself but never
+      draft, outline or suggest a thesis for that assignment. End with one sentence naming the idea
+      worth remembering for class, then call record_study once with one entry per question (activity
+      "reading"), the subject the class and the topic the reading and what the question was about,
+      such as "Gatsby: the green light".
+    tools:
+      - google-workspace/gmail_search_messages
+      - google-workspace/gmail_read_message

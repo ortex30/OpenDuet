@@ -8,6 +8,7 @@ import {
 } from "@openbot/shared/slide-fit";
 import { sanitizeThumbnail } from "@openbot/shared/thumbnail";
 import { cn } from "@/lib/utils";
+import { PageText } from "./page-text";
 
 /** Sanitized static SVG. The shared allowlist runs again at the browser boundary. */
 export function SafeSvg({
@@ -75,9 +76,13 @@ export function RichBlock({
               <p className="font-semibold text-[var(--page-accent,var(--duet-violet))]">
                 {item.date}
               </p>
-              <p className="font-semibold">{item.title}</p>
+              <p className="font-semibold">
+                <PageText text={item.title} />
+              </p>
               {item.text ? (
-                <p className="text-duet-ink-2">{item.text}</p>
+                <p className="text-duet-ink-2">
+                  <PageText text={item.text} />
+                </p>
               ) : null}
             </li>
           ))}
@@ -148,7 +153,7 @@ export function RichBlock({
                     key={`${column}-${index}`}
                     scope="col"
                   >
-                    {column}
+                    <PageText text={column} />
                   </th>
                 ))}
               </tr>
@@ -163,14 +168,14 @@ export function RichBlock({
                         key={`cell-${column}`}
                         scope="row"
                       >
-                        {cell}
+                        <PageText text={cell} />
                       </th>
                     ) : (
                       <td
                         className="min-w-[100px] border-duet-hair border-b bg-duet-card px-2 py-2"
                         key={`cell-${column}`}
                       >
-                        {cell}
+                        <PageText text={cell} />
                       </td>
                     ),
                   )}

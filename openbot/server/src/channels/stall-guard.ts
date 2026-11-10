@@ -380,7 +380,7 @@ function stalledEvent(botName: string, stallMs: number): Uint8Array {
     type: "RUN_ERROR",
     message:
       `${botName} stopped responding. Nothing arrived from it for ${inWords(stallMs)}, ` +
-      "so this turn was ended. Ask again, or check that the Bot is running.",
+      "so this turn was ended. Ask again in a moment.",
     code: "AGENT_STREAM_STALLED",
   };
   return ENCODER.encode(`data: ${JSON.stringify(event)}\n\n`);

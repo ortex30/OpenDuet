@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /**
- * A tab's scrolling body: it runs under the floating header, starting where the film's thread does,
- * and on under the frosted tab bar, ending far enough below it that the last row can scroll clear.
+ * A screen's scrolling body. `--screen-top` is where it starts: under the bar of the panel the
+ * coach opens it in (app-shell.tsx), or, with no panel, under a floating header as the film has it.
  */
 export function ScreenScroll({
   children,
@@ -14,7 +14,7 @@ export function ScreenScroll({
 }) {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-[100px] pb-[calc(var(--duet-tab-space,0px)+32px)]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-[var(--screen-top,100px)] pb-[calc(var(--duet-tab-space,0px)+32px)] lg:px-8">
         {children}
       </div>
       {overlay}
@@ -22,7 +22,10 @@ export function ScreenScroll({
   );
 }
 
-/** The tab's name and one line on what it holds. */
+/**
+ * The tab's name and one line on what it holds. The name is for screen readers only: the bar over
+ * the screen (app-shell.tsx) already shows one, and two different names stacked read as clutter.
+ */
 export function ScreenTitle({
   title,
   children,
@@ -31,10 +34,10 @@ export function ScreenTitle({
   children?: ReactNode;
 }) {
   return (
-    <header className="mb-4 px-1">
-      <h1 className="type-display font-semibold text-duet-ink">{title}</h1>
+    <header>
+      <h1 className="sr-only">{title}</h1>
       {children ? (
-        <p className="type-sub mt-0.5 text-duet-ink-2">{children}</p>
+        <p className="type-sub mb-4 px-1 text-duet-ink-2">{children}</p>
       ) : null}
     </header>
   );

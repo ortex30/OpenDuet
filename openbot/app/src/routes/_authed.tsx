@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { currentUserQueryOptions, needsOnboarding } from "../lib/auth/queries";
 import { CopilotProvider } from "../lib/copilot/provider";
-import { AppHotkeys } from "../lib/hotkeys/app-hotkeys";
 
 export const Route = createFileRoute("/_authed")({
   beforeLoad: async ({ context, location }) => {
@@ -24,7 +23,6 @@ export const Route = createFileRoute("/_authed")({
   // a provider above the sign-in gate would open a run for a visitor who has not signed in yet.
   component: () => (
     <CopilotProvider>
-      <AppHotkeys />
       <Outlet />
     </CopilotProvider>
   ),

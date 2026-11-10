@@ -70,7 +70,7 @@ export function MorningBriefCard({
     { items: needsYou, label: "Needs you", tone: "accent" },
     { items: canWait, label: "Can wait", tone: "muted" },
     { items: today, label: "Today", tone: "muted" },
-    { items: notes, label: "Couldn't check", tone: "muted" },
+    { items: notes, label: "Heads up", tone: "muted" },
   ] as const;
   let next = 1;
   const starts = sections.map((section) => {

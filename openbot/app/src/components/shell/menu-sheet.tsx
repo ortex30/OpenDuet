@@ -44,6 +44,7 @@ const MANAGE_PAGES: Page[] = [
   { label: "Capabilities", to: "/capabilities", icon: "box" },
   { label: "Routines", to: "/routines", icon: "repeat" },
   { label: "Approval rules", to: "/settings/approvals", icon: "shieldCheck" },
+  { label: "Teacher rules", to: "/settings/teacher-rules", icon: "shield" },
 ];
 
 /** Whether Manage was left open, kept in this browser between visits. */

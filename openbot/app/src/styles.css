@@ -4,6 +4,8 @@
 /* Composer chips/dropdown. Reads the shadcn tokens declared below, so it themes itself. */
 @import "prompt-area/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces/wght.css";
+@import "katex/dist/katex.min.css";
 
 /*
  * Streamdown draws a Bot's prose, and Tailwind only ships classes it can see used. Its markup lives
@@ -23,20 +25,20 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #f6f1e7;
+  --foreground: #1c1917;
+  --card: #fffcf6;
+  --card-foreground: #1c1917;
+  --popover: #fffcf6;
+  --popover-foreground: #1c1917;
+  --primary: #9a3412;
+  --primary-foreground: #ffffff;
+  --secondary: #efe6d6;
+  --secondary-foreground: #1c1917;
+  --muted: #efe6d6;
+  --muted-foreground: #57534e;
+  --accent: #fde8d4;
+  --accent-foreground: #9a3412;
   --destructive: oklch(0.577 0.245 27.325);
   --success: oklch(0.6 0.118 184.704);
   --border: oklch(0.922 0 0);
@@ -47,7 +49,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.55rem;
+  --radius: 0.8rem;
   --sidebar: oklch(0.97 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -63,35 +65,50 @@
    * `.dark` below; `tests/visual-system.test.ts` fails if one is missing or a colour falls under its
    * contrast floor, and `lib/theme-tokens.ts` carries the same values to the generated-UI prompt.
    */
-  --duet-surface: #f6f6f8;
-  --duet-card: #ffffff;
-  --duet-bubble: #ececf0;
-  --duet-user: #e7e3f7;
-  --duet-ink: #18181b;
-  --duet-ink-2: #55555e;
-  --duet-ink-3: #6b6b75;
-  --duet-hair: rgb(24 24 27 / 9%);
-  --duet-hair-2: rgb(24 24 27 / 6%);
-  --duet-tile: #f1f1f4;
+  --duet-surface: #f6f1e7;
+  --duet-card: #fffcf6;
+  --duet-bubble: #e9e0d2;
+  --duet-user: #f8e6d0;
+  --duet-ink: #1c1917;
+  --duet-ink-2: #44403c;
+  --duet-ink-3: #57534e;
+  --duet-hair: rgb(28 25 23 / 10%);
+  --duet-hair-2: rgb(28 25 23 / 6%);
+  --duet-tile: #efe6d6;
   /*
    * The one accent: the Tasks badge, the unread dot, the + button, a selected chip, a link to a
    * task, the focus ring, the Everything icon. Not a heading colour. `on-accent` is what sits on it.
    */
-  --duet-accent: #6430ab;
-  --duet-accent-soft: #f0ebfa;
+  --duet-accent: #9a3412;
+  --duet-accent-soft: #fde8d4;
   --duet-on-accent: #ffffff;
+  /* Pop: the quiz's four answers and the study cards' faces. Bright, school-notebook colours. */
+  --duet-pop-a: #2f6fed;
+  --duet-pop-a-soft: #e6eefe;
+  --duet-pop-b: #15a36b;
+  --duet-pop-b-soft: #e3f7ee;
+  --duet-pop-c: #c2410c;
+  --duet-pop-c-soft: #ffedd8;
+  --duet-pop-d: #be185d;
+  --duet-pop-d-soft: #fde7f0;
+  --duet-face-gradient: linear-gradient(
+    135deg,
+    #9a3412 0%,
+    #be123c 52%,
+    #c2410c 100%
+  );
   /* How work stands: ready for review, needs you, working, couldn't finish. Only on status. */
-  --duet-status-done: #147a3a;
-  --duet-status-done-soft: #e6f4ea;
-  --duet-status-needs: #a34a06;
-  --duet-status-needs-soft: #fdf3e1;
+  --duet-status-done: #146c34;
+  --duet-status-done-soft: #e4f5e8;
+  --duet-status-needs: #9a3412;
+  --duet-status-needs-soft: #fde8d4;
   --duet-status-working: #1d4ed8;
-  --duet-status-working-soft: #eaf0fd;
+  --duet-status-working-soft: #e5edfc;
   --duet-status-problem: #b91c1c;
-  --duet-status-problem-soft: #fbeaea;
-  /* The primary button: near-black on light, white on dark. */
-  --duet-black: #111114;
-  --duet-on-black: #ffffff;
+  --duet-status-problem-soft: #fde8e8;
+  /* The primary button: near-black on light, warm paper on dark. */
+  --duet-black: #1c1917;
+  --duet-on-black: #fffcf6;
   /*
    * The names the components were written against, kept as aliases of the roles so a screen that
    * still says `violet` or `green` draws the role's colour. New code names the role.
@@ -121,8 +138,8 @@
    * `--duet-veil` is the same material laid over a whole screen, for a sheet that the screen stays
    * visible behind.
    */
-  --duet-glass: rgb(255 255 255 / 80%);
-  --duet-veil: rgb(246 246 248 / 74%);
+  --duet-glass: rgb(255 252 246 / 82%);
+  --duet-veil: rgb(246 241 231 / 74%);
   --duet-glass-edge: inset 0 0.5px 0 rgb(255 255 255 / 80%);
   --duet-shadow-glass: var(--duet-glass-edge), var(--duet-shadow-float);
   /* Shape (parity-spec 2.4) and the smallest thing a finger can hit (2.11). */
@@ -156,20 +173,20 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #1c1714;
+  --foreground: #f7f3ec;
+  --card: #29221c;
+  --card-foreground: #f7f3ec;
+  --popover: #29221c;
+  --popover-foreground: #f7f3ec;
+  --primary: #f6c48a;
+  --primary-foreground: #3b220c;
+  --secondary: #342c24;
+  --secondary-foreground: #f7f3ec;
+  --muted: #342c24;
+  --muted-foreground: #c4b8aa;
+  --accent: #3d2a1c;
+  --accent-foreground: #f6c48a;
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.704 0.14 182.503);
   --border: oklch(1 0 0 / 10%);
@@ -193,37 +210,51 @@
    * Duet's dark is near-black and neutral (it samples #0E0E0E behind, #232323 for the Bot's bubble).
    * These keep the same roles, and the primary action turns light.
    */
-  --duet-surface: #111113;
-  --duet-card: #1c1c1f;
-  --duet-bubble: #26262b;
-  --duet-user: #2f2845;
-  --duet-ink: #f4f4f5;
-  --duet-ink-2: #a1a1aa;
-  --duet-ink-3: #8e8e98;
+  --duet-surface: #1c1714;
+  --duet-card: #29221c;
+  --duet-bubble: #342c24;
+  --duet-user: #3a2a1c;
+  --duet-ink: #f7f3ec;
+  --duet-ink-2: #d4cdc3;
+  --duet-ink-3: #c4b8aa;
   --duet-hair: rgb(255 255 255 / 10%);
   --duet-hair-2: rgb(255 255 255 / 7%);
-  --duet-tile: #26262b;
-  --duet-accent: #b49ae8;
-  --duet-accent-soft: #2a2140;
-  /* Dark text on the light lilac: white on it was 2.4:1. */
-  --duet-on-accent: #1a1033;
+  --duet-tile: #342c24;
+  --duet-accent: #f6c48a;
+  --duet-accent-soft: #3d2a1c;
+  --duet-pop-a: #7faaff;
+  --duet-pop-a-soft: #1b2a4a;
+  --duet-pop-b: #4fd39b;
+  --duet-pop-b-soft: #16352a;
+  --duet-pop-c: #ffb15c;
+  --duet-pop-c-soft: #3d2a12;
+  --duet-pop-d: #ff7fab;
+  --duet-pop-d-soft: #3f1b2a;
+  --duet-face-gradient: linear-gradient(
+    135deg,
+    #9a3412 0%,
+    #be123c 48%,
+    #f6c48a 100%
+  );
+  /* Dark ink on the lamp-light accent. White on it was too faint. */
+  --duet-on-accent: #3b220c;
   --duet-status-done: #4ade80;
   --duet-status-done-soft: #14301f;
   --duet-status-needs: #fbbf24;
   --duet-status-needs-soft: #3a2a0c;
-  --duet-status-working: #7aa2ff;
-  --duet-status-working-soft: #18233d;
-  --duet-status-problem: #f87171;
-  --duet-status-problem-soft: #3a1717;
-  --duet-black: #f4f4f5;
-  --duet-on-black: #111114;
+  --duet-status-working: #93c5fd;
+  --duet-status-working-soft: #1a2744;
+  --duet-status-problem: #fca5a5;
+  --duet-status-problem-soft: #3f1d1d;
+  --duet-black: #f7f3ec;
+  --duet-on-black: #1c1714;
   --duet-shadow-float:
     0 0 0 0.5px rgb(255 255 255 / 10%), 0 4px 12px -4px rgb(0 0 0 / 50%);
   --duet-shadow-card: 0 0 0 1px var(--duet-hair);
   --duet-shadow-raised:
     0 0 0 1px var(--duet-hair), 0 10px 26px -14px rgb(0 0 0 / 60%);
-  --duet-glass: rgb(28 28 31 / 82%);
-  --duet-veil: rgb(17 17 19 / 72%);
+  --duet-glass: rgb(41 34 28 / 84%);
+  --duet-veil: rgb(28 23 20 / 74%);
   --duet-glass-edge: inset 0 0.5px 0 rgb(255 255 255 / 8%);
   --duet-shadow-glass: var(--duet-glass-edge), var(--duet-shadow-float);
   --duet-ch-berry: #d0709a;
@@ -265,7 +296,7 @@ body {
  */
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: "Fraunces Variable", Fraunces, Georgia, serif;
   --font-sans: "Inter Variable", sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -319,6 +350,14 @@ body {
   --color-duet-accent: var(--duet-accent);
   --color-duet-accent-soft: var(--duet-accent-soft);
   --color-duet-on-accent: var(--duet-on-accent);
+  --color-duet-pop-a: var(--duet-pop-a);
+  --color-duet-pop-a-soft: var(--duet-pop-a-soft);
+  --color-duet-pop-b: var(--duet-pop-b);
+  --color-duet-pop-b-soft: var(--duet-pop-b-soft);
+  --color-duet-pop-c: var(--duet-pop-c);
+  --color-duet-pop-c-soft: var(--duet-pop-c-soft);
+  --color-duet-pop-d: var(--duet-pop-d);
+  --color-duet-pop-d-soft: var(--duet-pop-d-soft);
   --color-duet-status-done: var(--duet-status-done);
   --color-duet-status-done-soft: var(--duet-status-done-soft);
   --color-duet-status-needs: var(--duet-status-needs);
@@ -515,6 +554,26 @@ body {
   }
 }
 
+/* The word beside the thinking orb breathes, so the bubble reads as alive even when the orb is still. */
+.duet-thinking-word {
+  animation: duet-thinking-word 1.8s ease-in-out infinite;
+}
+@keyframes duet-thinking-word {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .duet-thinking-word {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
 /* The film's typing dots: each rises a little and brightens, one after another. */
 .duet-typing-dot {
   opacity: 0.4;
@@ -621,6 +680,194 @@ body {
   }
 }
 
+/*
+ * The startup intro (components/shell/startup-intro.tsx). The orb wakes up in the middle (the canvas
+ * draws its eyes opening; this grows it) with a slowly turning bloom of its own two colours behind
+ * it, the name inks in under it letter by letter, and then both fly into the header while the screen
+ * behind dissolves. The component steps `data-phase` on timers and sets the flight's transform; this
+ * is how each looks.
+ *
+ * Each entrance animates only `from` its start (`backwards`), so when it ends the element is simply
+ * at rest, and a later phase can transition it from there. Only opacity and transforms move.
+ */
+[data-startup-intro] :is(.startup-target-orb, .startup-target-name) {
+  opacity: 0;
+}
+
+/* The tint is the orb's own ping's: violet on light, blue on dark. */
+.startup-intro {
+  --intro-tint: var(--intro-violet);
+  --intro-bloom-mix: 24%;
+}
+.dark .startup-intro {
+  --intro-tint: var(--intro-blue);
+  --intro-bloom-mix: 36%;
+}
+
+/* It waits a moment to dissolve, so a name with nowhere to land is gone before the app shows. */
+.startup-intro-backdrop {
+  transition: opacity 340ms var(--duet-ease-out) 40ms;
+}
+.startup-intro:is([data-phase="fly"], [data-phase="land"])
+  .startup-intro-backdrop {
+  opacity: 0;
+}
+
+/* Skipped, or the still version's end: everything fades together. */
+.startup-intro[data-phase="leave"] {
+  opacity: 0;
+  transition: opacity var(--intro-skip) var(--duet-ease-out);
+}
+
+/* What flies: it scales from its left middle, the point the component lines up with the header's. */
+.startup-intro-flight {
+  transform-origin: left center;
+  transition:
+    transform var(--intro-fly) var(--intro-flight-ease),
+    opacity var(--intro-land) linear;
+}
+.startup-intro[data-phase="land"] .startup-intro-flight {
+  opacity: 0;
+}
+.startup-intro-flight[data-stranded] {
+  transform-origin: center;
+  opacity: 0;
+  transform: translateY(-12px) scale(0.94);
+  transition:
+    opacity 140ms var(--duet-ease-out),
+    transform 320ms var(--duet-ease-out);
+}
+
+/* Asleep and small, it fades in, holds, then grows past its size and settles as it wakes. */
+.startup-intro-orb {
+  animation: duet-intro-wake 740ms linear backwards;
+}
+@keyframes duet-intro-wake {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  16% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  35% {
+    transform: scale(0.4);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  66% {
+    transform: scale(1.07);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  80% {
+    transform: scale(0.99);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Two soft pools of the orb's colours, turning slowly behind it as it wakes. */
+.startup-intro-bloom {
+  position: absolute;
+  inset: -150%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(
+      closest-side at 42% 44%,
+      color-mix(
+        in oklab,
+        var(--intro-blue) var(--intro-bloom-mix),
+        transparent
+      ),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 60% 58%,
+      color-mix(
+        in oklab,
+        var(--intro-violet) var(--intro-bloom-mix),
+        transparent
+      ),
+      transparent
+    );
+  transition: opacity 240ms var(--duet-ease-out);
+  animation:
+    duet-intro-bloom 900ms var(--duet-ease-out) 260ms backwards,
+    duet-intro-drift 2.4s linear 260ms both;
+}
+.startup-intro:not([data-phase="enter"]) .startup-intro-bloom {
+  opacity: 0;
+}
+@keyframes duet-intro-bloom {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+@keyframes duet-intro-drift {
+  from {
+    rotate: -14deg;
+  }
+  to {
+    rotate: 16deg;
+  }
+}
+
+/* One ring of the orb's colour spreads out from it as it lands: its own ping, screen-sized. */
+.startup-intro-ripple {
+  position: absolute;
+  inset: 14%;
+  border-radius: 9999px;
+  opacity: 0;
+  box-shadow:
+    0 0 0 1.5px color-mix(in oklab, var(--intro-tint) 55%, transparent),
+    0 0 28px 6px color-mix(in oklab, var(--intro-tint) 22%, transparent);
+  animation: duet-intro-ripple 760ms var(--duet-ease-out) 720ms;
+}
+@keyframes duet-intro-ripple {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(4.4);
+  }
+}
+
+/* The name rises a little as its letters ink in, one after another. */
+.startup-intro-name {
+  animation: duet-intro-rise 320ms var(--duet-ease-out) 820ms backwards;
+}
+@keyframes duet-intro-rise {
+  from {
+    transform: translateY(0.25em);
+  }
+}
+.startup-intro-letter {
+  animation: duet-intro-ink 200ms var(--duet-ease-out) backwards;
+  animation-delay: calc(820ms + var(--i) * 26ms);
+}
+@keyframes duet-intro-ink {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-intro-orb,
+  .startup-intro-bloom,
+  .startup-intro-ripple,
+  .startup-intro-name,
+  .startup-intro-letter {
+    animation: none;
+  }
+}
+
 .tool-line[open] .tool-line-chevron {
   transform: rotate(90deg);
 }
@@ -687,6 +934,28 @@ body {
 }
 
 /*
+ * A formula beside a bold label was inheriting that weight. KaTeX has no
+ * semibold face, so the browser faked one and the integral looked crushed.
+ * Math keeps its own weight, and the line is tall enough for limits.
+ */
+.katex,
+.katex * {
+  font-weight: 400;
+  font-style: normal;
+}
+.katex {
+  font-size: 1.05em;
+  line-height: normal;
+}
+.duet-math-inline {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/*
  * Every control a screen in the app's shell draws is at least 44px to tap (parity-spec 2.11): the
  * configuration pages were built with 28px and 36px buttons, selects and fields for a desktop
  * pointer, and they all open inside the shell on a phone now. The shared primitives mark themselves
@@ -716,4 +985,256 @@ body {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+/*
+ * PromptArea opens its `/` and `@` menus 4px from the caret's line, which is 21px from this box's
+ * edge, so a menu sat over the box and, on a phone, over the send button. This moves it out past
+ * the edge with an 8px gap. The menu is placed by an inline `top` or `bottom`, so only the margin
+ * on the side it opens towards does anything, and no transform makes it lose its place.
+ */
+.duet-composer-editor > [role="listbox"] {
+  margin-block: 25px;
+}
+
+/* The unlicensed CopilotKit dev banner sits on top of the composer. */
+div[style*="z-index: 99999"]:has(a[href="https://copilotkit.ai/pricing"]) {
+  /* biome-ignore lint/complexity/noImportantStyles: the banner sets an inline display. */
+  display: none !important;
+}
+
+/*
+ * Night desk. A warm paper app for studying at night: one lamp-colored accent, a soft display
+ * face on greetings, and short motion (transform and opacity only). Interaction motion stays
+ * inside 200–320ms. The skeleton sweep is a loop, so it runs a little longer than a tap.
+ */
+.study-desk {
+  background:
+    radial-gradient(
+      1100px 420px at 8% -10%,
+      rgb(253 232 212 / 80%),
+      transparent 58%
+    ),
+    radial-gradient(
+      800px 360px at 100% 0%,
+      rgb(255 237 213 / 55%),
+      transparent 52%
+    ),
+    var(--duet-surface);
+}
+.dark .study-desk {
+  background:
+    radial-gradient(900px 380px at 0% 0%, rgb(154 52 18 / 22%), transparent 56%),
+    var(--duet-surface);
+}
+.study-display {
+  font-family:
+    "Fraunces Variable", Fraunces, "Iowan Old Style", Palatino, Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+
+/* One hue per class, separate from status colours, so a pill reads as that class. */
+.study-class-violet {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.study-class-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.study-class-green {
+  background: #d1fae5;
+  color: #065f46;
+}
+.study-class-amber {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.study-class-red {
+  background: #ffe4e6;
+  color: #be123c;
+}
+.study-class-accent {
+  background: var(--duet-accent-soft);
+  color: var(--duet-accent);
+}
+.dark .study-class-violet {
+  background: #2e1065;
+  color: #ddd6fe;
+}
+.dark .study-class-blue {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+.dark .study-class-green {
+  background: #064e3b;
+  color: #a7f3d0;
+}
+.dark .study-class-amber {
+  background: #7c2d12;
+  color: #ffedd5;
+}
+.dark .study-class-red {
+  background: #881337;
+  color: #ffe4e6;
+}
+.study-solid-violet {
+  background: #7c3aed;
+}
+.study-solid-blue {
+  background: #2563eb;
+}
+.study-solid-green {
+  background: #059669;
+}
+.study-solid-amber {
+  background: #ea580c;
+}
+.study-solid-red {
+  background: #e11d48;
+}
+.study-solid-accent {
+  background: var(--duet-accent);
+}
+
+@keyframes study-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.study-rise {
+  animation: study-rise 250ms var(--duet-ease-out) both;
+}
+
+@keyframes study-bounce {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.study-bounce {
+  animation: study-bounce 280ms var(--duet-ease-out) both;
+}
+
+@keyframes study-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-4px);
+  }
+  70% {
+    transform: translateX(4px);
+  }
+}
+.study-shake {
+  animation: study-shake 280ms var(--duet-ease-out) both;
+}
+
+@keyframes study-flip {
+  0% {
+    transform: rotateY(0);
+  }
+  45% {
+    transform: rotateY(90deg);
+  }
+  55% {
+    transform: rotateY(-90deg);
+  }
+  100% {
+    transform: rotateY(0);
+  }
+}
+.study-flip {
+  animation: study-flip 280ms var(--duet-ease-out);
+  transform-origin: center;
+}
+
+.study-ring-value {
+  transition: stroke-dashoffset 320ms var(--duet-ease-out);
+}
+
+@keyframes study-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.study-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--duet-tile);
+}
+.study-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 252 246 / 72%),
+    transparent
+  );
+  animation: study-shimmer 700ms var(--duet-ease-out) infinite;
+}
+
+@keyframes coach-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes coach-confetti {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(180deg);
+    opacity: 0;
+  }
+}
+.coach-pop {
+  display: inline-block;
+  animation: coach-pop 320ms var(--duet-ease-out) both;
+}
+.coach-confetti {
+  animation: coach-confetti 400ms var(--duet-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-rise,
+  .study-bounce,
+  .study-shake,
+  .study-flip,
+  .coach-pop,
+  .coach-confetti,
+  .study-shimmer::after {
+    animation: none;
+  }
+  .study-ring-value {
+    transition: none;
+  }
+  .coach-confetti {
+    display: none;
+  }
 }

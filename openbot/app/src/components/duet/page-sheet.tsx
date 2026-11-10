@@ -15,6 +15,7 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { useConversationSend } from "@/components/channels/conversation-send";
 import { NewTaskSheet } from "@/components/shell/new-task-sheet";
 import { agentListQueryOptions } from "@/lib/agents/queries";
+import { DURATION, EASE_OUT } from "@/lib/motion";
 import {
   checkPageMutationOptions,
   deletePageMutationOptions,
@@ -26,7 +27,6 @@ import {
   slidesOf,
 } from "@/lib/pages/queries";
 import { pageThemeStyle } from "@/lib/pages/theme";
-import { DURATION, EASE_OUT } from "@/lib/motion";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { searchText } from "@/lib/search-text";
 import { startTaskMutationOptions } from "@/lib/tasks/mutations";
@@ -123,7 +123,7 @@ export function PageSheet({
         <DialogPrimitive.Popup
           aria-modal="true"
           className={cn(
-            "duet-face group fixed inset-0 z-50 flex flex-col bg-duet-surface text-duet-ink outline-none",
+            "duet-face group fixed inset-0 z-50 flex flex-col bg-duet-surface text-duet-ink outline-none print:static print:bg-white print:text-black",
             // The veil fades in and out with reduced motion too: a fade is the reduced transition.
             "transition-opacity duration-[var(--duet-dur-swap)] data-ending-style:opacity-0 data-starting-style:opacity-0",
             morph.fading && "opacity-0",
@@ -137,7 +137,7 @@ export function PageSheet({
             ...(morph.fading ? { transitionDuration: `${FADE_MS}ms` } : {}),
           }}
         >
-          <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col px-3 pt-[max(env(safe-area-inset-top),12px)] pb-[max(env(safe-area-inset-bottom),10px)]">
+          <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col px-3 pt-[max(env(safe-area-inset-top),12px)] pb-[max(env(safe-area-inset-bottom),10px)] md:max-w-3xl lg:max-w-6xl">
             <div
               className={cn(
                 // A size container, so the header below can ask how much room it has.
@@ -161,7 +161,7 @@ export function PageSheet({
                * whole width. It breaks only between words, and a title longer than two lines ends in
                * an ellipsis, with the whole of it still the dialog's name.
                */}
-              <header className="relative grid min-h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 py-1">
+              <header className="relative grid min-h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 py-1 print:hidden">
                 <button
                   aria-label="Back"
                   className="col-start-1 row-start-1 grid size-11 place-items-center rounded-full text-duet-ink outline-none transition-colors hover:bg-duet-tile focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:bg-duet-tile"
@@ -215,6 +215,16 @@ export function PageSheet({
                       }
                       transition={{ duration: DURATION.swap, ease: EASE_OUT }}
                     >
+                      <button
+                        className="min-h-11 rounded-xl px-3 text-left transition-colors hover:bg-duet-tile"
+                        type="button"
+                        onClick={() => {
+                          setActions(false);
+                          window.print();
+                        }}
+                      >
+                        Print
+                      </button>
                       <button
                         className="min-h-11 rounded-xl px-3 text-left transition-colors hover:bg-duet-tile"
                         type="button"

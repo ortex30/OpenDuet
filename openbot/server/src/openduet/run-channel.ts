@@ -8,6 +8,7 @@ import {
 import { defer, from, Observable, switchMap } from "rxjs";
 import type { ActorAgentResolver } from "../agents/agent-resolver";
 import type { RunChannel } from "./channels";
+import { withClassRules } from "./class-rules";
 
 /*
  * Which channel a run is in, read from the run itself.
@@ -125,9 +126,10 @@ export class RunChannelMiddleware extends Middleware {
           new Observable<BaseEvent>((subscriber) => {
             // Null is set too, so a run inside another never inherits the outer one's channel.
             const subscription = store.run(channel, () =>
-              this.runNext(withRunChannel(input, channel), next).subscribe(
-                subscriber,
-              ),
+              this.runNext(
+                withClassRules(withRunChannel(input, channel)),
+                next,
+              ).subscribe(subscriber),
             );
             return () => subscription.unsubscribe();
           }),

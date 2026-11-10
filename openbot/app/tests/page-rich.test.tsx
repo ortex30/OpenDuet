@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { PAGE_KINDS } from "@openbot/shared/page-look";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -11,7 +12,7 @@ import {
 import { PageCard } from "@/components/duet/page-card";
 import { PageSheet } from "@/components/duet/page-sheet";
 import { PageBlocks, SlideCard } from "@/components/duet/page-view";
-import { filterPages, MAKE_KINDS } from "@/components/shell/make-screen";
+import { filterPages } from "@/components/shell/make-screen";
 import { type PageBlock, type PageRecord, pageKeys } from "@/lib/pages/queries";
 import { queryClient } from "@/query-client";
 import { settleReactWork } from "./settle-react-work";
@@ -53,16 +54,10 @@ function page(): PageRecord {
 }
 
 test("the six stored kinds filter independently and content SVG replaces the fallback preview", () => {
-  const pages = MAKE_KINDS.map((kind) => ({
-    ...page(),
-    id: kind.id,
-    kind: kind.id,
-  }));
+  const pages = PAGE_KINDS.map((kind) => ({ ...page(), id: kind, kind }));
   expect(new Set(pages.map((page) => page.kind)).size).toBe(6);
-  for (const kind of MAKE_KINDS)
-    expect(filterPages(pages, kind.id).map((page) => page.id)).toEqual([
-      kind.id,
-    ]);
+  for (const kind of PAGE_KINDS)
+    expect(filterPages(pages, kind).map((page) => page.id)).toEqual([kind]);
   const view = render(
     <PageCard
       page={page()}

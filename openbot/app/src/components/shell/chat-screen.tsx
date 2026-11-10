@@ -8,14 +8,15 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelChat } from "@/components/channels/channel-chat";
 import { ConversationView } from "@/components/channels/conversation-view";
-import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
-import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
-import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
-import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import {
   seedMessage,
   stashFirstMessage,
 } from "@/components/channels/transcript-messages";
+import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
+import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
+import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
+import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
+import { StudyDock } from "@/components/shell/study-dock";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { type AgentProfile, agentListQueryOptions } from "@/lib/agents/queries";
 import { botAppQueryOptions } from "@/lib/app-access/queries";
@@ -28,7 +29,6 @@ import {
 } from "@/lib/channels/first-day";
 import { useMarkOpenChannelRead } from "@/lib/channels/mark-read";
 import { localDateOf } from "@/lib/channels/morning-brief";
-import { client } from "@/lib/client";
 import { ONGOING_SEARCH_LIMIT, ongoingChannel } from "@/lib/channels/ongoing";
 import {
   type AgentChannel,
@@ -37,6 +37,7 @@ import {
 } from "@/lib/channels/queries";
 import { routeMessage } from "@/lib/channels/route";
 import { startWithChosen } from "@/lib/channels/start";
+import { client, tryClient } from "@/lib/client";
 import { newId } from "@/lib/new-id";
 
 /**
@@ -72,10 +73,10 @@ export function ChatScreen() {
   if (!agents.data)
     return (
       <ScreenNotice alert>
-        Couldn't load your Bots. Reload the page.
+        Couldn't load your coach. Reload the page.
       </ScreenNotice>
     );
-  if (!bot) return <ScreenNotice>There are no Bots yet.</ScreenNotice>;
+  if (!bot) return <ScreenNotice>Your coach isn't set up yet.</ScreenNotice>;
   if (!channels.data)
     return (
       <ScreenNotice alert>
@@ -280,18 +281,33 @@ function FirstMessage({
   };
 
   const gmail = useQuery(botAppQueryOptions(bot.id, GOOGLE_WORKSPACE));
+  const pack = useQuery({
+    queryKey: ["private-demo", "greeting"],
+    queryFn: async () => {
+      const response = await tryClient("/api/openduet/study/private-demo");
+      if (!response.ok) return { available: false };
+      const body = (await response.json()) as { available?: boolean };
+      return { available: body.available === true };
+    },
+  });
   const canReadMail = gmail.data?.state === "ready";
+  const schoolPack = pack.data?.available === true;
 
   useFirstDayGreeting({
-    // Whose first day, with which Bot. Waits for the account and for whether the Bot can read their
-    // mail; an account that failed to load still greets, and a state that failed reads as no mail.
+    // Whose first day, with which Bot. Waits for the account, for whether the Bot can read their
+    // mail, and for the school pack. An account that failed to load still greets. A missing pack
+    // reads as no pack. The pack is the source, so a missing mailbox does not open with a nag.
     claimKey:
-      me.isPending || gmail.isPending
+      me.isPending || pack.isPending || (!schoolPack && gmail.isPending)
         ? null
         : `${me.data?.id ?? "unknown"}:${bot.id}`,
     clear: () => !begun.current && !typed.current,
     greet: () => {
-      const which = canReadMail ? "with_mail" : "without_mail";
+      const which = canReadMail
+        ? "with_mail"
+        : schoolPack
+          ? "school"
+          : "without_mail";
       return start(firstDayGreeting(which), which);
     },
   });
@@ -303,11 +319,14 @@ function FirstMessage({
         inShell
         messages={sent ? [sent] : []}
         notice={
-          error ? (
-            <p className="type-label pb-2 text-duet-red" role="alert">
-              {error}
-            </p>
-          ) : null
+          <>
+            <StudyDock />
+            {error ? (
+              <p className="type-label pb-2 text-duet-red" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </>
         }
         // The composer keeps the draft for another try when this throws.
         onSubmit={(draft) => start(draft.text)}

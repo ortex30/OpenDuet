@@ -1,11 +1,43 @@
+import { prepareReadableMath } from "@openbot/shared/math-text";
+import katex from "katex";
 import type { ReactNode } from "react";
 
-/** Plain page text with source URLs; never interpret model text as HTML or Markdown. */
+const TOKEN =
+  /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$\n]+?)\$|\\\(([^)]+?)\\\)|\*\*([^*\n]+?)\*\*|https?:\/\/[^\s<>"']+/g;
+
+/**
+ * Page text with math drawn by KaTeX, bold labels kept off the formula, and
+ * source URLs as links. Model text is never HTML.
+ */
 export function PageText({ text }: { text: string }) {
+  const prepared = prepareReadableMath(text);
   const parts: ReactNode[] = [];
   let cursor = 0;
-  for (const match of text.matchAll(/https?:\/\/[^\s<>"']+/g)) {
-    const start = match.index;
+  for (const match of prepared.matchAll(TOKEN)) {
+    const start = match.index ?? 0;
+    const display = match[1] ?? match[2];
+    const inline = match[3] ?? match[4];
+    const bold = match[5];
+    if (display !== undefined || inline !== undefined) {
+      const tex = (display ?? inline ?? "").trim();
+      if (!tex) continue;
+      if (start > cursor) parts.push(prepared.slice(cursor, start));
+      parts.push(
+        <MathTex key={start} tex={tex} display={display !== undefined} />,
+      );
+      cursor = start + match[0].length;
+      continue;
+    }
+    if (bold !== undefined) {
+      if (start > cursor) parts.push(prepared.slice(cursor, start));
+      parts.push(
+        <strong key={start} className="font-semibold">
+          {bold}
+        </strong>,
+      );
+      cursor = start + match[0].length;
+      continue;
+    }
     let source = match[0].replace(/[.,;:!?]+$/, "");
     for (const [open, close] of [
       ["(", ")"],
@@ -25,7 +57,7 @@ export function PageText({ text }: { text: string }) {
       continue;
     }
     if (url.username || url.password) continue;
-    parts.push(text.slice(cursor, start));
+    if (start > cursor) parts.push(prepared.slice(cursor, start));
     parts.push(
       <a
         key={start}
@@ -39,6 +71,22 @@ export function PageText({ text }: { text: string }) {
     );
     cursor = start + source.length;
   }
-  parts.push(text.slice(cursor));
+  parts.push(prepared.slice(cursor));
   return <>{parts}</>;
+}
+
+function MathTex({ tex, display }: { tex: string; display: boolean }) {
+  const html = katex.renderToString(tex, {
+    throwOnError: false,
+    displayMode: display,
+    trust: false,
+    strict: "ignore",
+  });
+  return (
+    <span
+      className={display ? "my-2 block overflow-x-auto" : "duet-math-inline"}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX draws one math expression. The model text around it stays plain.
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }

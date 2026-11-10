@@ -364,7 +364,7 @@ function RouteComponent() {
     providers.isPending;
 
   return (
-    <PageShell className="@container" title="Connections">
+    <PageShell title="Connections">
       {/*
        * For `?connected=` only the failure is worth saying. A success needs no sentence: the row it
        * came back to now reads "Connected", which is the same news told by the thing it is news
@@ -397,7 +397,7 @@ function RouteComponent() {
         </p>
       ) : null}
       <PageSection
-        description="The apps and accounts your Bots use as you. Open one to connect it or change it."
+        description="The accounts your coach reads for you. Open one to connect it or change it."
         title="Your connections"
       >
         {/*
@@ -438,7 +438,7 @@ function RouteComponent() {
                 Nothing matches “{search.trim()}”.
               </p>
             ) : (
-              <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-2 @min-[36rem]:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 gap-y-2">
                 {matching.map((row) => (
                   <ConnectionItem key={row.key} row={row} />
                 ))}

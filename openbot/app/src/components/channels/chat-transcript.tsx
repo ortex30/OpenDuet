@@ -24,7 +24,9 @@ import { Streamdown } from "streamdown";
 import { PendingApprovals } from "@/components/approvals/inline-approval";
 import { DuetIcon } from "@/components/duet/icons";
 import { Seen, TypingDots } from "@/components/duet/kit";
+import { PageText } from "@/components/duet/page-text";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { tryClient } from "@/lib/client";
 import {
   Dialog,
   DialogClose,
@@ -61,6 +63,7 @@ import { readResponsibilityTurn } from "@/lib/channels/responsibility-turn";
 import { readFiring } from "@/lib/channels/routine-firing";
 import { readTaskBrief } from "@/lib/channels/task-brief";
 import { ReplyChips } from "@/lib/copilot/reply-chips-tool";
+import { friendlyCoachLine } from "@/lib/friendly-line";
 import { markdownComponents } from "@/lib/markdown";
 import { EASE_OUT, ENTRANCE_SECONDS } from "@/lib/motion";
 import { personToolLabel, readToolName } from "@/lib/plugins/tool-name";
@@ -86,6 +89,7 @@ import { splitChatOrigin } from "./chat-origin";
 import type { QueuedMessage } from "./composer";
 import {
   FIRST_DAY_PLAN,
+  FIRST_DAY_REQUEST_SCHOOL,
   firstDayPlan,
   firstDayWelcome,
   firstNameOf,
@@ -141,13 +145,14 @@ type ChatTranscriptProps = {
  * scale: body text, and one radius on every corner with no tail (parity-spec 2.3, 2.4).
  */
 const BUBBLE_CONTENT =
-  "duet-face type-body rounded-[var(--duet-radius-bubble)] px-4 py-3 text-duet-ink [&>*:first-child]:mt-0 [&>*:last-child]:mb-0";
+  "duet-face type-body min-w-0 max-w-full rounded-[var(--duet-radius-bubble)] px-4 py-3 text-duet-ink [overflow-wrap:anywhere] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0";
 /** Streamdown's prose, tightened to a bubble: closer paragraphs, bullets hung outside the text. */
 const AGENT_PROSE =
   "[&>div]:space-y-2.5 [&_ol]:list-outside [&_ol]:pl-5 [&_ul]:list-outside [&_ul]:pl-5 [&_li]:py-0.5";
 const AGENT_BUBBLE =
-  "max-w-[82%] *:data-[slot=bubble-content]:bg-duet-bubble *:data-[slot=bubble-content]:text-duet-ink";
-const USER_BUBBLE = "max-w-[85%] *:data-[slot=bubble-content]:bg-duet-user";
+  "min-w-0 max-w-[min(82%,100%)] *:data-[slot=bubble-content]:bg-duet-bubble *:data-[slot=bubble-content]:text-duet-ink";
+const USER_BUBBLE =
+  "min-w-0 max-w-[min(85%,100%)] *:data-[slot=bubble-content]:bg-duet-user";
 
 /** One shared empty array, so a screen without a queue does not hand down a new one per render. */
 const EMPTY_QUEUE: readonly QueuedMessage[] = [];
@@ -622,21 +627,38 @@ function FirstDayGreeting({
   request: string | null;
 }) {
   const { data: me } = useQuery(currentUserQueryOptions(), queryClient);
+  const school = request === FIRST_DAY_REQUEST_SCHOOL;
+  const pack = useQuery(
+    {
+      queryKey: ["private-demo", "greeting-line"],
+      enabled: school,
+      queryFn: async () => {
+        const response = await tryClient("/api/openduet/study/private-demo");
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          greeting?: string;
+          studentName?: string | null;
+        };
+      },
+    },
+    queryClient,
+  );
+  const name = firstNameOf(pack.data?.studentName) ?? firstNameOf(me?.name);
+  const plan =
+    school && pack.data?.greeting ? pack.data.greeting : firstDayPlan(request);
   return (
     <MessageRow align="start">
       <MessageContent>
         <Arriving delay={delay}>
           <Bubble align="start" className={AGENT_BUBBLE} variant="secondary">
             <BubbleContent className={BUBBLE_CONTENT}>
-              {firstDayWelcome(firstNameOf(me?.name))}
+              {firstDayWelcome(name)}
             </BubbleContent>
           </Bubble>
         </Arriving>
         <Arriving delay={delay + FIRST_DAY_PLAN_DELAY_SECONDS}>
           <Bubble align="start" className={AGENT_BUBBLE} variant="secondary">
-            <BubbleContent className={BUBBLE_CONTENT}>
-              {firstDayPlan(request)}
-            </BubbleContent>
+            <BubbleContent className={BUBBLE_CONTENT}>{plan}</BubbleContent>
           </Bubble>
         </Arriving>
       </MessageContent>
@@ -850,6 +872,14 @@ function ResponsibilityFiring({
  *
  * It is also what keeps the entrance honest — no remount means no replay of the fade.
  */
+/** Markdown for a normal reply. A formula is drawn, the same way a study page draws it. */
+function CoachProse({ text }: { text: string }) {
+  if (/\$|\\(?:int|frac|dfrac|sqrt)/.test(text)) {
+    return <PageText text={text} />;
+  }
+  return <Streamdown components={markdownComponents}>{text}</Streamdown>;
+}
+
 const TranscriptMessage = memo(function TranscriptMessage({
   commandNames = "",
   delay,
@@ -967,30 +997,30 @@ const TranscriptMessage = memo(function TranscriptMessage({
             </Bubble>
           ) : (
             <div className="flex flex-col items-start gap-2">
-              {splitBubbles(text).map((part, index) => (
-                <Bubble
-                  align={align}
-                  className={AGENT_BUBBLE}
-                  // biome-ignore lint/suspicious/noArrayIndexKey: a reply's thoughts keep their order as it streams.
-                  key={index}
-                  variant="secondary"
-                >
-                  <BubbleContent className={cn(BUBBLE_CONTENT, AGENT_PROSE)}>
-                    {/*
-                     * A Bot's prose is markdown, and it arrives in pieces.
-                     *
-                     * Rendered with a streaming-aware renderer rather than an ordinary one: half a
-                     * fenced code block or an unclosed bold marker is the NORMAL state for most of
-                     * a run, and a plain markdown parser draws that as literal asterisks and
-                     * backticks until the closing token arrives, so the answer visibly rewrites
-                     * itself as it lands. This closes them for the duration.
-                     */}
-                    <Streamdown components={markdownComponents}>
-                      {part}
-                    </Streamdown>
-                  </BubbleContent>
-                </Bubble>
-              ))}
+              {splitBubbles(isUser ? text : friendlyCoachLine(text)).map(
+                (part, index) => (
+                  <Bubble
+                    align={align}
+                    className={AGENT_BUBBLE}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a reply's thoughts keep their order as it streams.
+                    key={index}
+                    variant="secondary"
+                  >
+                    <BubbleContent className={cn(BUBBLE_CONTENT, AGENT_PROSE)}>
+                      {/*
+                       * A Bot's prose is markdown, and it arrives in pieces.
+                       *
+                       * Rendered with a streaming-aware renderer rather than an ordinary one: half a
+                       * fenced code block or an unclosed bold marker is the NORMAL state for most of
+                       * a run, and a plain markdown parser draws that as literal asterisks and
+                       * backticks until the closing token arrives, so the answer visibly rewrites
+                       * itself as it lands. This closes them for the duration.
+                       */}
+                      <CoachProse text={part} />
+                    </BubbleContent>
+                  </Bubble>
+                ),
+              )}
             </div>
           )}
           {seen ? <Seen /> : null}
@@ -2259,7 +2289,7 @@ export function ChatTranscript({
           </MessageScrollerContent>
         </MessageScrollerViewport>
         {/* A floating disc, like the shell's own controls. */}
-        <MessageScrollerButton className="size-11 rounded-full border-0 bg-duet-card text-duet-ink shadow-duet-float hover:bg-duet-card hover:text-duet-ink data-[direction=end]:bottom-[calc(var(--duet-dock,0px)+16px)]" />
+        <MessageScrollerButton className="size-11 rounded-full border-0 bg-duet-card text-duet-ink shadow-duet-float hover:bg-duet-card hover:text-duet-ink data-[direction=end]:bottom-4" />
         <ScrollNewestQueuedIntoView newest={queued.at(-1)?.id ?? null} />
       </MessageScroller>
     </MessageScrollerProvider>

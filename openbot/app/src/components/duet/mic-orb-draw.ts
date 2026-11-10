@@ -201,7 +201,43 @@ const PALETTES = {
     bg: [0.86, 0.01, 260],
     shade: "15,18,30",
   },
+  // Academic OS's own picks, so a student can make the coach theirs.
+  berry: {
+    pink: [0.72, 0.2, 350],
+    blue: [0.66, 0.2, 300],
+    violet: [0.48, 0.22, 310],
+    mag: [0.88, 0.1, 340],
+    bg: [0.95, 0.03, 330],
+    shade: "70,20,70",
+  },
+  sunset: {
+    pink: [0.72, 0.2, 20],
+    blue: [0.78, 0.17, 300],
+    violet: [0.55, 0.22, 330],
+    mag: [0.9, 0.12, 60],
+    bg: [0.95, 0.03, 30],
+    shade: "90,30,50",
+  },
+  mint: {
+    pink: [0.86, 0.14, 170],
+    blue: [0.78, 0.13, 195],
+    violet: [0.52, 0.14, 180],
+    mag: [0.92, 0.1, 160],
+    bg: [0.96, 0.03, 175],
+    shade: "20,70,65",
+  },
+  gold: {
+    pink: [0.84, 0.17, 85],
+    blue: [0.76, 0.16, 60],
+    violet: [0.56, 0.17, 50],
+    mag: [0.93, 0.12, 95],
+    bg: [0.96, 0.04, 85],
+    shade: "90,60,15",
+  },
 } as const;
+
+/** Every colour the orb can wear, in the order the avatar picker shows them. */
+export const ORB_COLOURS = Object.keys(PALETTES) as OrbColour[];
 
 /** One of the orb's colours. Ocean is OpenDuet's own. */
 export type OrbColour = keyof typeof PALETTES;

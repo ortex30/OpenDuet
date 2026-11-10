@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { readToolName } from "../src/lib/plugins/tool-name";
+import {
+  FLASHCARDS_TOOL,
+  PLAN_TOOL,
+  PROGRESS_TOOL,
+  QUIZ_TOOL,
+} from "@openbot/shared/study";
+import { readToolName, stepPhrase } from "../src/lib/plugins/tool-name";
 
 /**
  * What the person watching is told a Bot just did.
@@ -226,5 +232,38 @@ describe("this deployment's own tools", () => {
       readToolName("mcp__google-workspace__gmail_search_messages", "plain")
         .label,
     ).toBe("Search your email");
+  });
+});
+
+describe("Academic OS's study tools", () => {
+  const STUDY = [QUIZ_TOOL, FLASHCARDS_TOOL, PROGRESS_TOOL, PLAN_TOOL];
+
+  test("are named for what they do for the student, while they run and after", () => {
+    expect(
+      STUDY.map((name) => [
+        readToolName(name, true).label,
+        readToolName(name).label,
+      ]),
+    ).toEqual([
+      ["Writing your quiz", "Wrote your quiz"],
+      ["Making flashcards", "Made flashcards"],
+      ["Checking your practice", "Checked your practice"],
+      ["Planning your study time", "Planned your study time"],
+    ]);
+  });
+
+  test("the pill under the orb says what their lines say while they run", () => {
+    // `show_progress` is snake_case, so it is not taken for a gallery interface like `showBarChart`.
+    expect(STUDY.map(stepPhrase)).toEqual([
+      "Writing your quiz",
+      "Making flashcards",
+      "Checking your practice",
+      "Planning your study time",
+    ]);
+  });
+
+  test("a refused one is named plainly, never as done", () => {
+    expect(readToolName(QUIZ_TOOL, "plain").label).toBe("Make quiz");
+    expect(readToolName(PLAN_TOOL, "plain").label).toBe("Propose study plan");
   });
 });

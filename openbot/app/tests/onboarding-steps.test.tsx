@@ -26,6 +26,7 @@ import {
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { agentKeys } from "@/lib/agents/queries";
 import type { AppAccessState } from "@/lib/app-access/queries";
+import { appConfig } from "@/lib/generated/application-config";
 import { refreshNotificationPermission } from "@/lib/setup/notifications";
 import { settleReactWork } from "./settle-react-work";
 
@@ -34,6 +35,9 @@ import { settleReactWork } from "./settle-react-work";
  * primary Bot and starts the real connection, coming back to this step. Get notified asks the
  * browser, shows the answer, and moves on.
  */
+
+/** The product's name as brand.yaml sets it. The Bot's own name, below, is the fixture's. */
+const PRODUCT = appConfig.brand.productName;
 
 beforeAll(() => GlobalRegistrator.register({ url: "http://localhost:3010" }));
 afterAll(async () => {
@@ -270,7 +274,7 @@ test("Get notified previews the notification the app really sends", () => {
   expect(view.getByText(preview.body)).toBeTruthy();
   expect(
     view.getByText(
-      "Notifications show while OpenDuet is open in a browser tab.",
+      `Notifications show while ${PRODUCT} is open in a browser tab.`,
     ),
   ).toBeTruthy();
 });

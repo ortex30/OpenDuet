@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { orbColourFor } from "@/components/agents/abstract-avatar";
+import { useAvatarColour } from "@/lib/avatar-preference";
 import { MicOrb } from "@/components/duet/mic-orb";
 import { isTenantBot } from "@/lib/agents/primary-bot";
 import { cn } from "@/lib/utils";
@@ -111,9 +112,10 @@ function GroupFaces({
 }
 
 function Face({ id, size }: { id: string; size: number }) {
+  const own = useAvatarColour();
   return (
     <MicOrb
-      colour={isTenantBot(id) ? "ocean" : orbColourFor(id)}
+      colour={isTenantBot(id) ? own : orbColourFor(id)}
       size={size}
       still
     />

@@ -186,6 +186,17 @@ curl -X POST http://127.0.0.1:4900/__fake/reset
 Reset puts the mailbox and calendar back, dated from now, and forgets what was sent. People stay
 connected across a reset and across restarting the fake.
 
+### The Academic OS student
+
+`--persona student` (or `FAKE_GOOGLE_PERSONA=student`) serves a high school student instead: Jordan
+Rivera, with Google Classroom notices from five teachers (`scripts/fake-google/student-mailbox.jsonl`),
+each carrying a due date, an estimate and an `AI help:` level, and a school week of classes, soccer
+practice and deadlines in America/Chicago. Due dates are written relative to the day the fake starts,
+and a date that falls on a weekend moves to Monday. `scripts/student-demo.sh` at the repository root
+starts it on port 4900 and points the app at it. Academic OS reads the notices with
+`gmail_search_messages` and `gmail_read_message` and the week with `calendar_list_events`, so grant all
+three to its Bot.
+
 What the variable does and does not do:
 
 - It moves this connector's API host and its OAuth consent, token and revocation addresses to the fake,

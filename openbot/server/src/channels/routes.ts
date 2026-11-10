@@ -1,4 +1,5 @@
 import {
+  FIRST_DAY_REQUEST_SCHOOL,
   FIRST_DAY_REQUEST_WITHOUT_MAIL,
   type FirstDayGreeting,
   firstDayGreeting,
@@ -1265,13 +1266,14 @@ export function parseActivityInput(
  */
 function firstDayChoice(value: unknown): FirstDayGreeting | undefined | null {
   if (value === undefined) return undefined;
-  if (value === "with_mail" || value === "without_mail") return value;
+  if (value === "with_mail" || value === "without_mail" || value === "school")
+    return value;
   if (typeof value !== "string" || value.length > 8000) return null;
   const request = readFirstDay(value);
   if (request === null) return null;
-  return request === FIRST_DAY_REQUEST_WITHOUT_MAIL
-    ? "without_mail"
-    : "with_mail";
+  if (request === FIRST_DAY_REQUEST_WITHOUT_MAIL) return "without_mail";
+  if (request === FIRST_DAY_REQUEST_SCHOOL) return "school";
+  return "with_mail";
 }
 
 export function createChannelRoutes(

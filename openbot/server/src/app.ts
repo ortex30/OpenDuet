@@ -115,7 +115,13 @@ import {
   type DuetChannelStore,
 } from "./openduet/channels";
 import { createPageRoutes, type PageStore } from "./openduet/pages";
+import {
+  createStudyRoutes as createStudyMemoryRoutes,
+  type StudyStore as StudyMemoryStore,
+} from "./openduet/study-memory";
 import { createSetupRoutes, type SetupSources } from "./openduet/setup";
+import type { StudyRouteDeps } from "./openduet/study/contracts";
+import { createStudyRoutes } from "./openduet/study/routes";
 import type { TaskReportReader } from "./openduet/task-report";
 import {
   createTaskRoutes,
@@ -458,6 +464,8 @@ export function createApp(
      */
     openduet?: {
       pages: PageStore;
+      /** The study memory the Learn tab reads. See openduet/study-memory.ts. */
+      studyMemory?: StudyMemoryStore;
       setup?: SetupSources;
       tasks?: TaskStore;
       intake?: TaskIntake;
@@ -465,6 +473,8 @@ export function createApp(
       report?: TaskReportReader;
       /** The drawer's channels. See openduet/channels.ts. */
       channels?: DuetChannelStore;
+      /** Academic OS's quizzes, plans, calendar and teacher rules. See openduet/study/routes.ts. */
+      study?: StudyRouteDeps;
     };
   },
   /**
@@ -1703,6 +1713,16 @@ export function createApp(
     app.route(
       "/api/openduet/pages",
       createPageRoutes(coworker.openduet.pages, requireUser),
+    );
+  if (coworker?.openduet?.study)
+    app.route(
+      "/api/openduet/study",
+      createStudyRoutes(coworker.openduet.study, requireUser),
+    );
+  if (coworker?.openduet?.studyMemory)
+    app.route(
+      "/api/openduet/memory",
+      createStudyMemoryRoutes(coworker.openduet.studyMemory, requireUser),
     );
   /*
    * Signed in, unlike `/api/capabilities`, which anybody can read. The checklist names what this

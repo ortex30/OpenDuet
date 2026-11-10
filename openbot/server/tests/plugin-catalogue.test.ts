@@ -211,7 +211,7 @@ describe("Gmail and Google Calendar", () => {
     expect(entry).not.toBeNull();
     expect(entry?.title).toBe("Gmail and Google Calendar");
     expect(entry?.vendor).toBe("Google");
-    expect(entry?.summary).toBe("Mail and calendar of whoever is asking.");
+    expect(entry?.summary).toBe("Your email and calendar.");
     expect(entry?.transport).toBe("google-workspace-rest");
     /*
      * The path is `/`, so the resolved url is the host itself and the adapter adds `/gmail/v1` or

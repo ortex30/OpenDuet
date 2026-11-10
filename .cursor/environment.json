@@ -1,0 +1,5 @@
+{
+  "name": "Academic OS",
+  "install": "bash scripts/cloud-install.sh || bun install",
+  "start": "if [ -f scripts/academic-os-dev.sh ]; then bash scripts/academic-os-dev.sh; fi"
+}

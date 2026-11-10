@@ -16,6 +16,7 @@ import type { AuditInitiator } from "../audit";
 import type { AppVariables } from "../auth/guards";
 import type { Database } from "../db/client";
 import { openduetPages, type StoredPageContent } from "../db/schema/openduet";
+import { loadEnabledPack } from "./private-pack";
 import { REFUSAL_MARKER } from "../plugins/tools";
 import {
   closed,
@@ -598,6 +599,8 @@ export function pageTools(options: {
           withoutBlankOptionals(args ?? {}),
         );
         if (!checked.success) return refusalFor(checked.error.issues);
+        const blocked = noHelpPageRefusal(checked.data);
+        if (blocked) return blocked;
         try {
           const existing =
             checked.data.id && options.get
@@ -634,6 +637,36 @@ export function pageTools(options: {
       },
     },
   ];
+}
+
+/**
+ * A no-help class gets no saved guide, quiz, or worked solution from the model.
+ * Planning a time for that class is still allowed.
+ */
+function noHelpPageRefusal(value: {
+  title?: string;
+  blocks?: unknown;
+  slides?: unknown;
+}): string | null {
+  const pack = loadEnabledPack();
+  if (!pack) return null;
+  const text =
+    `${value.title ?? ""}\n${JSON.stringify(value.blocks ?? value.slides ?? "")}`.toLowerCase();
+  for (const row of pack.classes) {
+    if (row.help !== "none") continue;
+    const names = [row.name, row.shortName ?? ""]
+      .map((name) => name.toLowerCase())
+      .filter((name) => name.length > 3);
+    if (!names.some((name) => text.includes(name))) continue;
+    if (
+      /\b(answer key|worked example|practice question|solutions?|quiz|essay draft)\b/.test(
+        text,
+      )
+    ) {
+      return `${REFUSAL_MARKER} ${row.name} doesn't allow AI help, so this page wasn't saved. An outline of the notes is as far as this class goes.`;
+    }
+  }
+  return null;
 }
 
 /** The tool's result: what the card draws, without the rest of the content. */

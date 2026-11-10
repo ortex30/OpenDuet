@@ -15,11 +15,11 @@ import { readFirstDay } from "./first-day";
  * Thrown so a caller can tell "not yet" from "failed". The queue in `conversation-view.tsx` parks
  * the words as Queued and runs them when that turn ends; nothing restores them to the composer,
  * which would draw the same words twice. Its message is the sentence the parity spec gives for this,
- * so a caller that only shows `error.message` still says the right thing.
+ * said of the coach, so a caller that only shows `error.message` still says the right thing.
  */
 export class ThreadBusyError extends Error {
   constructor() {
-    super("OpenDuet is still finishing something. I'll send this next.");
+    super("Your coach is still finishing something. I'll send this next.");
     this.name = "ThreadBusyError";
   }
 }
@@ -391,5 +391,7 @@ export function sayableReason(reason: string): string {
     /Is the computer able to access the url|\b(ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN)\b|socket hang up|^fetch failed$/i.test(
       reason,
     );
-  return raw ? "Couldn't reach the Bot. Try again." : reason;
+  return raw
+    ? "Couldn't reach your coach. Check your connection and try again."
+    : reason;
 }

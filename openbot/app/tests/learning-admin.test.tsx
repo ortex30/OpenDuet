@@ -8,8 +8,12 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { appConfig } from "@/lib/generated/application-config";
 import { LearningPage } from "@/routes/_authed/admin/learning";
 import type { LearningSettings } from "@openbot/shared/learning";
+
+/** The product's name as brand.yaml sets it, which the page's sentences use. */
+const PRODUCT = appConfig.brand.productName;
 
 beforeAll(() => GlobalRegistrator.register());
 afterAll(() => GlobalRegistrator.unregister());
@@ -152,7 +156,7 @@ test.each([
   [
     { enabled: true, defaultTarget: { containerId: "openbot" }, agents: {} },
     { state: "assigned", containerId: "openbot" },
-    'OpenDuet assigned this Intelligence project\'s "openbot" container automatically',
+    `${PRODUCT} assigned this Intelligence project's "openbot" container automatically`,
   ],
   [
     { enabled: true, defaultTarget: null, agents: {} },
@@ -182,7 +186,7 @@ test("a deployment that chose its own container hears nothing about automatic as
   await waitFor(() =>
     expect(view.queryByText("Loading Learning settings…")).toBeNull(),
   );
-  expect(view.queryByText("OpenDuet assigned", { exact: false })).toBeNull();
+  expect(view.queryByText(`${PRODUCT} assigned`, { exact: false })).toBeNull();
   expect(
     view.queryByText("Learning container yet", { exact: false }),
   ).toBeNull();

@@ -139,7 +139,7 @@ export function taskTools(options: {
       name: ADD_TASKS_TOOL,
       ref: `openduet/${ADD_TASKS_TOOL}`,
       description: [
-        "Put tasks on the person's Tasks tab, one card each, with Start and Hide.",
+        "Put tasks on the person's task list, one card each, with Start and Hide.",
         "Use it whenever they ask to turn something into tasks, hand items off, or add something to their list. Never write a task list to a file or into your reply instead.",
         "Each task carries a short title, why it matters, the first step, and where it came from.",
         "This only adds cards: it starts nothing. They start a task from its card, or ask you to start it now.",
@@ -158,7 +158,7 @@ export function taskTools(options: {
         });
         return JSON.stringify({
           added,
-          note: `${added.length === 1 ? "The task is" : `All ${added.length} tasks are`} on the Tasks tab, under Up next, each with Start and Hide. Say so in one short sentence; do not list them again.`,
+          note: `${added.length === 1 ? "The task is" : `All ${added.length} tasks are`} on their task list, under Up next, each with Start and Hide. Say so in one short sentence; do not list them again.`,
         });
       },
     },

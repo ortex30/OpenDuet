@@ -16,12 +16,12 @@ import { queryClient } from "@/query-client";
 export const STARTER_BLANK = "…";
 
 /**
- * The + on Tasks: a sheet on the frosted veil that asks what the Bot should do, with one field and
- * two answers. Start now opens it as a task straight away, in a conversation of its own, as asking
- * in Chat would. Save for Up next leaves it on Up next, marked as one the person asked for, to start
- * later. Either way the sheet closes and Tasks shows where it went.
+ * The + on Tasks: a sheet on the frosted veil that asks what the coach can help with, with one field
+ * and two answers. Start now opens it as a task straight away, in a conversation of its own, as
+ * asking in Chat would. Save for later leaves it on Up next, marked as one the person asked for, to
+ * start later. Either way the sheet closes and Tasks shows where it went.
  *
- * Make's + opens the same sheet with a starter line, such as "Make a deck about …", and the "…"
+ * Make's + opens the same sheet with a starter line, such as "Make slides about …", and the "…"
  * selected, so the person only types what it is about. A starter left as it was is not an ask yet.
  *
  * It rises from below the screen's edge onto the veil, and sinks back before `onClose` or `onAdded`
@@ -35,6 +35,7 @@ export function NewTaskSheet({
   starter = "",
   question: asked,
   instructionPrefix = "",
+  instructionSuffix = "",
 }: {
   bot: AgentProfile;
   onClose: () => void;
@@ -42,10 +43,15 @@ export function NewTaskSheet({
   onAdded: (where: "active" | "up_next", task: { id: string } | null) => void;
   /** The field's first words, with the caret on their "…". */
   starter?: string;
-  /** The sheet's question, when it is not what the Bot should do. */
+  /** The sheet's question, when it is not "What can I help with?". */
   question?: string;
   /** Context the task needs, kept outside the person’s editable ask. */
   instructionPrefix?: string;
+  /**
+   * Context that follows the person's ask, also kept outside it. A task is named after the first
+   * line of what it was asked, so context that must not name it goes here, not in the prefix.
+   */
+  instructionSuffix?: string;
 }) {
   const [draft, setDraft] = useState(starter);
   const field = useRef<HTMLTextAreaElement>(null);
@@ -57,9 +63,11 @@ export function NewTaskSheet({
   const instruction = draft.trim() === starter.trim() ? "" : draft.trim();
   const ask = {
     botId: bot.id,
-    instruction: [instructionPrefix, instruction].filter(Boolean).join("\n\n"),
+    instruction: [instructionPrefix, instruction, instructionSuffix]
+      .filter(Boolean)
+      .join("\n\n"),
   };
-  const question = asked ?? `What should ${bot.name} do?`;
+  const question = asked ?? "What can I help with?";
   /*
    * The caret on the starter's blank: set before the field takes focus, and again as it does, since
    * focusing a field can put its caret back at the start.
@@ -122,7 +130,9 @@ export function NewTaskSheet({
                 className="type-body mt-3 min-h-28 w-full resize-none rounded-[20px] bg-duet-card px-4 py-3 text-duet-ink shadow-[inset_0_0_0_1px_var(--duet-hair)] outline-none placeholder:text-duet-ink-3 focus-visible:ring-3 focus-visible:ring-duet-violet/25"
                 disabled={busy}
                 maxLength={
-                  4000 - (instructionPrefix ? instructionPrefix.length + 2 : 0)
+                  4000 -
+                  (instructionPrefix ? instructionPrefix.length + 2 : 0) -
+                  (instructionSuffix ? instructionSuffix.length + 2 : 0)
                 }
                 onChange={(event) => setDraft(event.target.value)}
                 onFocus={() => {
@@ -139,7 +149,7 @@ export function NewTaskSheet({
                     startNow();
                   }
                 }}
-                placeholder="Draft a reply, find a time, chase a payment…"
+                placeholder="Make flashcards for Unit 4, plan my essay, quiz me on trig…"
                 ref={field}
                 value={draft}
               />
@@ -159,7 +169,7 @@ export function NewTaskSheet({
                     });
                   }}
                 >
-                  Save for Up next
+                  Save for later
                 </PillButton>
                 <PillButton
                   disabled={busy || !instruction}

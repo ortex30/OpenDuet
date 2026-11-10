@@ -15,8 +15,13 @@ import {
 } from "@/components/layout/self-host-banner";
 import { authKeys } from "@/lib/auth/queries";
 import { deploymentKeys } from "@/lib/deployment/queries";
+import { appConfig } from "@/lib/generated/application-config";
 import { userPreferencesQueryOptions } from "@/lib/settings/message-list";
 import type { UserPreferences } from "@openbot/shared/user-preferences";
+import { settleReactWork } from "./settle-react-work";
+
+/** The product's name as brand.yaml sets it, which the banner names and labels itself with. */
+const PRODUCT = appConfig.brand.productName;
 
 const originalFetch = globalThis.fetch;
 const clients: QueryClient[] = [];
@@ -50,9 +55,12 @@ afterEach(() => {
   clients.length = 0;
   globalThis.fetch = originalFetch;
 });
-afterAll(() => GlobalRegistrator.unregister());
+afterAll(async () => {
+  await settleReactWork();
+  GlobalRegistrator.unregister();
+});
 
-const banner = { name: "Self-host OpenDuet" } as const;
+const banner = { name: `Self-host ${PRODUCT}` } as const;
 
 function setup({
   enabled = true,
@@ -96,7 +104,7 @@ function setup({
 test("offers self-hosting with a link CopilotKit can tell came from the app", () => {
   const { view } = setup();
   expect(
-    view.getByText("Self-host OpenDuet for your organization."),
+    view.getByText(`Self-host ${PRODUCT} for your organization.`),
   ).toBeTruthy();
   const link = view.getByRole("link", { name: "Talk to an engineer" });
   expect(link.getAttribute("href")).toBe(SELF_HOST_URL);

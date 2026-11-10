@@ -1,6 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
+import { useAvatarColour } from "@/lib/avatar-preference";
 import { cn } from "@/lib/utils";
 import { DuetIcon, type DuetIconName } from "./icons";
+import { MicOrb } from "./mic-orb";
 
 /**
  * The pieces the film's app is built from (launch-film/film/src/duet/app.tsx), as web components:
@@ -168,21 +170,35 @@ export function Topic({
 
 /** Three dots in a grey bubble while the Bot writes. The words are for screen readers. */
 export function TypingDots({ label = "Thinking" }: { label?: string }) {
+  // The coach's own orb, working: its colours swirl faster and its eyes look up, as in the header.
+  const colour = useAvatarColour();
   return (
     <div
-      className="inline-flex h-[42px] w-fit items-center gap-1.5 self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble px-4"
+      className="inline-flex h-[42px] w-fit items-center gap-2 self-start rounded-[var(--duet-radius-bubble)] bg-duet-bubble pr-4 pl-2"
       // `status`, not `alert`: progress, not an interruption.
       role="status"
     >
       <span className="sr-only">{label}</span>
-      {[0, 1, 2].map((dot) => (
+      <span aria-hidden className="grid size-9 place-items-center">
+        <MicOrb colour={colour} size={34} state="thinking" />
+      </span>
+      <span aria-hidden className="flex items-end gap-1 pb-0.5">
+        <span className="duet-typing-dot size-1.5 rounded-full bg-duet-accent" />
         <span
-          aria-hidden
-          className="duet-typing-dot size-2 rounded-full bg-duet-ink-2"
-          key={dot}
-          style={{ animationDelay: `${dot * 160}ms` }}
+          className="duet-typing-dot size-1.5 rounded-full bg-duet-accent"
+          style={{ animationDelay: "120ms" }}
         />
-      ))}
+        <span
+          className="duet-typing-dot size-1.5 rounded-full bg-duet-accent"
+          style={{ animationDelay: "240ms" }}
+        />
+      </span>
+      <span
+        aria-hidden
+        className="duet-thinking-word type-sub font-medium text-duet-ink-2"
+      >
+        {label === "Thinking" ? "Thinking it over" : label}
+      </span>
     </div>
   );
 }

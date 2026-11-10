@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { LISTEN_HOST_VARIABLE, listenHosts } from "@openbot/shared/listen-host";
 import { listenPort } from "@openbot/shared/listen-port";
+import { appConfig } from "./src/lib/generated/application-config";
 
 /*
  * Announce the server's port to the two runtimes that serve the app through Vite, and to no other.
@@ -57,6 +58,20 @@ function announceServerPort(port: number): Plugin {
         response.end(inject(html));
       });
     },
+  };
+}
+
+/*
+ * The tab says the product's name, from the tenant package (scripts/generate-app-config.ts), rather
+ * than the platform's, from the first paint and in the built HTML alike. `scripts/start.sh` finds
+ * the app by its `<meta name="openbot">`, not by the title, so the title is free to change.
+ */
+function productTitle(name: string): Plugin {
+  const escaped = name.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  return {
+    name: "openbot-product-title",
+    transformIndexHtml: (html) =>
+      html.replace(/<title>[^<]*<\/title>/, `<title>${escaped}</title>`),
   };
 }
 
@@ -182,6 +197,7 @@ export const routeBuildRollupOutputOptions = {
 export default defineConfig({
   plugins: [
     announceServerPort(apiPort.port),
+    productTitle(appConfig.brand.productName),
     tanstackRouter({
       autoCodeSplitting: true,
       codeSplittingOptions: routeCodeSplittingOptions,

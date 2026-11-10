@@ -520,6 +520,35 @@ describe("the adapter against the fake", () => {
     expect(all.resultSizeEstimate).toBe(seeds.length);
   });
 
+  test("the studio's message ids are the eval set's own, whatever day the fake starts", async () => {
+    const idsOn = async (now: number): Promise<string[]> => {
+      const other = startFakeGoogle({ now: () => now });
+      try {
+        const { access_token } = await signIn(other.url);
+        const listed = await fetch(
+          `${other.url}/gmail/v1/users/me/messages?maxResults=500`,
+          { headers: { authorization: `Bearer ${access_token}` } },
+        );
+        const { messages } = (await listed.json()) as {
+          messages: { id: string }[];
+        };
+        return messages.map((message) => message.id).sort();
+      } finally {
+        await other.stop();
+      }
+    };
+    const monday = await idsOn(Date.parse("2026-11-02T18:00:00.000Z"));
+    expect(monday).toHaveLength(seeds.length);
+    // Derived from the set's ids alone, so an eval can name a message on any day.
+    const named = (id: string) =>
+      createHash("sha256")
+        .update(`fake-google:${id}`)
+        .digest("hex")
+        .slice(0, 16);
+    expect(monday).toEqual(seeds.map((seed) => named(seed.id)).sort());
+    expect(await idsOn(Date.parse("2026-11-05T18:00:00.000Z"))).toEqual(monday);
+  });
+
   test("delivered mail arrives dated now, and an after: search finds only what is new", async () => {
     await fetch(`${fake.url}/__fake/reset`, { method: "POST" });
     const search = async (query: string) =>

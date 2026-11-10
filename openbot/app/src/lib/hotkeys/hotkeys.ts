@@ -1,9 +1,10 @@
 /**
  * Every app-wide keyboard shortcut, in one place.
  *
- * One place on purpose: the binding a listener matches against and the combo the settings page
- * shows a person are the same entry, so they cannot drift apart. Adding a shortcut is adding an
- * entry here and one `useHotkey` call where it acts; the settings list picks it up by itself.
+ * One place on purpose: the binding a listener matches against and the combo a person is shown are
+ * the same entry, so they cannot drift apart. Adding a shortcut is adding an entry here and one
+ * `useHotkey` call where it acts. Academic OS binds none of them and Settings lists none (see
+ * `app-hotkeys.tsx`).
  *
  * Browsers reserve their own combos. Cmd/Ctrl+N — the obvious key for "new chat" — opens a new
  * browser window before the page ever sees the keystroke, and `preventDefault` is ignored for

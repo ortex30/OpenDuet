@@ -24,53 +24,72 @@ import { ScreenScroll, ScreenTitle } from "./screen";
 /*
  * The Make tab: everything the Bot made for the person, as thumbnails two to a row, the most
  * recently changed first, with chips to show one kind. The + fans out what it can make. Picking one
- * opens Tasks' + sheet with a starter line ("Make a deck about …"), and Start now starts a task
+ * opens Tasks' + sheet with a starter line ("Make slides about …"), and Start now starts a task
  * whose Bot makes it with `make_page`. While that task works, a card for it leads the grid, and the
  * grid reads again every few seconds until what it made arrives.
  */
 
-/** What the + offers, top to bottom, each with the line the sheet opens with. */
+/**
+ * Closes every ask from the + but a study plan's, which no teacher's rule pauses. A page has no
+ * rule check in code, unlike make_quiz and make_flashcards (server/src/openduet/study/guard.ts), so
+ * this is the coach's own check, from the class's Classroom notices: a level set only on the
+ * Teacher rules screen reaches the coach through a refused make_quiz or make_flashcards, not here.
+ */
+const FOLLOW_THE_RULE =
+  "If my teacher set this class to No help, make nothing and tell me why.";
+
+/**
+ * What the + offers, top to bottom: study things, one per stored kind. Each has the line the sheet
+ * opens with, and the line that follows the person's ask (`steer`) so what is made lands here,
+ * under the chip that was picked. Left to itself, "Make a practice quiz on …" makes a quiz card
+ * (make_quiz) and "Make a study plan for …" a plan card (propose_study_plan), which stay in the
+ * task's conversation and leave nothing here, and a page can be saved as a kind another chip
+ * shows. The task and a card saved for Up next show it as the person's own words, so it is written
+ * in their voice and names each kind as make_page does: doc, page (Web page), slides, dashboard.
+ */
 export const MAKE_KINDS: readonly {
   id: PageKind;
   label: string;
   icon: DuetIconName;
   starter: string;
+  steer: string;
 }[] = [
   {
-    id: "design-system",
-    label: "Design System",
-    icon: "sparkle",
-    starter: "Make a design system for …",
+    id: "doc",
+    label: "Study guide",
+    icon: "page",
+    starter: "Make a study guide for …",
+    steer: `Save it as a doc, so it shows up in Made for you. ${FOLLOW_THE_RULE}`,
   },
   {
-    id: "design",
-    label: "Design",
-    icon: "layout",
-    starter: "Make a design for …",
-  },
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: "dashboard",
-    starter: "Make a dashboard of …",
+    id: "page",
+    label: "Practice quiz",
+    icon: "checkCircle",
+    starter: "Make a practice quiz on …",
+    steer: `Save it as a web page with the answers after all the questions, not as a quiz card, so it shows up in Made for you. ${FOLLOW_THE_RULE}`,
   },
   {
     id: "slides",
     label: "Slides",
     icon: "deck",
-    starter: "Make a deck about …",
+    starter: "Make slides about …",
+    steer: `Save them as slides, so they show up in Made for you. ${FOLLOW_THE_RULE}`,
   },
-  { id: "doc", label: "Docs", icon: "page", starter: "Write a doc about …" },
   {
-    id: "page",
-    label: "Web page",
-    icon: "globe",
-    starter: "Make a web page about …",
+    id: "dashboard",
+    label: "Study plan",
+    icon: "calendar",
+    starter: "Make a study plan for …",
+    steer:
+      "Save it as a dashboard, not as a plan card, so it shows up in Made for you.",
   },
 ];
 export type MakeKind = (typeof MAKE_KINDS)[number];
 
-/** The chips over the grid: everything, or one kind. A doc is a page, so Pages holds both. */
+/**
+ * The chips over the grid: everything, or one kind the + makes. A design or a design system, which
+ * the + does not offer, shows under All.
+ */
 export type MakeFilter = "all" | ReturnType<typeof previewKind>;
 export const MAKE_FILTERS: readonly { id: MakeFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -149,7 +168,6 @@ export function MakeScreen() {
   const queryClient = useQueryClient();
   const agents = useQuery(agentListQueryOptions());
   const bot = primaryBot(agents.data);
-  const name = bot?.name;
   const [filter, setFilter] = useState<MakeFilter>("all");
   const [fanned, setFanned] = useState(false);
   const [kind, setKind] = useState<MakeKind | null>(null);
@@ -290,7 +308,7 @@ export function MakeScreen() {
     pages.fetchStatus,
   ]);
 
-  // Nothing while the Bots load: the title and the + both name one, and a placeholder is a flicker.
+  // Nothing while the Bots load: the + needs one, and a placeholder is a flicker.
   if (agents.isPending) return null;
   const shown = pages.data ? filterPages(pages.data, filter) : [];
   return (
@@ -310,14 +328,18 @@ export function MakeScreen() {
       }
     >
       <ScreenTitle title="Make">
-        {name ? `What ${name} made for you.` : "What your Bots made for you."}
+        Your study guides, quizzes and slides.
       </ScreenTitle>
       {saved ? (
         <p className="type-sub mb-3 px-1 text-duet-ink-2" role="status">
           Saved for Up next on Tasks.
         </p>
       ) : null}
-      {pages.isPending ? null : pages.error ? (
+      {pages.isPending ? (
+        <p className="type-sub mb-3 px-1 text-duet-ink-2" role="status">
+          Loading what you've made…
+        </p>
+      ) : pages.error ? (
         <p className="type-sub px-1 text-duet-red" role="alert">
           Couldn't load what was made. Reload the page.
         </p>
@@ -325,8 +347,8 @@ export function MakeScreen() {
         <DuetCard className="px-4 py-4">
           <p className="type-row font-semibold">Nothing made yet.</p>
           <p className="type-sub mt-0.5 text-duet-ink-2">
-            Tap + to choose what to make. What {name ?? "your Bot"} makes shows
-            up here.
+            Use + to ask for a study guide, a practice quiz, slides or a study
+            plan.
           </p>
         </DuetCard>
       ) : (
@@ -338,7 +360,7 @@ export function MakeScreen() {
               {MAKE_FILTERS.find(
                 (entry) => entry.id === filter,
               )?.label.toLowerCase()}{" "}
-              yet. Tap + to make one.
+              yet. Use + to make one.
             </p>
           ) : (
             <ul aria-label="Made for you" className="grid grid-cols-2 gap-3">
@@ -377,6 +399,8 @@ export function MakeScreen() {
       {kind && bot ? (
         <NewTaskSheet
           bot={bot}
+          // After the ask, not before it: a task is named after the first line it was asked.
+          instructionSuffix={kind.steer}
           onAdded={(where, task) => {
             setKind(null);
             if (where === "up_next" || !task) {
@@ -395,7 +419,7 @@ export function MakeScreen() {
             ]);
           }}
           onClose={() => setKind(null)}
-          question={`What should ${bot.name} make?`}
+          question="What should I make?"
           starter={kind.starter}
         />
       ) : null}
@@ -403,7 +427,7 @@ export function MakeScreen() {
   );
 }
 
-/** All, Pages, Decks, Dashboards; the one showing in ink. */
+/** All, then one chip for each thing the + makes; the one showing in ink. */
 function MakeFilters({
   current,
   onPick,
@@ -493,9 +517,9 @@ function MakingCard({
 }
 
 /**
- * The + and what it fans out: Page, Deck, Dashboard and Doc as pills stacked over it, the nearest
- * first, a beat apart. The + turns into × while they are out, and a tap anywhere else, or Escape,
- * folds them away. With reduced motion they fade in place.
+ * The + and what it fans out: a study guide, a practice quiz, slides and a study plan as pills
+ * stacked over it, the nearest first, a beat apart. The + turns into × while they are out, and a
+ * tap anywhere else, or Escape, folds them away. With reduced motion they fade in place.
  *
  * Each pill grows out of the +, from its right edge, and folds back into it farthest first, so the
  * stack reads as coming from the button and going back into it. The list stays drawn until the last
@@ -597,7 +621,7 @@ function MakeFan({
                     }
                   >
                     <button
-                      aria-label={`Make a ${kind.label.toLowerCase()}`}
+                      aria-label={`Make ${kind.label.toLowerCase()}`}
                       className="type-row flex min-h-11 max-w-full items-center gap-2.5 rounded-full py-1.5 pr-5 pl-1.5 text-left font-semibold text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
                       data-kind={kind.id}
                       style={{

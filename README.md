@@ -131,6 +131,60 @@ Then start it:
 bash scripts/start.sh
 ```
 
+## Academic OS demo
+
+This fork is Academic OS, the school coach. The full app (chat, Tasks, Calendar, Today's plan, Learn, and Made for you) is on the `desktop-web` line: pull requests #1, #2, and #3 are already combined there.
+
+One command from a fresh checkout, after `bun install` (or `bash scripts/cloud-install.sh`):
+
+```sh
+bash scripts/academic-os-dev.sh
+```
+
+Open <http://127.0.0.1:3010>. Postgres runs locally. The Bot computer from `scripts/start.sh` is not started.
+
+### On a Mac
+
+Apple Silicon, with Homebrew, bun, and git. Docker and sudo are not required. `postgresql@16` is the only database, and pgvector is built into that install.
+
+```sh
+bash scripts/cloud-install.sh
+bash scripts/academic-os-dev.sh
+```
+
+The dev script starts Postgres, then opens the app in the browser. Stop the app, the API, and the Postgres this script started:
+
+```sh
+bash scripts/academic-os-stop.sh
+```
+
+Live chat uses `OPENAI_API_KEY`. The dev script copies it into `openbot/.env` when it is already in the environment. `ACADEMIC_OS_MODEL` picks the OpenAI model. Unset, it stays `gpt-5.6-terra`.
+
+OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACADEMIC_OS_PROVIDER=openrouter`. `OPENROUTER_MODEL` names the model.
+
+Chat threads need CopilotKit Intelligence. The dev script does that locally: if `INTELLIGENCE_API_KEY` is empty or still the old placeholder, it writes a `local-` key, points `INTELLIGENCE_API_URL` and `INTELLIGENCE_GATEWAY_WS_URL` at `127.0.0.1:7091`, and starts that service. A key you already set is left as it is.
+
+The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. With the pack present, the coach uses the signed-in name, or `ACADEMIC_OS_STUDENT_NAME` when that is set. Spring 2026 rows in the pack are not deadlines.
+
+```sh
+cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --reset
+cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --pack --reset
+```
+
+The first command is the generic study memory. The second is the private pack.
+
+Chat stays the home. Tonight, Study, Calendar, Tasks, and Rules open from the row above the message box. Study (Learn) writes a guide, a quick quiz, a practice test, or a tutor turn from the notes in the pack. A guide is an outline, a draft that keeps only what the notes say, a check that drops the rest, then the page. Print is in the page menu. A quiz is short. A practice test can be timed or untimed, and it uses the format that fits the class: APUSH gets stimulus multiple choice, an SAQ, and an LEQ outline; calculus gets multi-step problems with math drawn on the page; statistics gets chapter problems. Written answers are graded with a rubric. With a key, the model grades them and the rubric is the fallback. Misses go into spaced review. The tutor explains from the notes, checks with a question, and tries a simpler explanation when the answer is off. Chemistry is no AI help: a guide can organize the notes, and a quiz or tutor turn is refused. Chat reads those levels from the school pack, so it does not ask you to connect mail first. Tonight's plan uses the real due dates.
+
+Study guides use `ACADEMIC_OS_GUIDE_MODEL` (default `gpt-5.5`). With a key, the model writes the page from the notes for that focus. Formulas stay in math notation and the page draws them. Short tutor passes use `ACADEMIC_OS_FAST_MODEL` (default `gpt-4o-mini`). With no `OPENAI_API_KEY`, the same pages are built straight from the notes and nothing is sent to a model. Learn has a Focus box for a unit, such as Period 5 or Unit 5.
+
+App tests, from `openbot/`:
+
+```sh
+TEST_DATABASE_URL=postgres://openbot:openbot@127.0.0.1:5432/openbot_test bun test app/tests
+```
+
+`scripts/academic-os-dev.sh` migrates that test database too.
+
 and open <http://localhost:3010>. The script starts Postgres and each Bot's computer in Docker, applies the database migrations, and starts the API server, the routine worker, and the app. It checks that each one answers before it prints the next steps. `bash scripts/stop.sh` stops the app, the worker, the API server and the Docker services, and removes the Bot computers that belong to this install, the ones with its `COMPUTER_NAMESPACE`. It does not touch another install's. The database, each Bot's files and its browser profile are Docker volumes, so they stay. Add `--keep-computers` to leave the Bot computers running.
 
 If port 5432 is already taken on your machine, set `POSTGRES_PORT` in `.env` to a free port and change the port in `DATABASE_URL` to match.

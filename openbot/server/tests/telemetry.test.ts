@@ -51,8 +51,8 @@ async function capture(
 }
 
 describe("runtime telemetry", () => {
-  test("names OpenDuet, carries the CLI-issued identity, and is not sampled away", async () => {
-    const sent = await capture();
+  test("names OpenDuet when a sample is kept", async () => {
+    const sent = await capture({ COPILOTKIT_TELEMETRY_SAMPLE_RATE: "1" });
     expect(sent).toHaveLength(1);
     const [event] = sent;
     expect(event?.url).toBe("https://telemetry.copilotkit.ai/ingest");
@@ -62,6 +62,25 @@ describe("runtime telemetry", () => {
     expect(event?.body.event).toBe("oss.runtime.instance_created");
     expect(event?.body.global_properties.accessibility_title).toBe("OpenDuet");
     expect(event?.body.global_properties.sampleRate).toBe(1);
+  });
+
+  test("the default sample rate is 5 percent", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openduet-telemetry-rate-"));
+    const env: Record<string, string | undefined> = { ...process.env };
+    delete env.COPILOTKIT_TELEMETRY_SAMPLE_RATE;
+    delete env.DO_NOT_TRACK;
+    delete env.COPILOTKIT_TELEMETRY_DISABLED;
+    const child = Bun.spawn(
+      [
+        process.execPath,
+        "-e",
+        `await import(${JSON.stringify(join(import.meta.dir, "../src/telemetry.ts"))}); console.log(process.env.COPILOTKIT_TELEMETRY_SAMPLE_RATE);`,
+      ],
+      { cwd: directory, env, stdout: "pipe", stderr: "pipe" },
+    );
+    const text = await new Response(child.stdout).text();
+    expect(text.trim()).toBe("0.05");
+    await rm(directory, { recursive: true, force: true });
   });
 
   test("an explicit sample rate wins over the default", async () => {

@@ -19,8 +19,11 @@ import { Route as AuthedAppIndexRouteImport } from './routes/_authed/_app/index'
 import { Route as AuthedAppActivityRouteImport } from './routes/_authed/_app/activity'
 import { Route as AuthedAppApprovalsRouteImport } from './routes/_authed/_app/approvals'
 import { Route as AuthedAppBotRouteImport } from './routes/_authed/_app/bot'
+import { Route as AuthedAppCalendarRouteImport } from './routes/_authed/_app/calendar'
 import { Route as AuthedAppCapabilitiesRouteImport } from './routes/_authed/_app/capabilities'
+import { Route as AuthedAppCoachRouteImport } from './routes/_authed/_app/coach'
 import { Route as AuthedAppInboxRouteImport } from './routes/_authed/_app/inbox'
+import { Route as AuthedAppLearnRouteImport } from './routes/_authed/_app/learn'
 import { Route as AuthedAppMakeRouteImport } from './routes/_authed/_app/make'
 import { Route as AuthedAppMemoryRouteImport } from './routes/_authed/_app/memory'
 import { Route as AuthedAppReachabilityRouteImport } from './routes/_authed/_app/reachability'
@@ -48,6 +51,7 @@ import { Route as AuthedSettingsMemoryRouteImport } from './routes/_authed/setti
 import { Route as AuthedSettingsNotificationsRouteImport } from './routes/_authed/settings/notifications'
 import { Route as AuthedSettingsPasswordsRouteImport } from './routes/_authed/settings/passwords'
 import { Route as AuthedSettingsSetupRouteImport } from './routes/_authed/settings/setup'
+import { Route as AuthedSettingsTeacherRulesRouteImport } from './routes/_authed/settings/teacher-rules'
 import { Route as AuthedSignInRequestIdRouteImport } from './routes/_authed/sign-in/$requestId'
 import { Route as AuthedAppAgentsIndexRouteImport } from './routes/_authed/_app/agents/index'
 import { Route as AuthedAppBotsIndexRouteImport } from './routes/_authed/_app/bots.index'
@@ -136,14 +140,29 @@ const AuthedAppBotRoute = AuthedAppBotRouteImport.update({
   path: '/bot',
   getParentRoute: () => AuthedAppRoute,
 } as any)
+const AuthedAppCalendarRoute = AuthedAppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
 const AuthedAppCapabilitiesRoute = AuthedAppCapabilitiesRouteImport.update({
   id: '/capabilities',
   path: '/capabilities',
   getParentRoute: () => AuthedAppRoute,
 } as any)
+const AuthedAppCoachRoute = AuthedAppCoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
 const AuthedAppInboxRoute = AuthedAppInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AuthedAppRoute,
+} as any)
+const AuthedAppLearnRoute = AuthedAppLearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
   getParentRoute: () => AuthedAppRoute,
 } as any)
 const AuthedAppMakeRoute = AuthedAppMakeRouteImport.update({
@@ -284,6 +303,12 @@ const AuthedSettingsSetupRoute = AuthedSettingsSetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => AuthedSettingsRouteRoute,
 } as any)
+const AuthedSettingsTeacherRulesRoute =
+  AuthedSettingsTeacherRulesRouteImport.update({
+    id: '/teacher-rules',
+    path: '/teacher-rules',
+    getParentRoute: () => AuthedSettingsRouteRoute,
+  } as any)
 const AuthedSignInRequestIdRoute = AuthedSignInRequestIdRouteImport.update({
   id: '/sign-in/$requestId',
   path: '/sign-in/$requestId',
@@ -515,8 +540,11 @@ export interface FileRoutesByFullPath {
   '/activity': typeof AuthedAppActivityRoute
   '/approvals': typeof AuthedAppApprovalsRoute
   '/bot': typeof AuthedAppBotRoute
+  '/calendar': typeof AuthedAppCalendarRoute
   '/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
+  '/coach': typeof AuthedAppCoachRoute
   '/inbox': typeof AuthedAppInboxRoute
+  '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
   '/reachability': typeof AuthedAppReachabilityRoute
@@ -542,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/passwords': typeof AuthedSettingsPasswordsRoute
   '/settings/setup': typeof AuthedSettingsSetupRoute
+  '/settings/teacher-rules': typeof AuthedSettingsTeacherRulesRoute
   '/sign-in/$requestId': typeof AuthedSignInRequestIdRoute
   '/admin/': typeof AuthedAdminIndexRoute
   '/settings/': typeof AuthedSettingsIndexRoute
@@ -591,7 +620,10 @@ export interface FileRoutesByTo {
   '/activity': typeof AuthedAppActivityRoute
   '/approvals': typeof AuthedAppApprovalsRoute
   '/bot': typeof AuthedAppBotRoute
+  '/calendar': typeof AuthedAppCalendarRoute
+  '/coach': typeof AuthedAppCoachRoute
   '/inbox': typeof AuthedAppInboxRoute
+  '/learn': typeof AuthedAppLearnRoute
   '/make': typeof AuthedAppMakeRouteWithChildren
   '/memory': typeof AuthedAppMemoryRoute
   '/reachability': typeof AuthedAppReachabilityRoute
@@ -617,6 +649,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/settings/passwords': typeof AuthedSettingsPasswordsRoute
   '/settings/setup': typeof AuthedSettingsSetupRoute
+  '/settings/teacher-rules': typeof AuthedSettingsTeacherRulesRoute
   '/sign-in/$requestId': typeof AuthedSignInRequestIdRoute
   '/admin': typeof AuthedAdminIndexRoute
   '/settings': typeof AuthedSettingsIndexRoute
@@ -670,8 +703,11 @@ export interface FileRoutesById {
   '/_authed/_app/activity': typeof AuthedAppActivityRoute
   '/_authed/_app/approvals': typeof AuthedAppApprovalsRoute
   '/_authed/_app/bot': typeof AuthedAppBotRoute
+  '/_authed/_app/calendar': typeof AuthedAppCalendarRoute
   '/_authed/_app/capabilities': typeof AuthedAppCapabilitiesRouteWithChildren
+  '/_authed/_app/coach': typeof AuthedAppCoachRoute
   '/_authed/_app/inbox': typeof AuthedAppInboxRoute
+  '/_authed/_app/learn': typeof AuthedAppLearnRoute
   '/_authed/_app/make': typeof AuthedAppMakeRouteWithChildren
   '/_authed/_app/memory': typeof AuthedAppMemoryRoute
   '/_authed/_app/reachability': typeof AuthedAppReachabilityRoute
@@ -697,6 +733,7 @@ export interface FileRoutesById {
   '/_authed/settings/notifications': typeof AuthedSettingsNotificationsRoute
   '/_authed/settings/passwords': typeof AuthedSettingsPasswordsRoute
   '/_authed/settings/setup': typeof AuthedSettingsSetupRoute
+  '/_authed/settings/teacher-rules': typeof AuthedSettingsTeacherRulesRoute
   '/_authed/sign-in/$requestId': typeof AuthedSignInRequestIdRoute
   '/_authed/_app/': typeof AuthedAppIndexRoute
   '/_authed/admin/': typeof AuthedAdminIndexRoute
@@ -751,8 +788,11 @@ export interface FileRouteTypes {
     | '/activity'
     | '/approvals'
     | '/bot'
+    | '/calendar'
     | '/capabilities'
+    | '/coach'
     | '/inbox'
+    | '/learn'
     | '/make'
     | '/memory'
     | '/reachability'
@@ -778,6 +818,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/passwords'
     | '/settings/setup'
+    | '/settings/teacher-rules'
     | '/sign-in/$requestId'
     | '/admin/'
     | '/settings/'
@@ -827,7 +868,10 @@ export interface FileRouteTypes {
     | '/activity'
     | '/approvals'
     | '/bot'
+    | '/calendar'
+    | '/coach'
     | '/inbox'
+    | '/learn'
     | '/make'
     | '/memory'
     | '/reachability'
@@ -853,6 +897,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/passwords'
     | '/settings/setup'
+    | '/settings/teacher-rules'
     | '/sign-in/$requestId'
     | '/admin'
     | '/settings'
@@ -905,8 +950,11 @@ export interface FileRouteTypes {
     | '/_authed/_app/activity'
     | '/_authed/_app/approvals'
     | '/_authed/_app/bot'
+    | '/_authed/_app/calendar'
     | '/_authed/_app/capabilities'
+    | '/_authed/_app/coach'
     | '/_authed/_app/inbox'
+    | '/_authed/_app/learn'
     | '/_authed/_app/make'
     | '/_authed/_app/memory'
     | '/_authed/_app/reachability'
@@ -932,6 +980,7 @@ export interface FileRouteTypes {
     | '/_authed/settings/notifications'
     | '/_authed/settings/passwords'
     | '/_authed/settings/setup'
+    | '/_authed/settings/teacher-rules'
     | '/_authed/sign-in/$requestId'
     | '/_authed/_app/'
     | '/_authed/admin/'
@@ -1053,6 +1102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppBotRouteImport
       parentRoute: typeof AuthedAppRoute
     }
+    '/_authed/_app/calendar': {
+      id: '/_authed/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthedAppCalendarRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
     '/_authed/_app/capabilities': {
       id: '/_authed/_app/capabilities'
       path: '/capabilities'
@@ -1060,11 +1116,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppCapabilitiesRouteImport
       parentRoute: typeof AuthedAppRoute
     }
+    '/_authed/_app/coach': {
+      id: '/_authed/_app/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof AuthedAppCoachRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
     '/_authed/_app/inbox': {
       id: '/_authed/_app/inbox'
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AuthedAppInboxRouteImport
+      parentRoute: typeof AuthedAppRoute
+    }
+    '/_authed/_app/learn': {
+      id: '/_authed/_app/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof AuthedAppLearnRouteImport
       parentRoute: typeof AuthedAppRoute
     }
     '/_authed/_app/make': {
@@ -1254,6 +1324,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/settings/setup'
       preLoaderRoute: typeof AuthedSettingsSetupRouteImport
+      parentRoute: typeof AuthedSettingsRouteRoute
+    }
+    '/_authed/settings/teacher-rules': {
+      id: '/_authed/settings/teacher-rules'
+      path: '/teacher-rules'
+      fullPath: '/settings/teacher-rules'
+      preLoaderRoute: typeof AuthedSettingsTeacherRulesRouteImport
       parentRoute: typeof AuthedSettingsRouteRoute
     }
     '/_authed/sign-in/$requestId': {
@@ -1587,6 +1664,7 @@ interface AuthedSettingsRouteRouteChildren {
   AuthedSettingsNotificationsRoute: typeof AuthedSettingsNotificationsRoute
   AuthedSettingsPasswordsRoute: typeof AuthedSettingsPasswordsRoute
   AuthedSettingsSetupRoute: typeof AuthedSettingsSetupRoute
+  AuthedSettingsTeacherRulesRoute: typeof AuthedSettingsTeacherRulesRoute
   AuthedSettingsIndexRoute: typeof AuthedSettingsIndexRoute
   AuthedSettingsComponentsGalleryNameRoute: typeof AuthedSettingsComponentsGalleryNameRoute
   AuthedSettingsConnectedAccountsKeyRoute: typeof AuthedSettingsConnectedAccountsKeyRoute
@@ -1600,6 +1678,7 @@ const AuthedSettingsRouteRouteChildren: AuthedSettingsRouteRouteChildren = {
   AuthedSettingsNotificationsRoute: AuthedSettingsNotificationsRoute,
   AuthedSettingsPasswordsRoute: AuthedSettingsPasswordsRoute,
   AuthedSettingsSetupRoute: AuthedSettingsSetupRoute,
+  AuthedSettingsTeacherRulesRoute: AuthedSettingsTeacherRulesRoute,
   AuthedSettingsIndexRoute: AuthedSettingsIndexRoute,
   AuthedSettingsComponentsGalleryNameRoute:
     AuthedSettingsComponentsGalleryNameRoute,
@@ -1662,8 +1741,11 @@ interface AuthedAppRouteChildren {
   AuthedAppActivityRoute: typeof AuthedAppActivityRoute
   AuthedAppApprovalsRoute: typeof AuthedAppApprovalsRoute
   AuthedAppBotRoute: typeof AuthedAppBotRoute
+  AuthedAppCalendarRoute: typeof AuthedAppCalendarRoute
   AuthedAppCapabilitiesRoute: typeof AuthedAppCapabilitiesRouteWithChildren
+  AuthedAppCoachRoute: typeof AuthedAppCoachRoute
   AuthedAppInboxRoute: typeof AuthedAppInboxRoute
+  AuthedAppLearnRoute: typeof AuthedAppLearnRoute
   AuthedAppMakeRoute: typeof AuthedAppMakeRouteWithChildren
   AuthedAppMemoryRoute: typeof AuthedAppMemoryRoute
   AuthedAppReachabilityRoute: typeof AuthedAppReachabilityRoute
@@ -1700,8 +1782,11 @@ const AuthedAppRouteChildren: AuthedAppRouteChildren = {
   AuthedAppActivityRoute: AuthedAppActivityRoute,
   AuthedAppApprovalsRoute: AuthedAppApprovalsRoute,
   AuthedAppBotRoute: AuthedAppBotRoute,
+  AuthedAppCalendarRoute: AuthedAppCalendarRoute,
   AuthedAppCapabilitiesRoute: AuthedAppCapabilitiesRouteWithChildren,
+  AuthedAppCoachRoute: AuthedAppCoachRoute,
   AuthedAppInboxRoute: AuthedAppInboxRoute,
+  AuthedAppLearnRoute: AuthedAppLearnRoute,
   AuthedAppMakeRoute: AuthedAppMakeRouteWithChildren,
   AuthedAppMemoryRoute: AuthedAppMemoryRoute,
   AuthedAppReachabilityRoute: AuthedAppReachabilityRoute,
