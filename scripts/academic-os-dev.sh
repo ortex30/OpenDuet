@@ -49,6 +49,8 @@ ensure_env() {
   fi
   link_env
   python3 - <<'PY'
+import os
+import secrets
 from pathlib import Path
 path = Path("openbot/.env")
 text = path.read_text()
@@ -67,12 +69,24 @@ def empty(key):
     return values.get(key, "").strip() == ""
 
 updates = {}
-if empty("INTELLIGENCE_API_KEY"):
-    updates["INTELLIGENCE_API_KEY"] = "local-demo-not-a-real-key"
-if empty("INTELLIGENCE_API_URL"):
-    updates["INTELLIGENCE_API_URL"] = "https://api.intelligence.copilotkit.ai"
-if empty("INTELLIGENCE_GATEWAY_WS_URL"):
-    updates["INTELLIGENCE_GATEWAY_WS_URL"] = "wss://realtime.intelligence.copilotkit.ai"
+key = values.get("INTELLIGENCE_API_KEY", "").strip()
+placeholder = key in ("", "local-demo-not-a-real-key")
+cloud = "intelligence.copilotkit.ai" in values.get("INTELLIGENCE_API_URL", "") or "intelligence.copilotkit.ai" in values.get("INTELLIGENCE_GATEWAY_WS_URL", "")
+if placeholder or key.startswith("local-") or cloud and placeholder:
+    if placeholder:
+        updates["INTELLIGENCE_API_KEY"] = "local-" + secrets.token_hex(16)
+    if placeholder or cloud or empty("INTELLIGENCE_API_URL"):
+        updates["INTELLIGENCE_API_URL"] = "http://127.0.0.1:7091"
+    if placeholder or cloud or empty("INTELLIGENCE_GATEWAY_WS_URL"):
+        updates["INTELLIGENCE_GATEWAY_WS_URL"] = "ws://127.0.0.1:7091"
+else:
+    if empty("INTELLIGENCE_API_URL"):
+        updates["INTELLIGENCE_API_URL"] = "https://api.intelligence.copilotkit.ai"
+    if empty("INTELLIGENCE_GATEWAY_WS_URL"):
+        updates["INTELLIGENCE_GATEWAY_WS_URL"] = "wss://realtime.intelligence.copilotkit.ai"
+openai = os.environ.get("OPENAI_API_KEY", "").strip()
+if openai and empty("OPENAI_API_KEY"):
+    updates["OPENAI_API_KEY"] = openai
 # The example points at a Bot computer this demo does not start.
 if values.get("AGENT_COMPUTER_URL", "").strip() == "http://localhost:4100":
     updates["AGENT_COMPUTER_URL"] = ""
@@ -87,6 +101,8 @@ pack = any(
 )
 if pack and empty("ACADEMIC_OS_PRIVATE_DEMO"):
     updates["ACADEMIC_OS_PRIVATE_DEMO"] = "1"
+if pack and empty("ACADEMIC_OS_STUDENT_NAME"):
+    updates["ACADEMIC_OS_STUDENT_NAME"] = "Viren Harding"
 
 if not updates:
     raise SystemExit
@@ -111,9 +127,64 @@ listening() {
   curl -fsS --max-time 2 "http://127.0.0.1:$1$2" >/dev/null 2>&1
 }
 
+env_stamp() {
+  python3 - <<'PY'
+from pathlib import Path
+vals = {}
+for line in Path("openbot/.env").read_text().splitlines():
+    if line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    vals[key] = value.strip()
+openai = "yes" if vals.get("OPENAI_API_KEY") else "no"
+kind = "local" if vals.get("INTELLIGENCE_API_KEY", "").startswith("local-") else "other"
+print("|".join([
+    vals.get("INTELLIGENCE_API_URL", ""),
+    vals.get("INTELLIGENCE_GATEWAY_WS_URL", ""),
+    kind,
+    vals.get("ACADEMIC_OS_STUDENT_NAME", ""),
+    openai,
+]))
+PY
+}
+
+start_intelligence() {
+  if ! grep -q '^INTELLIGENCE_API_KEY=local-' openbot/.env; then
+    return 0
+  fi
+  if curl -fsS --max-time 2 http://127.0.0.1:7091/health >/dev/null 2>&1; then
+    return 0
+  fi
+  nohup bash -c 'cd openbot/server && exec bun --env-file=../.env scripts/local-intelligence.ts' \
+    >openbot/.logs/intelligence.log 2>&1 &
+  echo $! >openbot/.logs/intelligence.pid
+  for _ in $(seq 1 30); do
+    curl -fsS --max-time 1 http://127.0.0.1:7091/health >/dev/null 2>&1 && return 0
+    sleep 0.2
+  done
+  echo "Local intelligence did not start. See openbot/.logs/intelligence.log" >&2
+  tail -n 40 openbot/.logs/intelligence.log >&2 || true
+  exit 1
+}
+
 start_postgres
 ensure_databases
 ensure_env
+start_intelligence
+
+STAMP="$(env_stamp)"
+OLD=""
+if [ -f openbot/.logs/env-stamp ]; then
+  OLD="$(cat openbot/.logs/env-stamp)"
+fi
+if [ "$STAMP" != "$OLD" ] && [ -f openbot/.logs/server.pid ]; then
+  kill "$(cat openbot/.logs/server.pid)" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    listening "$SERVER_PORT" "/api/me" || break
+    sleep 0.2
+  done
+fi
+printf '%s\n' "$STAMP" >openbot/.logs/env-stamp
 
 if ! (cd openbot/server && bun --env-file=../.env scripts/migrate.ts); then
   echo "Migrations failed." >&2
@@ -128,6 +199,7 @@ fi
 if ! listening "$SERVER_PORT" "/api/me"; then
   nohup bash -c 'cd openbot/server && exec bun --env-file=../.env src/production-entry.ts' \
     >openbot/.logs/server.log 2>&1 &
+  echo $! >openbot/.logs/server.pid
 fi
 if ! listening "$APP_PORT" "/"; then
   nohup bash -c "cd openbot/app && bun run dev --port $APP_PORT --strictPort --host 127.0.0.1" \
@@ -163,8 +235,11 @@ if grep -q '^ACADEMIC_OS_PRIVATE_DEMO=1' openbot/.env; then
 else
   echo "School pack: not found. Using the generic demo student."
 fi
-if grep -q '^INTELLIGENCE_API_KEY=local-demo-not-a-real-key' openbot/.env || ! grep -q '^OPENAI_API_KEY=.\+' openbot/.env; then
-  echo "Live chat needs a real INTELLIGENCE_API_KEY and OPENAI_API_KEY in openbot/.env, then a restart."
+if grep -q '^INTELLIGENCE_API_KEY=local-' openbot/.env; then
+  echo "Threads: local. No CopilotKit Intelligence key is required."
+fi
+if ! grep -q '^OPENAI_API_KEY=.\+' openbot/.env; then
+  echo "OPENAI_API_KEY is not in openbot/.env, so chat and study guides stay on the notes."
 fi
 
 if [ "${ACADEMIC_OS_DEV_EXIT:-}" = "1" ]; then

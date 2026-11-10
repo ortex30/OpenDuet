@@ -16,6 +16,12 @@ import {
   polishTutor,
   schoolSnapshotFromPack,
 } from "../src/openduet/study/craft";
+import {
+  guideFromModelText,
+  guideProblems,
+  prepareNotes,
+  scrubGuideText,
+} from "../src/openduet/study/guide-write";
 
 const NOTES = `# Period 5
 
@@ -254,6 +260,262 @@ test("without a key the tutor is not sent to a model", async () => {
   });
   expect(called).toBe(false);
   expect(polished.explanation).toBe(step.explanation);
+});
+
+test("a guide keeps a formula as math and drops a source label", () => {
+  const notes = `# Unit 5
+
+## The rule
+What it is: a label that should not survive on the page.
+**FTC, part 1.** If $F'=f$ on $[a,b]$, then $\\int_a^b f(x)\\,dx = F(b)-F(a)$. The definite integral equals the change in the antiderivative.
+† This sentence is my synthesis and should not be copied as a source label.
+`;
+  const guide = craftGuide({
+    ...input,
+    className: "AP Calculus BC",
+    focus: "Unit 5",
+    files: [{ path: "materials/calc-unit5-review.md", markdown: notes }],
+  });
+  expect(guide.markdown).toContain("$");
+  expect(guide.markdown).not.toContain("int _a^b");
+  expect(guide.markdown.toLowerCase()).not.toContain("what it is:");
+  expect(guide.markdown).not.toContain("†");
+});
+
+test("a model guide keeps note facts, math, and no source dump", () => {
+  const source = prepareNotes(`# Period 5
+
+## Compromise
+What happened: The Compromise of 1850 admitted California as a free state and added a stricter fugitive slave law.
+**Kansas-Nebraska Act** — The 1854 law let settlers vote on slavery and replaced the Missouri Compromise line.
+`);
+  const raw = JSON.stringify({
+    title: "APUSH Period 5",
+    summary: "Slavery's expansion splits the Union, 1844–1877.",
+    opening:
+      "Period 5 turns on whether slavery would expand with the country. The Compromise of 1850 and the Kansas-Nebraska Act show the Senate could not settle it.",
+    sections: [
+      {
+        heading: "The Compromise of 1850",
+        text: "The Compromise of 1850 admitted California as a free state and added a stricter fugitive slave law. What it is: a bargain, not a solution. [L16 44:54]",
+      },
+      {
+        heading: "Kansas-Nebraska",
+        text: "The Kansas-Nebraska Act in 1854 let settlers vote on slavery and replaced the Missouri Compromise line.",
+      },
+      {
+        heading: "The Missouri Compromise line",
+        text: "The Kansas-Nebraska Act replaced the Missouri Compromise line when settlers were allowed to vote on slavery.",
+      },
+      {
+        heading: "Invented",
+        text: "In 1492 the Senate invented a new ocean and a new country that the notes never mention at all.",
+      },
+    ],
+    terms: [
+      {
+        term: "Kansas-Nebraska Act",
+        remember:
+          "The 1854 law let settlers vote on slavery and replaced the Missouri Compromise line.",
+      },
+      {
+        term: "Compromise of 1850",
+        remember:
+          "The Compromise of 1850 admitted California as a free state and added a stricter fugitive slave law.",
+      },
+      {
+        term: "Missouri Compromise",
+        remember:
+          "The Missouri Compromise line was replaced when settlers were allowed to vote on slavery.",
+      },
+      {
+        term: "Fugitive slave law",
+        remember: "The Compromise of 1850 added a stricter fugitive slave law.",
+      },
+    ],
+    timeline: [
+      {
+        date: "1850",
+        title: "Compromise of 1850",
+        text: "California entered as a free state and the fugitive slave law got stricter.",
+      },
+      {
+        date: "1854",
+        title: "Kansas-Nebraska Act",
+        text: "Settlers would vote on slavery, and the Missouri Compromise line was replaced.",
+      },
+      {
+        date: "1492",
+        title: "Not in the notes",
+        text: "An invented landing that the notes do not describe in any way.",
+      },
+      {
+        date: "1850",
+        title: "Fugitive slave law",
+        text: "The stricter fugitive slave law was part of the Compromise of 1850.",
+      },
+    ],
+    practice: [
+      {
+        prompt: "What did the Compromise of 1850 do about California?",
+        answer: "The Compromise of 1850 admitted California as a free state.",
+      },
+      {
+        prompt: "What did the Kansas-Nebraska Act replace?",
+        answer:
+          "It replaced the Missouri Compromise line and let settlers vote on slavery.",
+      },
+      {
+        prompt: "Why did the fugitive slave law matter in 1850?",
+        answer: "The Compromise of 1850 added a stricter fugitive slave law.",
+      },
+    ],
+  });
+  const guide = guideFromModelText(
+    raw,
+    { ...input, focus: "APUSH Period 5" },
+    source,
+  );
+  if (!guide) throw new Error("guide was dropped");
+  expect(guide.markdown).toContain("Compromise of 1850");
+  expect(guide.markdown).toContain("Kansas-Nebraska");
+  expect(guide.markdown).not.toContain("1492");
+  expect(guide.markdown.toLowerCase()).not.toContain("what it is:");
+  expect(guide.markdown).not.toContain("[L16");
+  expect(guideProblems(guide.markdown)).toEqual([]);
+  expect(scrubGuideText("What happened: Polk settled Oregon.")).toBe(
+    "Polk settled Oregon.",
+  );
+});
+
+test("a class calendar is not a timeline", () => {
+  const source = prepareNotes(
+    "Exam 3 is November 12 2026. Density equals mass divided by volume. The ideal gas law uses pressure volume temperature and moles. Avogadro number is 6.02 times 10 to the 23.",
+  );
+  const guide = guideFromModelText(
+    JSON.stringify({
+      title: "Units 1 and 2",
+      summary: "Gases, density, and energy.",
+      opening:
+        "Units 1 and 2 connect visible lab behavior to particle models. Density equals mass divided by volume, and the ideal gas law uses pressure, volume, temperature, and moles.",
+      sections: [
+        {
+          heading: "Density",
+          text: "Density equals mass divided by volume, and that relationship stays constant for a given substance.",
+        },
+        {
+          heading: "Gases",
+          text: "The ideal gas law uses pressure, volume, temperature, and moles. One mole of gas at STP has a volume of 22.4 liters.",
+        },
+        {
+          heading: "Amount",
+          text: "Avogadro number is 6.02 times 10 to the 23, and the mole is the amount used in gas problems.",
+        },
+      ],
+      terms: [],
+      timeline: [
+        {
+          date: "November 12, 2026",
+          title: "Exam 3 window",
+          text: "Exam 3 was noted as November 12 2026.",
+        },
+      ],
+      practice: [],
+    }),
+    {
+      ...input,
+      className: "Advanced Chemistry",
+      help: "none",
+      focus: "Units 1-2",
+    },
+    source,
+  );
+  if (!guide) throw new Error("guide was dropped");
+  expect(guide.markdown).not.toContain("2026");
+  expect(guide.markdown).toContain("not an answer to turn in");
+  expect(guide.markdown).not.toContain("## Practice");
+});
+
+test("with a key, the model guide replaces the draft", async () => {
+  const body = JSON.stringify({
+    title: "APUSH Period 5",
+    summary:
+      "From 1844 to 1877 the fight over slavery's expansion breaks the Union.",
+    opening:
+      "The Missouri Compromise drew a line and kept a balance of free and slave states in the Senate. Later fights over the Mexican Cession reopened that argument.",
+    sections: [
+      {
+        heading: "Slavery and the West",
+        text: "The Missouri Compromise drew a line at the Senate balance of free and slave states. Later fights over the Mexican Cession reopened that argument.",
+      },
+      {
+        heading: "Emancipation",
+        text: "The Emancipation Proclamation in 1863 freed enslaved people in Confederate-held territory and let Black men join the Union army.",
+      },
+      {
+        heading: "Gettysburg",
+        text: "The July 1863 Union victory at Gettysburg ended Lee's invasion of the North.",
+      },
+    ],
+    terms: [
+      {
+        term: "Emancipation Proclamation",
+        remember:
+          "Lincoln's 1863 order freed enslaved people in Confederate-held territory and let Black men join the Union army.",
+      },
+      {
+        term: "Gettysburg",
+        remember:
+          "The July 1863 Union victory ended Lee's invasion of the North.",
+      },
+      {
+        term: "Missouri Compromise",
+        remember:
+          "The Missouri Compromise drew a line and kept a balance of free and slave states in the Senate.",
+      },
+      {
+        term: "Mexican Cession",
+        remember:
+          "Later fights over the Mexican Cession reopened the argument about slavery in the West.",
+      },
+    ],
+    timeline: [],
+    practice: [
+      {
+        prompt: "What did the Emancipation Proclamation do in 1863?",
+        answer:
+          "It freed enslaved people in Confederate-held territory and let Black men join the Union army.",
+      },
+      {
+        prompt: "What did Gettysburg end?",
+        answer:
+          "The July 1863 Union victory ended Lee's invasion of the North.",
+      },
+      {
+        prompt: "What did the Missouri Compromise keep in the Senate?",
+        answer: "It kept a balance of free and slave states in the Senate.",
+      },
+    ],
+  });
+  let called = false;
+  const guide = craftGuide(input);
+  const polished = await polishGuide(
+    guide,
+    NOTES,
+    { OPENAI_API_KEY: "test-key" },
+    async () => {
+      called = true;
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: body } }] }),
+        { status: 200 },
+      );
+    },
+    input,
+  );
+  expect(called).toBe(true);
+  expect(polished).not.toBe(guide);
+  expect(polished.markdown).toContain("Emancipation Proclamation");
+  expect(polished.title).toBe("APUSH Period 5");
 });
 
 test("without a key the guide is not sent to a model", async () => {

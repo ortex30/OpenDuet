@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   type Assignment,
-  type CoachState,
   addDays,
+  type CoachState,
   formatDue,
   formatMinutes,
   localDate,
@@ -29,6 +29,7 @@ import {
 import {
   blankState,
   demoState,
+  privatePackState,
   withAccountName,
   withSampleColors,
 } from "@/lib/coach/seed";
@@ -409,6 +410,28 @@ describe("the student's name", () => {
     expect(withAccountName(setUp, "Viren Shah")).toBe(setUp);
     const fresh = blankState("Sam");
     expect(withAccountName(fresh, "Viren Shah")).toBe(fresh);
+  });
+
+  test("a school pack greets Viren", () => {
+    const state = privatePackState({
+      available: true,
+      school: "St. Andrew's",
+      timeZone: "America/Chicago",
+      historicalExcluded: 0,
+      classes: [
+        {
+          id: "apush",
+          name: "AP United States History",
+          teacher: "Ms. Peña",
+          help: "hints",
+        },
+      ],
+      assignments: [],
+    });
+    expect(state.profile.name).toBe("Viren");
+    expect(withAccountName(state, "dev@openbot.local").profile.name).toBe(
+      "Viren",
+    );
   });
 });
 

@@ -140,7 +140,9 @@ function Block({
                 aria-hidden
                 className="mt-[calc(0.765em-2.5px)] size-[5px] shrink-0 rounded-full bg-duet-ink-3"
               />
-              <span className="min-w-0">{item}</span>
+              <span className="min-w-0">
+                <PageText text={item} />
+              </span>
             </li>
           ))}
         </ul>

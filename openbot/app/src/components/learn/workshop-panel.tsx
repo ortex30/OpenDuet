@@ -50,6 +50,7 @@ export function WorkshopPanel({
     },
   });
   const [classId, setClassId] = useState("");
+  const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [tutor, setTutor] = useState<Tutor | null>(null);
@@ -108,6 +109,15 @@ export function WorkshopPanel({
           ))}
         </select>
       </label>
+      <label className="type-caption mb-3 block text-duet-ink-2">
+        Focus
+        <input
+          className="type-sub mt-1 w-full rounded-xl bg-duet-tile px-3 py-2 text-duet-ink"
+          value={focus}
+          placeholder="Period 5, LEQ 3, Unit 5"
+          onChange={(event) => setFocus(event.target.value)}
+        />
+      </label>
       {error ? (
         <p className="type-sub mb-3 text-duet-red" role="alert">
           {error}
@@ -122,6 +132,7 @@ export function WorkshopPanel({
             setError("");
             void post("/api/openduet/study/workshop/guide", {
               classId: selected,
+              ...(focus.trim() ? { focus: focus.trim() } : {}),
             })
               .then((body) => {
                 const pageId = body.pageId;
@@ -146,6 +157,7 @@ export function WorkshopPanel({
             setWritten([]);
             void post("/api/openduet/study/workshop/quiz", {
               classId: selected,
+              ...(focus.trim() ? { focus: focus.trim() } : {}),
             })
               .then(async (body) => {
                 const quizId = body.quizId;
@@ -184,6 +196,7 @@ export function WorkshopPanel({
             setAnswer("");
             void post("/api/openduet/study/workshop/tutor", {
               classId: selected,
+              ...(focus.trim() ? { topic: focus.trim() } : {}),
             })
               .then((body) => {
                 const step = body.tutor as Tutor | undefined;

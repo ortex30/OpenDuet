@@ -143,13 +143,13 @@ bash scripts/academic-os-dev.sh
 
 Open <http://127.0.0.1:3010>. Postgres runs locally. The Bot computer from `scripts/start.sh` is not started.
 
-Live chat needs two keys in `openbot/.env`, then a restart:
+Live chat uses `OPENAI_API_KEY`. The dev script copies it into `openbot/.env` when it is already in the environment. `ACADEMIC_OS_MODEL` picks the OpenAI model. Unset, it stays `gpt-5.6-terra`.
 
-- `OPENAI_API_KEY` is the primary model. `ACADEMIC_OS_MODEL` picks the OpenAI model. Unset, it stays `gpt-5.6-terra`.
-- OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACADEMIC_OS_PROVIDER=openrouter`. `OPENROUTER_MODEL` names the model.
-- `INTELLIGENCE_API_KEY` is still required for real threads. The dev script puts a placeholder in so the API can boot. Chat will not answer until that placeholder is a real key.
+OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACADEMIC_OS_PROVIDER=openrouter`. `OPENROUTER_MODEL` names the model.
 
-The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. Spring 2026 rows in the pack are not deadlines.
+Chat threads need CopilotKit Intelligence. The dev script does that locally: if `INTELLIGENCE_API_KEY` is empty or still the old placeholder, it writes a `local-` key, points `INTELLIGENCE_API_URL` and `INTELLIGENCE_GATEWAY_WS_URL` at `127.0.0.1:7091`, and starts that service. A key you already set is left as it is.
+
+The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. With the pack present, the demo student is Viren. Spring 2026 rows in the pack are not deadlines.
 
 ```sh
 cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --reset
@@ -160,7 +160,7 @@ The first command is the generic study memory. The second is the private pack.
 
 Chat stays the home. Tonight, Study, Calendar, Tasks, and Rules open from the row above the message box. Study (Learn) writes a guide, a quiz, or a tutor turn from the notes in the pack. A guide is an outline, a draft that keeps only what the notes say, a check that drops the rest, then the page. Print is in the page menu. Quizzes are multiple choice, short answer, and one free response. They are graded from the notes, and misses go into spaced review. Chemistry is no AI help: a guide can organize the notes, and a quiz or tutor turn is refused. Tonight's plan uses the real due dates.
 
-Study guides use `ACADEMIC_OS_GUIDE_MODEL` (default `gpt-5.5`). Short tutor passes use `ACADEMIC_OS_FAST_MODEL` (default `gpt-4o-mini`). With no `OPENAI_API_KEY`, the same pages are built straight from the notes and nothing is sent to a model.
+Study guides use `ACADEMIC_OS_GUIDE_MODEL` (default `gpt-5.5`). With a key, the model writes the page from the notes for that focus. Formulas stay in math notation and the page draws them. Short tutor passes use `ACADEMIC_OS_FAST_MODEL` (default `gpt-4o-mini`). With no `OPENAI_API_KEY`, the same pages are built straight from the notes and nothing is sent to a model. Learn has a Focus box for a unit, such as Period 5 or Unit 5.
 
 App tests, from `openbot/`:
 

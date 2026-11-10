@@ -9,14 +9,35 @@ import { cn } from "@/lib/utils";
 import { BuildIn } from "../build-in";
 import { DuetIcon } from "../icons";
 import { DuetCard, Rule } from "../kit";
+import { PageText } from "../page-text";
 
 const LETTERS = ["A", "B", "C", "D"] as const;
 /* Each answer has its own colour: a soft tint at rest, the full colour once chosen. */
 const POP = [
-  { soft: "bg-duet-pop-a-soft", ink: "text-duet-pop-a", full: "bg-duet-pop-a", ring: "var(--duet-pop-a)" },
-  { soft: "bg-duet-pop-b-soft", ink: "text-duet-pop-b", full: "bg-duet-pop-b", ring: "var(--duet-pop-b)" },
-  { soft: "bg-duet-pop-c-soft", ink: "text-duet-pop-c", full: "bg-duet-pop-c", ring: "var(--duet-pop-c)" },
-  { soft: "bg-duet-pop-d-soft", ink: "text-duet-pop-d", full: "bg-duet-pop-d", ring: "var(--duet-pop-d)" },
+  {
+    soft: "bg-duet-pop-a-soft",
+    ink: "text-duet-pop-a",
+    full: "bg-duet-pop-a",
+    ring: "var(--duet-pop-a)",
+  },
+  {
+    soft: "bg-duet-pop-b-soft",
+    ink: "text-duet-pop-b",
+    full: "bg-duet-pop-b",
+    ring: "var(--duet-pop-b)",
+  },
+  {
+    soft: "bg-duet-pop-c-soft",
+    ink: "text-duet-pop-c",
+    full: "bg-duet-pop-c",
+    ring: "var(--duet-pop-c)",
+  },
+  {
+    soft: "bg-duet-pop-d-soft",
+    ink: "text-duet-pop-d",
+    full: "bg-duet-pop-d",
+    ring: "var(--duet-pop-d)",
+  },
 ] as const;
 
 /**
@@ -175,7 +196,7 @@ function QuizQuestions({
         {/* A native radio group: arrow keys move the choice, and the question is its name. */}
         <fieldset className="mt-4 min-w-0" ref={group}>
           <legend className="type-body font-medium [overflow-wrap:anywhere]">
-            {question.question}
+            <PageText text={question.question} />
           </legend>
           <div className="mt-3 flex flex-col gap-2">
             {question.choices.map((choice, choiceIndex) => {
@@ -186,7 +207,9 @@ function QuizQuestions({
                   className={cn(
                     "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[16px] px-3 py-2 transition-[background-color,box-shadow,transform] has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-duet-accent/40 active:scale-[0.99]",
                     pop.soft,
-                    on ? "shadow-[inset_0_0_0_2px_var(--pop)]" : "hover:brightness-[0.97]",
+                    on
+                      ? "shadow-[inset_0_0_0_2px_var(--pop)]"
+                      : "hover:brightness-[0.97]",
                   )}
                   style={{ "--pop": pop.ring } as CSSProperties}
                   // Choices never reorder within a question, so their place is who they are.
@@ -206,13 +229,15 @@ function QuizQuestions({
                     aria-hidden
                     className={cn(
                       "type-caption grid size-7 shrink-0 place-items-center rounded-full font-bold transition-colors",
-                      on ? cn(pop.full, "text-white") : cn("bg-duet-card", pop.ink),
+                      on
+                        ? cn(pop.full, "text-white")
+                        : cn("bg-duet-card", pop.ink),
                     )}
                   >
                     {LETTERS[choiceIndex] ?? ""}
                   </span>
                   <span className="type-body min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">
-                    {choice}
+                    <PageText text={choice} />
                   </span>
                   {on ? (
                     <DuetIcon
@@ -383,7 +408,9 @@ function ResultRow({ number, result }: { number: number; result: QuizResult }) {
           result.correct ? "mt-1" : "mt-0.5",
         )}
       >
-        <span className="font-semibold text-duet-status-done">{choiceText(result, result.correctIndex)}</span>
+        <span className="font-semibold text-duet-status-done">
+          {choiceText(result, result.correctIndex)}
+        </span>
       </p>
       {result.explanation ? (
         <p className="type-sub mt-1 text-duet-ink-2 [overflow-wrap:anywhere]">

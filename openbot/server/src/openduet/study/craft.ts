@@ -6,6 +6,7 @@ import {
   type PrivatePack,
   packCalendarSlice,
 } from "../private-pack";
+import { writeGuideFromNotes } from "./guide-write";
 import { makePlan, type PlanDraft } from "./scheduler";
 import { addDays, weekdayOf, zonedInstant, zonedParts } from "./time";
 
@@ -464,7 +465,13 @@ export async function polishGuide(
   source: string,
   env: Record<string, string | undefined>,
   fetchImpl: typeof fetch = fetch,
+  input?: GuideInput,
 ): Promise<CraftedGuide> {
+  if (input) {
+    const written = await writeGuideFromNotes(input, env, fetchImpl);
+    if (written) return written;
+    return guide;
+  }
   const key = env.OPENAI_API_KEY?.trim();
   if (!key) return guide;
   const model = studyModels(env).guide;
@@ -544,7 +551,7 @@ function inventory(term: string, remember: string): boolean {
 function fluff(text: string): boolean {
   return (
     META.test(text) ||
-    /arguable angle|not from your files|not in your files|source tags|check with |\[fixed #|reviewed by|built only from|copy of claude|sources\/ folder|speech-to-text|notes \/ hw|key for each|^\d+\.\d+\s+(notes|activity)|\/workspace|\.md\b|local reviewed|evaluate the extent|source page|handwritten key/i.test(
+    /arguable angle|not from your files|not in your files|source tags|what it is:|what happened:|why it mattered:|check with |\[fixed #|reviewed by|built only from|copy of claude|sources\/ folder|speech-to-text|notes \/ hw|key for each|^\d+\.\d+\s+(notes|activity)|\/workspace|\.md\b|local reviewed|evaluate the extent|source page|handwritten key|lecture timestamp/i.test(
       text,
     )
   );
@@ -852,12 +859,27 @@ function fileRecency(path: string): number {
   return 0;
 }
 
-/** Notes the student can scan: no citation tags, no raw TeX. */
+/**
+ * Notes the student can scan. Citations and source labels come off.
+ * Math stays in `$...$` so the page can draw it, instead of `int _a^b`.
+ */
 function readable(value: string): string {
-  return value
-    .replace(/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g, (math) => plainMath(math))
+  const math: string[] = [];
+  const hold = (tex: string) => {
+    math.push(tex.replace(/\\,/g, "").replace(/\s+/g, " ").trim());
+    return `\uE000${math.length - 1}\uE000`;
+  };
+  let text = value
+    .replace(/\$\$([\s\S]*?)\$\$/g, (_, tex: string) => hold(tex))
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, tex: string) => hold(tex))
+    .replace(/\\\(([^)]*)\\\)/g, (_, tex: string) => hold(tex))
+    .replace(/\$([^$\n]+)\$/g, (_, tex: string) => hold(tex))
+    .replace(
+      /\\(?:displaystyle\s*)?(?:int|frac|dfrac|sum|sqrt|lim)(?:\{[^{}]*\}|\[[^\]]*\]|[_^\\]|[a-zA-Z0-9])+/g,
+      (tex) => hold(tex),
+    );
+  text = text
     .replace(/\\(?:displaystyle|left|right|text)/g, "")
-    .replace(/\\int/g, " int ")
     .replace(/\\cdot/g, "·")
     .replace(/\\Delta/g, "Δ")
     .replace(/\\,/g, "")
@@ -873,23 +895,21 @@ function readable(value: string): string {
     })
     .replace(/\s*\([^)]{0,30}\bpp\.[^)]*\)/gi, "")
     .replace(/https?:\/\/\S+/g, "")
+    .replace(/[†⚑⚠]/g, "")
+    .replace(
+      /^(?:what it is|what happened|why it mattered|background|who|interests):\s*/i,
+      "",
+    )
     .replace(/\s+/g, " ")
     .replace(/\(\s*\)/g, "")
     .trim();
-}
-
-function plainMath(value: string): string {
-  return value
-    .replace(/\$/g, "")
-    .replace(/\\dfrac\s*\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)")
-    .replace(/\\frac\s*\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)")
-    .replace(/\\(?:displaystyle|left|right|text)/g, "")
-    .replace(/\\int/g, " int ")
-    .replace(/\\cdot/g, "·")
-    .replace(/\\Delta/g, "Δ")
-    .replace(/\\,/g, "")
-    .replace(/\\[a-zA-Z]+/g, "")
-    .replace(/[{}]/g, "");
+  return text
+    .replace(/\uE000(\d+)\uE000/g, (_, index: string) => {
+      const tex = math[Number(index)] ?? "";
+      return tex ? `$${tex}$` : "";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function sameWords(value: string): string {

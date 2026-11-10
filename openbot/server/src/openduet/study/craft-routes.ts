@@ -52,6 +52,8 @@ export function craftRoutes(deps: StudyRouteDeps) {
       craftGuide(input),
       joined(input),
       process.env,
+      fetch,
+      input,
     );
     if (!deps.pages) {
       return context.json({

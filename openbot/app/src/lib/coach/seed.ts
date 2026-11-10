@@ -313,7 +313,7 @@ export function privatePackState(pack: PrivateDemoPayload): CoachState {
     demo: true,
     source: "private",
     profile: {
-      name: "there",
+      name: "Viren",
       dailyGoalMin: 60,
       bedtime: "22:30",
       dailyCapacityMin: 120,
