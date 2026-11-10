@@ -37,9 +37,17 @@ export function seedMessage(text: string, id: string): Message {
  * is in the thread and arrives through the normal replay.
  */
 const firstMessages = new Map<string, string>();
+/** Skill slugs that rode in with the first message, taken with it. */
+const firstSkills = new Map<string, string[]>();
 
-export function stashFirstMessage(channelId: string, text: string): void {
+export function stashFirstMessage(
+  channelId: string,
+  text: string,
+  skillIds: readonly string[] = [],
+): void {
   firstMessages.set(channelId, text);
+  if (skillIds.length > 0) firstSkills.set(channelId, [...skillIds]);
+  else firstSkills.delete(channelId);
 }
 
 /** Read the pending first message and forget it. Null for a channel opened any other way. */
@@ -47,4 +55,11 @@ export function takeFirstMessage(channelId: string): string | null {
   const text = firstMessages.get(channelId) ?? null;
   firstMessages.delete(channelId);
   return text;
+}
+
+/** Skill slugs stashed with the first message. Empty when the message named none. */
+export function takeFirstSkills(channelId: string): string[] {
+  const skills = firstSkills.get(channelId) ?? [];
+  firstSkills.delete(channelId);
+  return skills;
 }

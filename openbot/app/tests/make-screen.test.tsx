@@ -566,7 +566,7 @@ test("Make replaces a later task's card after an earlier task finished without o
     return serve(input, init);
   }) as typeof fetch;
   const { view } = app();
-  await view.findByText("Nothing made yet.");
+  await view.findByText("No study materials yet.");
   await startMaking(view);
 
   // A failed before making anything, including in the final read after it stopped.
@@ -577,7 +577,7 @@ test("Make replaces a later task's card after an earlier task finished without o
     expect(queryClient.getQueryState(pageKeys.list)?.fetchStatus).toBe("idle"),
   );
   await settleReactWork();
-  expect(view.queryByText("Nothing made yet.") === null).toBe(false);
+  expect(view.queryByText("No study materials yet.") === null).toBe(false);
 
   // B starts with that same empty baseline and must stay visible until its own output arrives.
   await startMaking(view);
@@ -629,7 +629,7 @@ test("Make closes a failed terminal read after an ordinary empty recovery before
     return serve(input, init);
   }) as typeof fetch;
   const { view } = app();
-  await view.findByText("Nothing made yet.");
+  await view.findByText("No study materials yet.");
   const pageQuery = queryClient
     .getQueryCache()
     .find({ queryKey: pageKeys.list });
@@ -662,7 +662,7 @@ test("Make closes a failed terminal read after an ordinary empty recovery before
   // This successful empty read separates A's possible output from B, which has not started.
   failPages = false;
   await act(() => observer?.refetch());
-  await view.findByText("Nothing made yet.");
+  await view.findByText("No study materials yet.");
   await settleReactWork();
   expect([
     pageQuery?.state.status,
@@ -722,9 +722,9 @@ test("Make draws what was made as thumbnails two to a row, each drawn from the t
   const labels = within(grid)
     .getAllByRole("link")
     .map((link) => link.textContent ?? "");
-  expect(labels[0]).toContain("Dashboard ·");
+  expect(labels[0]).toContain("Progress ·");
   expect(labels[1]).toContain("Slides ·");
-  expect(labels[2]).toContain("Web page ·");
+  expect(labels[2]).toContain("Reference sheet ·");
 });
 
 test("Make grid chart previews preserve each original bar's scale and highlight", async () => {
@@ -782,12 +782,12 @@ test("the chips show one kind at a time, and a kind with nothing yet says how to
       .map((chip) => chip.textContent),
   ).toEqual([
     "All",
-    "Design System",
-    "Design",
-    "Dashboard",
+    "Study guide",
+    "Diagram",
+    "Progress",
     "Slides",
-    "Docs",
-    "Web page",
+    "Notes",
+    "Reference sheet",
   ]);
   const chip = (name: string) => within(chips).getByRole("button", { name });
   expect(chip("All").getAttribute("aria-pressed")).toBe("true");
@@ -799,11 +799,11 @@ test("the chips show one kind at a time, and a kind with nothing yet says how to
     "/make/deck",
   ]);
   // A dashboard is a page too, but Pages holds the ones that are not dashboards.
-  fireEvent.click(chip("Web page"));
+  fireEvent.click(chip("Reference sheet"));
   expect(opened(view.getByRole("list", { name: "Made for you" }))).toEqual([
     "/make/notes",
   ]);
-  fireEvent.click(chip("Dashboard"));
+  fireEvent.click(chip("Progress"));
   expect(opened(view.getByRole("list", { name: "Made for you" }))).toEqual([
     "/make/pulse",
   ]);
@@ -834,10 +834,10 @@ test("with nothing made yet, Make says what will appear and how", async () => {
   listed = [];
   serving();
   const { view } = app();
-  expect(await view.findByText("Nothing made yet.")).toBeTruthy();
+  expect(await view.findByText("No study materials yet.")).toBeTruthy();
   expect(
     view.getByText(
-      "Tap + to choose what to make. What OpenDuet makes shows up here.",
+      "Tap + to make a study guide, notes, or slides. What OpenDuet makes shows up here.",
     ),
   ).toBeTruthy();
   expect(view.queryByRole("list", { name: "Made for you" })).toBeNull();
@@ -857,12 +857,12 @@ test("the + fans out Page, Deck, Dashboard and Doc, nearest first, and folds the
   const fan = view.getByRole("list", { name: "What to make" });
   const options = within(fan).getAllByRole("button");
   expect(options.map((option) => option.textContent)).toEqual([
-    "Design System",
-    "Design",
-    "Dashboard",
+    "Study guide",
+    "Diagram",
+    "Progress",
     "Slides",
-    "Docs",
-    "Web page",
+    "Notes",
+    "Reference sheet",
   ]);
   expect(view.getByRole("button", { name: "Close", expanded: true })).toBe(
     plus,
@@ -920,8 +920,8 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   });
   const field = within(sheet).getByRole("textbox") as HTMLTextAreaElement;
   const starter = MAKE_KINDS.find((kind) => kind.id === "slides")?.starter;
-  expect(starter).toBe("Make a deck about …");
-  expect(field.value).toBe("Make a deck about …");
+  expect(starter).toBe("Make slides about …");
+  expect(field.value).toBe("Make slides about …");
   fireEvent.focus(field);
   // The "…" is selected, so what is typed replaces it.
   expect([field.selectionStart, field.selectionEnd]).toEqual([18, 19]);
@@ -932,12 +932,12 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   // Typing replaces the selected blank.
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(field, "the Hearth order", { skipClick: true });
-  expect(field.value).toBe("Make a deck about the Hearth order");
+  expect(field.value).toBe("Make slides about the Hearth order");
   expect(startNow.hasAttribute("disabled")).toBe(false);
   fireEvent.click(startNow);
   await waitFor(() =>
     expect(started).toEqual([
-      { botId: "openduet", instruction: "Make a deck about the Hearth order" },
+      { botId: "openduet", instruction: "Make slides about the Hearth order" },
     ]),
   );
   await waitFor(() =>
@@ -995,10 +995,10 @@ test("Save for Up next from Make says where it went", async () => {
   }) as unknown as typeof fetch;
   const { view } = app();
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a docs" }));
+  fireEvent.click(view.getByRole("button", { name: "Make a notes" }));
   const sheet = await view.findByRole("dialog");
   const field = within(sheet).getByRole("textbox") as HTMLTextAreaElement;
-  expect(field.value).toBe("Write a doc about …");
+  expect(field.value).toBe("Write notes about …");
   fireEvent.focus(field);
   const user = userEvent.setup({ document: view.container.ownerDocument });
   await user.type(field, "our glaze suppliers", { skipClick: true });
@@ -1007,7 +1007,7 @@ test("Save for Up next from Make says where it went", async () => {
   );
   expect(await view.findByText("Saved for Up next on Tasks.")).toBeTruthy();
   expect(saved).toEqual([
-    { botId: "openduet", instruction: "Write a doc about our glaze suppliers" },
+    { botId: "openduet", instruction: "Write notes about our glaze suppliers" },
   ]);
 });
 

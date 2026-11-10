@@ -160,7 +160,7 @@ function WelcomeStep() {
       <div className="h-8" />
       <IllustrationFrame
         className="flex min-w-0 flex-col items-center px-4 pt-12 pb-8"
-        label="A message box where you hand off tasks to your Bots"
+        label="A message box where you ask your study coach for help"
       >
         <MicOrb size={72} />
         {/*
@@ -184,7 +184,7 @@ function WelcomeStep() {
             compact
             className="min-w-0"
             editorClassName="text-base"
-            initialValue="Hand off tasks to your team of Bots"
+            initialValue="Quiz me on trig identities"
           />
         </div>
       </IllustrationFrame>

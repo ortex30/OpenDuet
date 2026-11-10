@@ -8,6 +8,8 @@ Newest first. `Unreleased` is what is on `main` and not yet tagged.
 
 ## Unreleased
 
+Academic OS Chat opens on a study home, and keeps What to work on, Plan my week, Quiz me, Flashcards, and Explain it above the composer. Make offers study guides, notes, slides, diagrams, progress trackers, and reference sheets. Tasks and the first-day greeting talk about classes and due dates. No migration, and nothing new is stored.
+
 **Before upgrading.** Six things change for an existing deployment:
 - A hosted computer's browser is now headed by default. It uses a little more memory than headless
   did; set `COMPUTER_BROWSER_MODE=headless` (Helm: `computers.browserMode: headless`) to keep the old

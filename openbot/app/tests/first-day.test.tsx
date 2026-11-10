@@ -9,6 +9,7 @@ import {
 } from "bun:test";
 import type { Message } from "@ag-ui/core";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { FIRST_DAY_FRAME } from "@openbot/shared/first-day";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -42,7 +43,6 @@ import { firstDayClaimKey } from "@/lib/channels/first-day-claim";
 import { type ChannelSummary, channelKeys } from "@/lib/channels/queries";
 import { updateChannelEventCache } from "@/lib/channels/use-channel-events";
 import { queryClient as appQueryClient } from "@/query-client";
-import { FIRST_DAY_FRAME } from "@openbot/shared/first-day";
 import { settleReactWork } from "./settle-react-work";
 
 /**
@@ -316,12 +316,12 @@ describe("the greeting's words", () => {
     expect(firstNameOf(undefined)).toBeNull();
   });
 
-  test("the welcome says it is the first day, and that it will learn how they work", () => {
+  test("the welcome says it is the first day, and that it will learn their classes", () => {
     expect(firstDayWelcome("Maya")).toMatch(/^Welcome, Maya\. /);
     expect(firstDayWelcome(null)).toMatch(/^Welcome\. /);
     for (const welcome of [firstDayWelcome("Maya"), firstDayWelcome(null)]) {
       expect(welcome).toContain("first day");
-      expect(welcome).toContain("learn how you work");
+      expect(welcome).toContain("learn your classes");
     }
   });
 });
@@ -343,7 +343,7 @@ describe("the transcript on the first day", () => {
 
     expect(
       view.getByText(
-        "Welcome, Maya. It's our first day together, and I'll learn how you work as we go.",
+        "Welcome, Maya. It's our first day together, and I'll learn your classes as we go.",
       ),
     ).toBeTruthy();
     expect(view.getByText(FIRST_DAY_PLAN)).toBeTruthy();

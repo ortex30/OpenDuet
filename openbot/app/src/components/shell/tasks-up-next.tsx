@@ -1,8 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { DuetIcon } from "@/components/duet/icons";
 import { ChannelTagOf } from "@/components/duet/channel-tag";
+import { DuetIcon } from "@/components/duet/icons";
 import { DuetCard, Tile } from "@/components/duet/kit";
 import type { AgentProfile } from "@/lib/agents/queries";
 import { cancelFollowUpMutationOptions } from "@/lib/bot-lifecycle/mutations";
@@ -10,6 +10,7 @@ import { botActivityQueryOptions } from "@/lib/bot-lifecycle/queries";
 import { createChannelMutationOptions } from "@/lib/channels/mutations";
 import { ONGOING_SEARCH_LIMIT, ongoingChannel } from "@/lib/channels/ongoing";
 import { channelListQueryOptions } from "@/lib/channels/queries";
+import { DURATION, EASE_OUT } from "@/lib/motion";
 import {
   changeProactiveSettingMutationOptions,
   type ProactiveSetting,
@@ -20,7 +21,6 @@ import {
   resolveSuggestionMutationOptions,
   turnOnResearchMutationOptions,
 } from "@/lib/proactive";
-import { DURATION, EASE_OUT } from "@/lib/motion";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { matchesSearch, type SortOrder, sortByTime } from "@/lib/tasks/groups";
 import { queryClient } from "@/query-client";
@@ -39,7 +39,7 @@ import { SwipeToAnswer } from "./swipe-to-answer";
  * the person's own request, so it is written in their voice.
  */
 export const RESEARCH_FOCUS =
-  "Replies I owe, decisions waiting on me, payments due and deadlines coming up, in my mail and calendar.";
+  "Assignments due, tests coming up, missing work and replies I owe, in my school mail and calendar.";
 
 /** How often Up next reads again while Show me is looking. */
 export const LOOKING_POLL_MS = 3_000;
@@ -51,7 +51,7 @@ export const LOOK_FOR_MS = 3 * 60_000;
  * left, and the tasks the person asked to add, from a conversation or from the + button. Each slides
  * off, right to start it as a task and left to hide it, or takes Start and Hide.
  *
- * Empty, it asks what it can take off the person's plate, and Show me looks now.
+ * Empty, it asks what to tackle next, and Show me looks now.
  *
  * A card that goes, by a swipe or a button, leaves its place to the cards under it: they slide up
  * into it (`layout`, which moves them by transform) rather than jumping on the frame the list is read
@@ -439,10 +439,10 @@ function TakeOffYourPlate({ bot }: { bot: AgentProfile }) {
       className="flex flex-col items-center px-6 pt-10 text-center"
     >
       <h2 className="type-title font-semibold text-duet-ink">
-        What can I take off your plate?
+        What should we tackle next?
       </h2>
       <p className="type-sub mt-1.5 text-duet-ink-2">
-        I'll look through your mail and calendar for things I can handle.
+        I'll look through your school mail and calendar for what's due.
       </p>
       <ul aria-label="What it checks" className="mt-5 flex gap-3">
         <AppMark icon="mail" name="Gmail" tone="red" />
@@ -526,10 +526,10 @@ function ResearchOptIn({
       <Tile icon="bulb" tone="violet" />
       <div className="min-w-0 flex-1">
         <p className="type-row font-semibold text-duet-ink">
-          Let {bot.name} suggest tasks
+          Let {bot.name} suggest what to study
         </p>
         <p className="type-sub text-duet-ink-2">
-          It checks your connected apps every hour and writes to you when
+          It checks your school mail and calendar on a schedule and writes when
           something needs you. It can only read.
         </p>
         {turnOn.error ? (

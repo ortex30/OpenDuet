@@ -8,14 +8,14 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelChat } from "@/components/channels/channel-chat";
 import { ConversationView } from "@/components/channels/conversation-view";
-import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
-import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
-import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
-import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import {
   seedMessage,
   stashFirstMessage,
 } from "@/components/channels/transcript-messages";
+import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
+import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
+import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
+import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { type AgentProfile, agentListQueryOptions } from "@/lib/agents/queries";
 import { botAppQueryOptions } from "@/lib/app-access/queries";
@@ -28,7 +28,6 @@ import {
 } from "@/lib/channels/first-day";
 import { useMarkOpenChannelRead } from "@/lib/channels/mark-read";
 import { localDateOf } from "@/lib/channels/morning-brief";
-import { client } from "@/lib/client";
 import { ONGOING_SEARCH_LIMIT, ongoingChannel } from "@/lib/channels/ongoing";
 import {
   type AgentChannel,
@@ -37,7 +36,9 @@ import {
 } from "@/lib/channels/queries";
 import { routeMessage } from "@/lib/channels/route";
 import { startWithChosen } from "@/lib/channels/start";
+import { client } from "@/lib/client";
 import { newId } from "@/lib/new-id";
+import { useSkillCommands } from "@/lib/plugins/skill-commands";
 
 /**
  * The Chat tab: the person's one ongoing conversation with the product's own Bot.
@@ -231,7 +232,11 @@ function FirstMessage({
    * is. The server writes the greeting's message from that alone (`firstDayGreeting`); `text` is
    * the same message, drawn here until the conversation takes over. Throws when it fails.
    */
-  const start = async (text: string, greeting?: FirstDayGreeting) => {
+  const start = async (
+    text: string,
+    greeting?: FirstDayGreeting,
+    skillIds: readonly string[] = [],
+  ) => {
     if (startingRef.current)
       throw new Error(
         "The conversation is still starting. Try again in a moment.",
@@ -262,7 +267,7 @@ function FirstMessage({
             return;
           }
           queryClient.setQueryData(channelKeys.detail(channel.id), channel);
-          stashFirstMessage(channel.id, first);
+          stashFirstMessage(channel.id, first, skillIds);
           onStarted(channel);
         },
       });
@@ -279,6 +284,7 @@ function FirstMessage({
     }
   };
 
+  const skillCommands = useSkillCommands(bot.id);
   const gmail = useQuery(botAppQueryOptions(bot.id, GOOGLE_WORKSPACE));
   const canReadMail = gmail.data?.state === "ready";
 
@@ -310,9 +316,10 @@ function FirstMessage({
           ) : null
         }
         // The composer keeps the draft for another try when this throws.
-        onSubmit={(draft) => start(draft.text)}
+        commands={skillCommands}
+        onSubmit={(draft) => start(draft.text, undefined, draft.commandIds)}
         pending={starting}
-        placeholder={`Message ${bot.name}`}
+        placeholder="Ask about a class or assignment"
       />
     </>
   );

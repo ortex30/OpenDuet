@@ -270,7 +270,7 @@ test("Get notified previews the notification the app really sends", () => {
   expect(view.getByText(preview.body)).toBeTruthy();
   expect(
     view.getByText(
-      "Notifications show while OpenDuet is open in a browser tab.",
+      "Notifications show while Academic OS is open in a browser tab.",
     ),
   ).toBeTruthy();
 });

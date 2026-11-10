@@ -184,7 +184,7 @@ const searchOf = (view: ReturnType<typeof open>) =>
 test("arriving without a step writes the first one into the address, in place", async () => {
   const view = open("/onboarding");
 
-  await heading(view, "Welcome to OpenDuet");
+  await heading(view, "Welcome to Academic OS");
   await waitFor(() => expect(searchOf(view).step).toBe("welcome"));
   // In place: nothing behind it to go Back to inside onboarding.
   expect(view.history.length).toBe(1);
@@ -233,7 +233,7 @@ test("the organization step offers enterprise early access and CopilotKit's othe
 
 test("Next adds a step to the address and to history, and saves it", async () => {
   const view = open("/onboarding?step=welcome");
-  await heading(view, "Welcome to OpenDuet");
+  await heading(view, "Welcome to Academic OS");
 
   fireEvent.click(view.getByRole("button", { name: "Next" }));
 
@@ -284,25 +284,25 @@ test("updating the current step keeps its scroll position", async () => {
 
 test("browser Back goes to the step before, not out of onboarding", async () => {
   const view = open("/onboarding?step=welcome");
-  await heading(view, "Welcome to OpenDuet");
+  await heading(view, "Welcome to Academic OS");
   fireEvent.click(view.getByRole("button", { name: "Next" }));
   await heading(view, "Each Bot has its own computer");
 
   await act(async () => view.history.back());
 
-  expect(await heading(view, "Welcome to OpenDuet")).toBeTruthy();
+  expect(await heading(view, "Welcome to Academic OS")).toBeTruthy();
   expect(searchOf(view).step).toBe("welcome");
 });
 
 test("the bar's Back after Next returns through history, so Forward still works", async () => {
   const view = open("/onboarding?step=welcome");
-  await heading(view, "Welcome to OpenDuet");
+  await heading(view, "Welcome to Academic OS");
   fireEvent.click(view.getByRole("button", { name: "Next" }));
   await heading(view, "Each Bot has its own computer");
 
   fireEvent.click(view.getByRole("button", { name: "Back" }));
 
-  expect(await heading(view, "Welcome to OpenDuet")).toBeTruthy();
+  expect(await heading(view, "Welcome to Academic OS")).toBeTruthy();
   expect(view.history.canGoBack()).toBe(false);
   await act(async () => view.history.forward());
   expect(await heading(view, "Each Bot has its own computer")).toBeTruthy();
@@ -347,13 +347,13 @@ test("a failed consent says so on its step, and only `connected` leaves the addr
 test("a step that isn't one is ignored", async () => {
   const view = open("/onboarding?step=nonsense");
 
-  expect(await heading(view, "Welcome to OpenDuet")).toBeTruthy();
+  expect(await heading(view, "Welcome to Academic OS")).toBeTruthy();
   await waitFor(() => expect(searchOf(view).step).toBe("welcome"));
 });
 
 test("after a reload, the bar's Back still returns through history, not a second entry", async () => {
   const first = open("/onboarding?step=welcome");
-  await heading(first, "Welcome to OpenDuet");
+  await heading(first, "Welcome to Academic OS");
   fireEvent.click(first.getByRole("button", { name: "Next" }));
   await heading(first, "Each Bot has its own computer");
   const history = first.history;
@@ -365,7 +365,7 @@ test("after a reload, the bar's Back still returns through history, not a second
   await heading(reloaded, "Each Bot has its own computer");
   fireEvent.click(reloaded.getByRole("button", { name: "Back" }));
 
-  expect(await heading(reloaded, "Welcome to OpenDuet")).toBeTruthy();
+  expect(await heading(reloaded, "Welcome to Academic OS")).toBeTruthy();
   expect(history.length).toBe(2);
   expect(history.canGoBack()).toBe(false);
 });
@@ -407,7 +407,9 @@ test("the failed line goes once the person moves on, and doesn't come back with 
 test("finishing plays the orb's finish before entering Chat", async () => {
   const view = open("/onboarding?step=setup");
   await heading(view, "Check your setup");
-  fireEvent.click(view.getByRole("button", { name: "Start using OpenDuet" }));
+  fireEvent.click(
+    view.getByRole("button", { name: "Start using Academic OS" }),
+  );
   await waitFor(() =>
     expect(
       view.container.querySelector(

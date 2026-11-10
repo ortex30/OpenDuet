@@ -22,7 +22,7 @@ export function firstNameOf(name: string | null | undefined): string | null {
 /** The first bubble: a welcome, and that the Bot will learn how they work. */
 export function firstDayWelcome(firstName: string | null): string {
   const hello = firstName ? `Welcome, ${firstName}.` : "Welcome.";
-  return `${hello} It's our first day together, and I'll learn how you work as we go.`;
+  return `${hello} It's our first day together, and I'll learn your classes as we go.`;
 }
 
 /**
@@ -30,7 +30,7 @@ export function firstDayWelcome(firstName: string | null): string {
  * is doing.
  */
 export const FIRST_DAY_PLAN =
-  "I'm going to check your recent mail and this week's calendar to see how I can help. Be right back!";
+  "I'm going to check your school mail and this week's calendar for what's due. Be right back!";
 
 /**
  * What Chat asks for on the first day when the primary Bot can't read the person's mail and

@@ -52,7 +52,7 @@ export const MANAGE_STORAGE_KEY = "openbot.menu-manage";
 export const ARCHIVED_STORAGE_KEY = "openduet.menu-archived";
 
 /** Everything's line under its name. */
-export const EVERYTHING_LINE = "All chat context across every channel";
+export const EVERYTHING_LINE = "Classes, homework, and questions in one chat";
 
 /**
  * Only the exact stored `open` starts a group open. A key never written, or storage this browser will

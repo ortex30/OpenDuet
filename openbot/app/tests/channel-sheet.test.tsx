@@ -161,7 +161,7 @@ test("Create waits for a name, then makes the channel with its look and purpose"
   expect((create as HTMLButtonElement).disabled).toBe(true);
   expect(
     (within(dialog).getByLabelText("Name") as HTMLInputElement).placeholder,
-  ).toBe("Q4 planning");
+  ).toBe("AP Chemistry");
   expect(
     (within(dialog).getByLabelText("Purpose") as HTMLTextAreaElement)
       .placeholder,
