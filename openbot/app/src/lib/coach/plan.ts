@@ -38,13 +38,18 @@ export function priorityScore(
   const hoursLeft = (new Date(a.dueAt).getTime() - now.getTime()) / HOUR;
   if (hoursLeft < 0) {
     if (a.lateCredit === null) return 1;
-    const recoverable = a.points * a.lateCredit;
+    const recoverable = (a.points ?? 0) * a.lateCredit;
     return 70 + Math.min(40, recoverable / Math.max(0.25, left / 60));
   }
   const availableMin = Math.max(15, (hoursLeft / 24) * capacityMin);
   const pressure = Math.min(1.5, left / availableMin);
   const soon = hoursLeft < 24 ? 30 : hoursLeft < 48 ? 15 : 0;
-  return pressure * 60 + soon + Math.min(15, a.points / 8);
+  const worth = a.points ?? 0;
+  const morning =
+    /quest|exam|\bleq\b|in-class|quiz/i.test(a.title) && hoursLeft < 36
+      ? 40
+      : 0;
+  return pressure * 60 + soon + morning + Math.min(15, worth / 8);
 }
 
 export function reasonsFor(a: Assignment, now: Date): string[] {
@@ -60,7 +65,7 @@ export function reasonsFor(a: Assignment, now: Date): string[] {
     reasons.push(`Due ${formatDue(a.dueAt, now)}`);
   }
   if (left > 0) reasons.push(`about ${formatMinutes(left)} left`);
-  reasons.push(`${a.points} pts`);
+  if (a.points != null && a.points > 0) reasons.push(`${a.points} pts`);
   if (a.helpLevel === "none") reasons.push(`${HELP_LABEL.none}: on your own`);
   return reasons;
 }
@@ -195,7 +200,8 @@ export function catchUpPlan(state: CoachState, now: Date): CatchUpPlan {
   const doNow = late
     .filter((a) => a.lateCredit !== null)
     .map((assignment) => {
-      const recoverable = assignment.points * (assignment.lateCredit ?? 0);
+      const recoverable =
+        (assignment.points ?? 0) * (assignment.lateCredit ?? 0);
       const hours = Math.max(0.25, remainingMin(assignment) / 60);
       return { assignment, recoverable, perHour: recoverable / hours };
     })
@@ -215,7 +221,8 @@ export function catchUpInstruction(state: CoachState, now: Date): string {
   const plan = catchUpPlan(state, now);
   const line = (a: Assignment) => {
     const c = classOf(state, a);
-    return `- ${c.name} (${c.teacher}): ${a.title}, due ${formatDue(a.dueAt, now)}, ${a.points} pts, about ${formatMinutes(remainingMin(a))} left, AI help: ${HELP_LABEL[a.helpLevel]}${a.lateCredit !== null ? `, late credit ${Math.round(a.lateCredit * 100)}%` : ", no late credit"}.`;
+    const points = a.points != null && a.points > 0 ? `${a.points} pts, ` : "";
+    return `- ${c.name} (${c.teacher}): ${a.title}, due ${formatDue(a.dueAt, now)}, ${points}about ${formatMinutes(remainingMin(a))} left, AI help: ${HELP_LABEL[a.helpLevel]}${a.lateCredit !== null ? `, late credit ${Math.round(a.lateCredit * 100)}%` : ", no late credit"}.`;
   };
   const upcoming = rankAssignments(state, now)
     .filter((r) => !isOverdue(r.assignment, now))

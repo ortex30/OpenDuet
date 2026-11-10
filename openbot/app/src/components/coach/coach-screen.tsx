@@ -72,7 +72,7 @@ export function assignmentInstruction(
         : "The teacher allows Full help: teach me, quiz me and give feedback, but don't hand me finished work to submit. Start with a quick check of what I already know.";
   return [
     `Help me with ${c.name}${c.teacher ? ` (${c.teacher})` : ""}: ${a.title}.`,
-    `It's due ${formatDue(a.dueAt, now)} (${new Date(a.dueAt).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" })}), worth ${a.points} points, and I have about ${formatMinutes(remainingMin(a))} of work left.`,
+    `It's due ${formatDue(a.dueAt, now)} (${new Date(a.dueAt).toLocaleString("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" })})${a.points != null && a.points > 0 ? `, worth ${a.points} points` : ""}, and I have about ${formatMinutes(remainingMin(a))} of work left.`,
     `AI help: ${HELP_LABEL[a.helpLevel]}. ${what}`,
     a.source ? `Classroom link: ${a.source}` : "",
   ]

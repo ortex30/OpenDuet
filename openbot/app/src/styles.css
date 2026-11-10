@@ -90,7 +90,12 @@
   --duet-pop-c-soft: #fff1e0;
   --duet-pop-d: #e3407a;
   --duet-pop-d-soft: #fde7ef;
-  --duet-face-gradient: linear-gradient(135deg, #6a3df0 0%, #b04ce8 55%, #ff7bb0 100%);
+  --duet-face-gradient: linear-gradient(
+    135deg,
+    #6a3df0 0%,
+    #b04ce8 55%,
+    #ff7bb0 100%
+  );
   /* How work stands: ready for review, needs you, working, couldn't finish. Only on status. */
   --duet-status-done: #147a3a;
   --duet-status-done-soft: #e6f4ea;
@@ -224,7 +229,12 @@
   --duet-pop-c-soft: #3d2a12;
   --duet-pop-d: #ff7fab;
   --duet-pop-d-soft: #3f1b2a;
-  --duet-face-gradient: linear-gradient(135deg, #5a2fd6 0%, #9a3fd0 55%, #e0679a 100%);
+  --duet-face-gradient: linear-gradient(
+    135deg,
+    #5a2fd6 0%,
+    #9a3fd0 55%,
+    #e0679a 100%
+  );
   /* Dark text on the light lilac: white on it was 2.4:1. */
   --duet-on-accent: #1a1033;
   --duet-status-done: #4ade80;
@@ -548,11 +558,19 @@ body {
   animation: duet-thinking-word 1.8s ease-in-out infinite;
 }
 @keyframes duet-thinking-word {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .duet-thinking-word { animation: none; opacity: 0.8; }
+  .duet-thinking-word {
+    animation: none;
+    opacity: 0.8;
+  }
 }
 
 /* The film's typing dots: each rises a little and brightens, one after another. */
@@ -979,5 +997,6 @@ body {
 
 /* The unlicensed CopilotKit dev banner sits on top of the composer. */
 div[style*="z-index: 99999"]:has(a[href="https://copilotkit.ai/pricing"]) {
+  /* biome-ignore lint/complexity/noImportantStyles: the banner sets an inline display. */
   display: none !important;
 }

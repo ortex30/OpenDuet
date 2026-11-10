@@ -9,13 +9,7 @@ import {
   type HelpLevel,
   type SchoolClass,
 } from "@openbot/shared/study";
-import {
-  addDays,
-  clockOf,
-  weekdayOf,
-  zonedInstant,
-  zonedParts,
-} from "./study/time";
+import { addDays, zonedInstant, zonedParts } from "./study/time";
 
 /**
  * A local school pack dropped in by hand (see data/private/README.md).
@@ -52,7 +46,10 @@ export type PrivateAssignment = {
   dueTime: string;
   kind: "assignment" | "quiz" | "test";
   help: PrivateHelp;
-  points: number;
+  /** Null when the pack did not record a point value. Never invented. */
+  points: number | null;
+  /** True when the pack says the work is already finished. */
+  completed: boolean;
   estimateMin: number;
   source: string | null;
 };
@@ -83,7 +80,7 @@ export type PrivateDemoSummary = {
     classId: string;
     title: string;
     dueAt: string;
-    points: number;
+    points: number | null;
     estimateMin: number;
     helpLevel: PrivateHelp;
     source: string | null;
@@ -93,20 +90,11 @@ export type PrivateDemoSummary = {
 const DEMO_FLAG = "ACADEMIC_OS_PRIVATE_DEMO";
 
 /**
- * Clock times for a block number. The pack records the block, not the bell
- * schedule, so these are a demo day: 50 minutes, with lunch before block 5.
+ * The pack records a block number, not bell times. Those hours are not invented
+ * onto the calendar. A quest or exam is the due morning at 9:00, one day only.
  */
-const BLOCK_START_MINUTES: Record<string, number> = {
-  "1": 8 * 60,
-  "2": 8 * 60 + 55,
-  "3": 9 * 60 + 50,
-  "4": 10 * 60 + 45,
-  "5": 12 * 60 + 20,
-  "6": 13 * 60 + 15,
-  "7": 14 * 60 + 10,
-  "8": 15 * 60 + 5,
-};
-const BLOCK_LENGTH_MINUTES = 50;
+const ASSESSMENT_START = "09:00";
+const ASSESSMENT_END = "10:00";
 
 export function repoRoot(): string {
   return fileURLToPath(new URL("../../../../", import.meta.url));
@@ -215,6 +203,31 @@ export function privateDemoSummary(pack: PrivatePack): PrivateDemoSummary {
   };
 }
 
+/** A fast hello: the student's name and what is due tomorrow morning. */
+export function schoolGreeting(
+  pack: PrivatePack,
+  now: Date,
+  name: string | null,
+): string {
+  const parts = zonedParts(now, pack.timeZone);
+  const tomorrow = addDays(parts.date, 1);
+  const morning = pack.assignments.filter(
+    (row) =>
+      row.due === tomorrow && row.kind !== "assignment" && !row.completed,
+  );
+  const who = name?.trim().split(/\s+/)[0] ?? "";
+  const hello = who && !who.includes("@") ? `Hey ${who}.` : "Hey.";
+  if (morning.length === 0)
+    return `${hello} Nothing is due first thing tomorrow.`;
+  const list = morning
+    .map((row) => {
+      const short = row.title.split(" - ").at(-1)?.trim() || row.title;
+      return `${short} at 9:00 AM`;
+    })
+    .join(", ");
+  return `${hello} Tomorrow morning: ${list}.`;
+}
+
 /** Calendar rows for one inclusive range, in the pack's time zone. */
 export function packCalendarSlice(
   pack: PrivatePack,
@@ -230,29 +243,26 @@ export function packCalendarSlice(
     period: row.block,
     color: CLASS_COLORS[index % CLASS_COLORS.length] as ClassColor,
   }));
-  const days: string[] = [];
-  for (let day = from; day <= to; day = addDays(day, 1)) days.push(day);
   const events: CalendarEvent[] = [];
-  for (const day of days) {
-    const weekday = weekdayOf(day);
-    if (weekday === 0 || weekday === 6) continue;
-    for (const row of pack.classes) {
-      if (!row.block) continue;
-      const start = BLOCK_START_MINUTES[row.block];
-      if (start === undefined) continue;
-      const end = start + BLOCK_LENGTH_MINUTES;
-      events.push({
-        id: `pack-${row.id}-${day}`,
-        title: row.teacher ? `${row.name} (${row.teacher})` : row.name,
-        date: day,
-        start: clockOf(start),
-        end: clockOf(end),
-        classId: row.id,
-      });
-    }
+  for (const row of pack.assignments) {
+    if (row.due < from || row.due > to || row.kind === "assignment") continue;
+    const schoolClass = pack.classes.find((item) => item.id === row.classId);
+    const short = row.title.split(" - ").at(-1)?.trim() || row.title;
+    events.push({
+      id: `pack-due-${row.id}`,
+      title: schoolClass?.shortName
+        ? `${schoolClass.shortName}: ${short}`
+        : short,
+      date: row.due,
+      start: ASSESSMENT_START,
+      end: ASSESSMENT_END,
+      classId: row.classId,
+    });
   }
   const deadlines: CalendarDeadline[] = pack.assignments
-    .filter((row) => from <= row.due && row.due <= to)
+    .filter(
+      (row) => from <= row.due && row.due <= to && row.kind === "assignment",
+    )
     .map((row) => ({
       assignmentId: row.id,
       classId: row.classId,
@@ -306,8 +316,11 @@ export function studyTopicsFromPack(
         return [];
       }
     });
-    const picked = headings.slice(0, 3);
-    const names = picked.length > 0 ? picked : [`${row.name} review`];
+    const picked = headings
+      .filter((heading) => !templateHeading(heading))
+      .slice(0, 3);
+    const names =
+      picked.length > 0 ? picked : [`${row.shortName ?? row.name} review`];
     names.forEach((topic, index) => {
       topics.push({
         subject: row.name,
@@ -385,6 +398,12 @@ export function studyGuideFromPack(
   };
 }
 
+function templateHeading(heading: string): boolean {
+  return /^(gaps?|contents|sources?|citations?|how to use|notes|review guide)$/i.test(
+    heading.trim(),
+  );
+}
+
 function pickMaterial(files: readonly string[], title: string): string | null {
   if (files.length === 0) return null;
   const words = title.toLowerCase();
@@ -436,9 +455,14 @@ function teacherLabel(teachers: Record<string, unknown>[]): string | null {
   return null;
 }
 
+/** Chemistry's syllabus is on file. Other classes have no teacher AI rule. */
+export function teacherRuleOnFile(id: string, name: string): boolean {
+  return id === "chem" || /chemistry/i.test(name);
+}
+
 /** Chemistry's recorded rule is red. Anything unrecorded stays at hints, never full help. */
 export function helpForClass(id: string, name: string): PrivateHelp {
-  if (id === "chem" || /chemistry/i.test(name)) return "none";
+  if (teacherRuleOnFile(id, name)) return "none";
   return "hints";
 }
 
@@ -463,10 +487,17 @@ function parseAssignment(
     dueTime: kind === "assignment" ? "23:59" : "09:00",
     kind,
     help,
-    points: kind === "test" ? 100 : kind === "quiz" ? 50 : 20,
+    points: recordedPoints(row.points),
+    completed: row.completion_confirmed === true,
     estimateMin: kind === "test" ? 90 : kind === "quiz" ? 40 : 45,
     source: text(row.notion_url),
   };
+}
+
+function recordedPoints(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : null;
 }
 
 function assignmentKind(type: string): PrivateAssignment["kind"] {

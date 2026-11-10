@@ -1,4 +1,4 @@
-import type { ComponentProps, CSSProperties, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAvatarColour } from "@/lib/avatar-preference";
 import { DuetIcon, type DuetIconName } from "./icons";
@@ -182,7 +182,10 @@ export function TypingDots({ label = "Thinking" }: { label?: string }) {
       <span aria-hidden className="grid size-9 place-items-center">
         <MicOrb colour={colour} size={34} state="thinking" />
       </span>
-      <span aria-hidden className="duet-thinking-word type-sub font-medium text-duet-ink-2">
+      <span
+        aria-hidden
+        className="duet-thinking-word type-sub font-medium text-duet-ink-2"
+      >
         {label}
       </span>
     </div>

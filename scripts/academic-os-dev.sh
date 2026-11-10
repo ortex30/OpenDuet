@@ -101,8 +101,12 @@ pack = any(
 )
 if pack and empty("ACADEMIC_OS_PRIVATE_DEMO"):
     updates["ACADEMIC_OS_PRIVATE_DEMO"] = "1"
-if pack and empty("ACADEMIC_OS_STUDENT_NAME"):
-    updates["ACADEMIC_OS_STUDENT_NAME"] = "Viren Harding"
+# The student's name is whatever the operator set. The script does not invent one.
+named = os.environ.get("ACADEMIC_OS_STUDENT_NAME", "").strip()
+if named and empty("ACADEMIC_OS_STUDENT_NAME"):
+    updates["ACADEMIC_OS_STUDENT_NAME"] = named
+if empty("DO_NOT_TRACK"):
+    updates["DO_NOT_TRACK"] = "1"
 
 if not updates:
     raise SystemExit

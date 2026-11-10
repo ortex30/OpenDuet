@@ -121,6 +121,8 @@ export const storedPracticeSchema = z.object({
   items: z.array(itemSchema).min(1),
   createdAt: z.string(),
   result: resultSchema.nullable().optional(),
+  /** Set while a grade is in flight, so a second click cannot grade again. */
+  grading: z.boolean().optional(),
 });
 
 export type StoredPractice = z.infer<typeof storedPracticeSchema> & {
@@ -141,7 +143,7 @@ export function draftPractice(
 ): PracticePaper | { refused: string } {
   if (input.help === "none") {
     return {
-      refused: `${input.className} is set to no AI help, so no practice test was made.`,
+      refused: `${input.className} doesn't allow AI help, so no ${mode === "test" ? "practice test" : "quiz"} was made. Review your own notes.`,
     };
   }
   const notes = notesForGuide(input);
@@ -346,11 +348,17 @@ function steps(id: string, formula: string, index: number): PracticeItem {
     .replace(/\$[^$]+\$/g, " ")
     .replace(/[|#]/g, " ")
     .replace(/\s+/g, " ")
+    .replace(/[.\s]+$/g, "")
     .trim();
   return {
     id,
     kind: "steps",
-    prompt: `Work this in steps from your notes.\n\n${clip(shown, 500)}\n\n1. Say what the rule computes.\n2. Name the inputs.\n3. Apply it in one sentence to a different function than any example written out above.`,
+    prompt: `Work this in steps from your notes.\n\n${clip(shown, 500)}`,
+    parts: [
+      "Say what the rule computes.",
+      "Name the inputs.",
+      "Apply it in one sentence to a different function than the example.",
+    ],
     answer: clip(shown, 400),
     rubric: pointsOf(topic || formula, 1).concat([
       {

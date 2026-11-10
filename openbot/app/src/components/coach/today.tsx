@@ -28,6 +28,27 @@ import {
   Ring,
 } from "./kit";
 
+function tomorrowLine(state: CoachState, now: Date): string | null {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const next = start.getTime() + 86_400_000;
+  const end = next + 86_400_000;
+  const items = state.assignments.filter((item) => {
+    if (item.status === "done") return false;
+    const due = new Date(item.dueAt).getTime();
+    return (
+      due >= next &&
+      due < end &&
+      /quest|exam|\bleq\b|in-class|\bquiz\b/i.test(item.title)
+    );
+  });
+  if (items.length === 0) return null;
+  const names = items.map(
+    (item) => item.title.split(" - ").at(-1)?.trim() || item.title,
+  );
+  return `Tomorrow: ${names.join(", ")}.`;
+}
+
 function greeting(now: Date): string {
   const h = now.getHours();
   if (h < 5) return "Up late";
@@ -63,8 +84,14 @@ export function TodayHero({
         </Ring>
         <div className="min-w-0 flex-1">
           <p className="type-title font-semibold">
-            {greeting(now)}, {state.profile.name}.
+            {greeting(now)}
+            {state.profile.name ? `, ${state.profile.name}` : ""}.
           </p>
+          {tomorrowLine(state, now) ? (
+            <p className="type-sub mt-1 text-duet-ink [overflow-wrap:anywhere]">
+              {tomorrowLine(state, now)}
+            </p>
+          ) : null}
           <p className="type-sub text-duet-ink-2">
             {met
               ? "Goal met today. Anything more is a bonus."

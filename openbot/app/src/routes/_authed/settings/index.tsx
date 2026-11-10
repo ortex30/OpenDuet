@@ -1,7 +1,11 @@
 import { cn } from "@/lib/utils";
 import { MicOrb } from "@/components/duet/mic-orb";
 import { ORB_COLOURS } from "@/components/duet/mic-orb-draw";
-import { ORB_COLOUR_LABEL, setAvatarColour, useAvatarColour } from "@/lib/avatar-preference";
+import {
+  ORB_COLOUR_LABEL,
+  setAvatarColour,
+  useAvatarColour,
+} from "@/lib/avatar-preference";
 import { useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
@@ -75,6 +79,7 @@ function AvatarPicker() {
       {ORB_COLOURS.map((colour) => {
         const on = colour === chosen;
         return (
+          // biome-ignore lint/a11y/useSemanticElements: a colour choice, drawn as a button in a radiogroup.
           <button
             aria-checked={on}
             aria-label={ORB_COLOUR_LABEL[colour]}
@@ -90,7 +95,9 @@ function AvatarPicker() {
             type="button"
           >
             <MicOrb colour={colour} size={44} still />
-            <span className="type-caption font-medium">{ORB_COLOUR_LABEL[colour]}</span>
+            <span className="type-caption font-medium">
+              {ORB_COLOUR_LABEL[colour]}
+            </span>
           </button>
         );
       })}
@@ -141,7 +148,9 @@ function RouteComponent() {
       title="Settings"
     >
       <PageSection title="Your coach">
-        <p className="type-sub mt-1 text-duet-ink-2">Pick a colour for your coach's orb.</p>
+        <p className="type-sub mt-1 text-duet-ink-2">
+          Pick a colour for your coach's orb.
+        </p>
         <AvatarPicker />
       </PageSection>
       <StandingInstructions />

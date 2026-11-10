@@ -23,13 +23,18 @@ export function PracticeSession({
   ) => Promise<PracticeResult>;
   busy: boolean;
 }) {
-  const [timed, setTimed] = useState(paper.mode === "test");
+  const saved = readProgress(paper.id);
+  const [timed, setTimed] = useState(saved?.timed ?? paper.mode === "test");
   const [started, setStarted] = useState(
-    paper.mode === "quiz" || paper.result != null,
+    saved?.started === true || paper.mode === "quiz" || paper.result != null,
   );
-  const [left, setLeft] = useState(paper.suggestedMinutes * 60);
-  const [picks, setPicks] = useState<Record<string, number>>({});
-  const [texts, setTexts] = useState<Record<string, string>>({});
+  const [left, setLeft] = useState(saved?.left ?? paper.suggestedMinutes * 60);
+  const [picks, setPicks] = useState<Record<string, number>>(
+    saved?.picks ?? {},
+  );
+  const [texts, setTexts] = useState<Record<string, string>>(
+    saved?.texts ?? {},
+  );
   const [result, setResult] = useState<PracticeResult | null>(paper.result);
   const [error, setError] = useState("");
   const grading = useRef(false);
@@ -63,6 +68,11 @@ export function PracticeSession({
   }
 
   submitRef.current = submit;
+
+  useEffect(() => {
+    if (paper.result) return;
+    writeProgress(paper.id, { timed, started, left, picks, texts });
+  }, [paper.id, paper.result, timed, started, left, picks, texts]);
 
   useEffect(() => {
     if (!started || !timed || result) return;
@@ -230,7 +240,8 @@ function Results({ result }: { result: PracticeResult }) {
       {result.items.map((item) => (
         <div key={item.id} className="flex flex-col gap-1">
           <p className="type-sub font-semibold">
-            {item.topic}. {item.earned} of {item.points}.
+            {item.topic.replace(/[.\s]+$/g, "")}. {item.earned} of {item.points}
+            .
           </p>
           <p className="type-sub text-duet-ink">
             <PageText text={item.feedback} />
@@ -239,6 +250,32 @@ function Results({ result }: { result: PracticeResult }) {
       ))}
     </div>
   );
+}
+
+const PROGRESS = "academic-os.practice-progress";
+
+type Progress = {
+  id: string;
+  timed: boolean;
+  started: boolean;
+  left: number;
+  picks: Record<string, number>;
+  texts: Record<string, string>;
+};
+
+function readProgress(id: string): Progress | null {
+  try {
+    const raw = window.localStorage.getItem(PROGRESS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Progress;
+    return parsed.id === id ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeProgress(id: string, progress: Omit<Progress, "id">) {
+  window.localStorage.setItem(PROGRESS, JSON.stringify({ id, ...progress }));
 }
 
 function clock(seconds: number): string {

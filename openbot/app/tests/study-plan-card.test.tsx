@@ -205,9 +205,7 @@ describe("what the plan holds", () => {
   test("what didn't fit and each warning, once", () => {
     const view = drawPlan();
 
-    expect(
-      view.getByText("Didn't fit: 45 min of Precalc homework"),
-    ).toBeTruthy();
+    expect(view.getByText("45 min of Precalc homework")).toBeTruthy();
     expect(view.getAllByText("Thursday is full after 6 PM.")).toHaveLength(1);
   });
 

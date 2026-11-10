@@ -294,7 +294,7 @@ describe("the study plan card", () => {
     expect(within(card).getByText("Late")).toBeTruthy();
     expect(within(card).getByText(LATE)).toBeTruthy();
     expect(
-      within(card).getByText(/Didn't fit: 45 min of Chemistry: Lab 6 report/),
+      within(card).getByText(/45 min of Chemistry: Lab 6 report/),
     ).toBeTruthy();
     const preview = within(card).getByRole("link", {
       name: "Preview on calendar",

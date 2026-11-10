@@ -135,7 +135,7 @@ function unreadable(text: string, what: string): string {
   if (prompt)
     return `Google Calendar isn't connected, so ${what} couldn't be read. Connect Google on the Connections page.`;
   if (/has not been given the tool/i.test(bare))
-    return `This Bot hasn't been given Google Calendar, so ${what} couldn't be read. Ask an admin to give it Google Calendar.`;
+    return `This Bot hasn't been given Google Calendar, so ${what} couldn't be read. Google Calendar needs to be turned on for this coach.`;
   const reason = bare.replace(/\s+/g, " ").trim();
   const said = reason.length > 300 ? `${reason.slice(0, 299)}…` : reason;
   return `${what.charAt(0).toUpperCase()}${what.slice(1)} couldn't be read from Google Calendar.${said ? ` ${said}` : ""}`;

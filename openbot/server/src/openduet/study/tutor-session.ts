@@ -119,11 +119,7 @@ export function localReply(
   phase: "check" | "teach",
 ): TutorReply {
   const text = answer.trim();
-  const overlap = sharedWords(
-    text,
-    `${opening.explanation} ${opening.example}`,
-  );
-  const understood = text.length >= 12 && overlap >= 2;
+  const understood = answerHits(text, opening);
   if (!understood) {
     return {
       understood: false,
@@ -157,7 +153,7 @@ export function localReply(
 export function applyReply(
   local: TutorReply,
   model: unknown,
-  answer: string,
+  _answer: string,
   notes: string,
 ): TutorReply {
   if (!model || typeof model !== "object") return local;
@@ -171,11 +167,9 @@ export function applyReply(
   };
   const feedback = typeof row.feedback === "string" ? row.feedback.trim() : "";
   if (feedback.length < 8) return local;
-  const overlap = sharedWords(answer, notes);
-  let understood = row.understood === true;
-  if (understood && answer.trim().length < 12) understood = false;
-  if (understood && overlap < 2 && !local.understood) understood = false;
-  if (!understood && local.understood && overlap >= 2) understood = true;
+  // A miss stays a miss. The model, and a pasted explanation, cannot flip it.
+  let understood = local.understood && row.understood !== false;
+  if (!local.understood) understood = false;
   const adjustment =
     typeof row.adjustment === "string" &&
     sharedWords(row.adjustment, notes) >= 2
@@ -191,7 +185,7 @@ export function applyReply(
         : null;
   return {
     understood,
-    feedback,
+    feedback: consistentFeedback(understood, unlist(feedback), local.feedback),
     adjustment: understood
       ? null
       : adjustment
@@ -204,7 +198,9 @@ export function applyReply(
 }
 
 function cleanNotes(notes: string): string {
-  return notes.replace(/<!--[\s\S]*?-->/g, " ").replace(/^\s*source:.*$/gim, "");
+  return notes
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/^\s*source:.*$/gim, "");
 }
 
 /** A sentence a student can learn from, not a file header or a citation. */
@@ -217,16 +213,68 @@ export function usableSentence(sentence: string): boolean {
   );
 }
 
+/** The note's points, in the student's words. A paste of the explanation, or a non-answer, misses. */
+function answerHits(answer: string, opening: TutorOpening): boolean {
+  if (answer.length < 12 || nonAnswer(answer)) return false;
+  if (pastedExplanation(answer, opening.explanation)) return false;
+  const expects = opening.expects.filter((phrase) => phrase.trim().length >= 4);
+  if (expects.length === 0) return false;
+  const hit = expects.filter((phrase) => phraseHit(answer, phrase)).length;
+  return expects.length >= 3 ? hit >= 2 : hit >= 1;
+}
+
+function phraseHit(answer: string, phrase: string): boolean {
+  if (answer.toLowerCase().includes(phrase.toLowerCase())) return true;
+  return sharedWords(answer, phrase) >= 2 && phrase.split(/\s+/).length <= 6;
+}
+
+function nonAnswer(answer: string): boolean {
+  return /^(idk|i don'?t know|no idea|huh|what|ok|okay|yes|no|sure|n\/a|none)\b[.!?\s]*$/i.test(
+    answer,
+  );
+}
+
+function pastedExplanation(answer: string, explanation: string): boolean {
+  const left = answer.trim().toLowerCase().replace(/\s+/g, " ");
+  const right = explanation.trim().toLowerCase().replace(/\s+/g, " ");
+  if (left.length < 24 || right.length < 24) return false;
+  if (left === right || right.includes(left) || left.includes(right))
+    return true;
+  const slice = right.slice(0, Math.min(80, right.length));
+  return left.includes(slice);
+}
+
+function consistentFeedback(
+  understood: boolean,
+  feedback: string,
+  fallback: string,
+): string {
+  const praise =
+    /\b(strong|matches|nailed|correct|nice work|good answer)\b/i.test(feedback);
+  const miss =
+    /does not answer|doesn't answer|not quite|missing|off topic|does not match|doesn't match/i.test(
+      feedback,
+    );
+  if (praise && miss) return fallback;
+  if (understood && miss) return fallback;
+  if (!understood && praise) return fallback;
+  return feedback;
+}
+
+function unlist(text: string): string {
+  return text
+    .replace(/^\s*[-*•]\s+/gm, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function exampleFrom(notes: string, fallback: string): string {
   const sentences = notes
     .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim());
+    .map((sentence) => unlist(sentence.trim()));
   const usable = sentences.filter(usableSentence);
   const withMath = usable.find((sentence) => sentence.includes("$"));
-  const chosen = (withMath ?? usable[0] ?? fallback).replace(
-    /^\s*[-*]\s*/,
-    "",
-  );
+  const chosen = withMath ?? usable[0] ?? unlist(fallback);
   return prepareReadableMath(chosen);
 }
 

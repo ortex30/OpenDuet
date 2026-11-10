@@ -32,7 +32,13 @@ test("a wrong answer gets a simpler check, and a right one asks for teach-back",
   expect(weak.understood).toBe(false);
   expect(weak.adjustment).toBeTruthy();
   expect(weak.nextCheck).toBeTruthy();
-  const strong = localReply(opening, opening.explanation, "check");
+  const pasted = localReply(opening, opening.explanation, "check");
+  expect(pasted.understood).toBe(false);
+  const strong = localReply(
+    opening,
+    `The notes' point is ${opening.expects[0] ?? "the proclamation"}.`,
+    "check",
+  );
   expect(strong.understood).toBe(true);
   expect(strong.teachBack).toContain("Teach");
 });
@@ -45,7 +51,7 @@ test("chemistry is refused", async () => {
   );
   expect(refused).toEqual({
     refused:
-      "Advanced Chemistry is set to no AI help. Review your own notes, and don't ask for the graded work.",
+      "Advanced Chemistry doesn't allow AI help. Review your own notes, and don't ask for the graded work.",
   });
 });
 
@@ -93,6 +99,30 @@ test("a model explanation that leaves the notes is ignored", () => {
     NOTES,
   );
   expect(kept.explanation).toBe(opening.explanation);
+});
+
+test("feedback cannot praise and reject the same answer", () => {
+  const opening: TutorOpening = {
+    topic: "Emancipation",
+    explanation:
+      "The Emancipation Proclamation in 1863 freed enslaved people in Confederate-held territory.",
+    example: "It let Black men join the Union army.",
+    check: "What did the proclamation do?",
+    expects: ["1863", "freed enslaved people"],
+  };
+  const local = localReply(opening, "no idea", "check");
+  const turn = applyReply(
+    local,
+    {
+      understood: true,
+      feedback: "Strong answer, but it doesn't answer the question.",
+      teachBack: "Teach it back.",
+    },
+    "no idea",
+    NOTES,
+  );
+  expect(turn.understood).toBe(false);
+  expect(turn.feedback).not.toMatch(/strong/i);
 });
 
 test("the model cannot call a short wrong answer understood", () => {

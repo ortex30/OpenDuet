@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { stricterLevel } from "@openbot/shared/study";
 import { Hono } from "hono";
 import type { AppVariables } from "../../auth/guards";
 import type { PageBlock } from "../page-content";
@@ -16,10 +17,12 @@ import {
   craftGuide,
   craftQuiz,
   craftWritten,
+  eveningSummary,
   type GuideInput,
   gradeWritten,
   planTonight,
   polishGuide,
+  schoolSnapshotFromPack,
 } from "./craft";
 import { notesForGuide } from "./guide-write";
 import { buildGuideInput } from "./notes-input";
@@ -52,14 +55,18 @@ export function craftRoutes(deps: StudyRouteDeps) {
       focus?: string;
     } | null;
     const pack = requirePack();
-    const input = guideInput(pack, body?.classId, body?.focus);
-    const guide = await polishGuide(
-      craftGuide(input),
-      joined(input),
-      process.env,
-      fetch,
-      input,
+    const owner = context.var.actor.id;
+    const input = await ruledInput(
+      deps,
+      owner,
+      pack,
+      guideInput(pack, body?.classId, body?.focus),
     );
+    const drafted = craftGuide(input);
+    const guide =
+      input.help === "none"
+        ? drafted
+        : await polishGuide(drafted, joined(input), process.env, fetch, input);
     if (!deps.pages) {
       return context.json({
         title: guide.title,
@@ -67,7 +74,6 @@ export function craftRoutes(deps: StudyRouteDeps) {
         dropped: guide.dropped,
       });
     }
-    const owner = context.var.actor.id;
     const saved = await deps.pages.save(owner, deps.primaryBot, {
       kind: "doc",
       title: guide.title,
@@ -89,7 +95,12 @@ export function craftRoutes(deps: StudyRouteDeps) {
       focus?: string;
     } | null;
     const pack = requirePack();
-    const input = guideInput(pack, body?.classId, body?.focus);
+    const input = await ruledInput(
+      deps,
+      context.var.actor.id,
+      pack,
+      guideInput(pack, body?.classId, body?.focus),
+    );
     const made = craftQuiz(input);
     if ("refused" in made) throw new StudyForbiddenError(made.refused);
     const written = craftWritten(input);
@@ -197,10 +208,15 @@ export function craftRoutes(deps: StudyRouteDeps) {
       mode?: string;
     } | null;
     const pack = requirePack();
-    const input = buildGuideInput(pack, {
-      ...(body?.classId ? { classId: body.classId } : {}),
-      ...(body?.focus?.trim() ? { focus: body.focus.trim() } : {}),
-    });
+    const input = await ruledInput(
+      deps,
+      context.var.actor.id,
+      pack,
+      buildGuideInput(pack, {
+        ...(body?.classId ? { classId: body.classId } : {}),
+        ...(body?.focus?.trim() ? { focus: body.focus.trim() } : {}),
+      }),
+    );
     const mode = body?.mode === "test" ? "test" : "quiz";
     const made = await writePractice(input, mode, process.env);
     if ("refused" in made) throw new StudyForbiddenError(made.refused);
@@ -256,19 +272,64 @@ export function craftRoutes(deps: StudyRouteDeps) {
     }
     const answers = body?.answers ?? [];
     if (answers.length === 0) throw new StudyInputError("Answer a question.");
+    let won = false;
+    const claimed = await deps.store.update(
+      owner,
+      "practice",
+      id,
+      (current) => {
+        const data = storedPracticeSchema.safeParse(current.data);
+        if (!data.success)
+          throw new StudyInputError("That practice isn't here anymore.");
+        if (data.data.result || data.data.grading) return { data: data.data };
+        won = true;
+        return { data: { ...data.data, grading: true } };
+      },
+    );
+    const held = storedPracticeSchema.safeParse(claimed.data);
+    if (!held.success)
+      throw new StudyInputError("That practice isn't here anymore.");
+    if (held.data.result) {
+      return context.json({
+        practice: practiceView(claimed.data, id),
+        result: held.data.result,
+      });
+    }
+    if (!won) throw new StudyInputError("That quiz is already being checked.");
     const pack = requirePack();
     const input = buildGuideInput(pack, {
-      classId: parsed.data.classId,
-      focus: parsed.data.focus,
+      classId: held.data.classId,
+      focus: held.data.focus,
     });
-    const result = await gradePractice(
-      parsed.data.items,
-      answers,
-      notesForGuide(input),
-      process.env,
-    );
-    const data = { ...parsed.data, result };
-    await deps.store.update(owner, "practice", id, () => ({ data }));
+    let result: Awaited<ReturnType<typeof gradePractice>>;
+    try {
+      result = await gradePractice(
+        held.data.items,
+        answers,
+        notesForGuide(input),
+        process.env,
+      );
+    } catch (error) {
+      await deps.store
+        .update(owner, "practice", id, (current) => {
+          const data = storedPracticeSchema.safeParse(current.data);
+          if (!data.success || data.data.result) return {};
+          return { data: { ...data.data, grading: false } };
+        })
+        .catch(() => undefined);
+      throw error;
+    }
+    const data = { ...held.data, grading: false, result };
+    const saved = await deps.store.update(owner, "practice", id, (current) => {
+      const latest = storedPracticeSchema.safeParse(current.data);
+      if (latest.success && latest.data.result) return { data: latest.data };
+      return { data };
+    });
+    const finalData = storedPracticeSchema.safeParse(saved.data);
+    const finalResult =
+      finalData.success && finalData.data.result
+        ? finalData.data.result
+        : result;
     if (deps.memory) {
       await deps.memory.record(
         owner,
@@ -288,7 +349,10 @@ export function craftRoutes(deps: StudyRouteDeps) {
         })),
       );
     }
-    return context.json({ practice: practiceView(data, id), result });
+    return context.json({
+      practice: practiceView(finalData.success ? finalData.data : data, id),
+      result: finalResult,
+    });
   });
 
   routes.post("/workshop/tutor", async (context) => {
@@ -297,10 +361,15 @@ export function craftRoutes(deps: StudyRouteDeps) {
       topic?: string;
     } | null;
     const pack = requirePack();
-    const input = buildGuideInput(pack, {
-      ...(body?.classId ? { classId: body.classId } : {}),
-      ...(body?.topic?.trim() ? { focus: body.topic.trim() } : {}),
-    });
+    const input = await ruledInput(
+      deps,
+      context.var.actor.id,
+      pack,
+      buildGuideInput(pack, {
+        ...(body?.classId ? { classId: body.classId } : {}),
+        ...(body?.topic?.trim() ? { focus: body.topic.trim() } : {}),
+      }),
+    );
     const step = await openTutor(
       input,
       body?.topic?.trim() || input.focus,
@@ -324,13 +393,18 @@ export function craftRoutes(deps: StudyRouteDeps) {
     if (!body?.answer?.trim() || !body.topic)
       throw new StudyInputError("Write an answer first.");
     const pack = requirePack();
-    const input = buildGuideInput(pack, {
-      ...(body.classId ? { classId: body.classId } : {}),
-      focus: body.topic,
-    });
+    const input = await ruledInput(
+      deps,
+      context.var.actor.id,
+      pack,
+      buildGuideInput(pack, {
+        ...(body.classId ? { classId: body.classId } : {}),
+        focus: body.topic,
+      }),
+    );
     if (input.help === "none") {
       throw new StudyForbiddenError(
-        `${input.className} is set to no AI help. Review your own notes, and don't ask for the graded work.`,
+        `${input.className} doesn't allow AI help. Review your own notes, and don't ask for the graded work.`,
       );
     }
     const phase = body.phase === "teach" ? "teach" : "check";
@@ -400,11 +474,14 @@ export function craftRoutes(deps: StudyRouteDeps) {
       skip?: unknown;
       save?: unknown;
       planId?: unknown;
+      minutes?: unknown;
     } | null;
     const skip = Array.isArray(body?.skip)
       ? body.skip.filter((id): id is string => typeof id === "string")
       : [];
-    const plan = planTonight(pack, now(), skip);
+    const minutes =
+      typeof body?.minutes === "number" ? body.minutes : undefined;
+    const plan = planTonight(pack, now(), { skip, minutes });
     const save = body?.save === true;
     let planId: string | null = null;
     if (save) {
@@ -414,10 +491,27 @@ export function craftRoutes(deps: StudyRouteDeps) {
           ? body.planId.trim()
           : randomUUID();
       const stamp = now().toISOString();
+      const earlier = await deps.store.list(owner, "plan", {
+        status: "applied",
+      });
+      for (const row of earlier) {
+        if (row.id === id) continue;
+        await deps.store.update(owner, "plan", row.id, (stored) => {
+          if (stored.status !== "applied") return {};
+          return {
+            status: "discarded",
+            data: {
+              ...stored.data,
+              status: "discarded",
+              removedAt: stamp,
+            },
+          };
+        });
+      }
       const stored = {
         id,
         status: "applied" as const,
-        reason: "Tonight's plan, from what's due.",
+        reason: eveningSummary(plan),
         timeZone: pack.timeZone,
         startDate: plan.startDate,
         days: plan.days,
@@ -445,16 +539,31 @@ export function craftRoutes(deps: StudyRouteDeps) {
       plan: {
         totalMinutes: plan.totalMinutes,
         warnings: plan.warnings,
+        remaining: plan.remaining,
         blocks: plan.blocks,
-        summary:
-          plan.blocks.length === 0
-            ? "Nothing due tonight or tomorrow."
-            : "Due today comes first, then a test or quiz tomorrow. Times are study time, not the class period.",
+        summary: eveningSummary(plan),
       },
     });
   });
 
   return routes;
+}
+
+async function ruledInput(
+  deps: StudyRouteDeps,
+  owner: string,
+  pack: PrivatePack,
+  input: GuideInput,
+): Promise<GuideInput> {
+  const at = deps.now?.() ?? new Date();
+  const target = await deps.rules.target(
+    owner,
+    schoolSnapshotFromPack(pack, at),
+    { className: input.className },
+    at,
+  );
+  if (!target.ok) throw new StudyInputError(target.reason);
+  return { ...input, help: stricterLevel(input.help, target.level) };
 }
 
 function requirePack(): PrivatePack {

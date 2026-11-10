@@ -39,6 +39,8 @@ export async function writePractice(
       "Return JSON only.",
       "Do not add facts, dates, formulas, or examples the notes do not contain.",
       "Keep every item id and kind. You may rewrite prompt, stimulus, choices, answer, and rubric text.",
+      "Multiple choice reads like a test: four different statements, exactly one true. Distractors are false, not other true lines from the notes, and never duplicates. The answer text is the correct choice, word for word.",
+      "A multi-step item uses parts, one box per step, not three steps jammed into one prompt.",
       "Math stays in $...$ so it can be drawn.",
       "These are practice questions. They are not an assignment to turn in.",
       input.help === "hints"
@@ -84,16 +86,9 @@ function groundedItem(
     return item;
   const choices = next.choices;
   if (choices?.some((choice) => noisy(choice))) return item;
-  const choiceOk =
-    !choices ||
-    (choices.length === 4 &&
-      choices.every((choice) => choice.trim().length > 0) &&
-      (item.answerIndex === undefined ||
-        supported(
-          choices[next.answerIndex ?? item.answerIndex ?? 0] ?? "",
-          notes,
-        )));
-  if (!choiceOk || !choices) {
+  const matched = choices ? matchedChoices(answer, choices) : null;
+  if (choices && !matched) return item;
+  if (!matched) {
     return {
       ...item,
       prompt: clip(prompt, 700),
@@ -101,17 +96,58 @@ function groundedItem(
       answer: clip(answer, 500),
     };
   }
-  const index = next.answerIndex ?? item.answerIndex ?? 0;
   return {
     ...item,
     prompt: clip(prompt, 700),
     ...(stimulus ? { stimulus: clip(stimulus, 400) } : {}),
-    choices: choices.map((choice) =>
-      clip(choice.trim(), 180),
-    ) as PracticeItem["choices"],
-    answerIndex: index,
+    choices: matched.choices,
+    answerIndex: matched.index,
     answer: clip(answer, 500),
   };
+}
+
+/** One right choice, matched to the answer text. Duplicates and true copies are refused. */
+function matchedChoices(
+  answer: string,
+  choices: readonly string[],
+): { choices: PracticeItem["choices"]; index: number } | null {
+  if (choices.length !== 4) return null;
+  const cleaned = choices.map((choice) => clip(choice.trim(), 180));
+  if (cleaned.some((choice) => choice.length === 0)) return null;
+  const keys = cleaned.map(sameChoice);
+  if (new Set(keys).size !== 4) return null;
+  const want = sameChoice(answer);
+  const hits = keys
+    .map((key, index) => ({ key, index }))
+    .filter(
+      (row) =>
+        row.key === want ||
+        (want.length >= 12 &&
+          (row.key.includes(want) || want.includes(row.key))),
+    );
+  if (hits.length !== 1) return null;
+  const index = hits[0]?.index ?? -1;
+  if (index < 0) return null;
+  const right = cleaned[index] ?? "";
+  const distractorsOk = cleaned.every((choice, choiceIndex) => {
+    if (choiceIndex === index) return true;
+    const key = sameChoice(choice);
+    if (key === sameChoice(right)) return false;
+    if (want.length >= 24 && (key.includes(want) || want.includes(key)))
+      return false;
+    return true;
+  });
+  if (!distractorsOk) return null;
+  return { choices: cleaned as PracticeItem["choices"], index };
+}
+
+function sameChoice(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\$[^$]*\$/g, " ")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export async function gradePractice(
@@ -170,7 +206,12 @@ export function mergeGrades(
     if (source.kind === "mcq") return item;
     const supportedAnswer =
       sharedWords(text, `${source.answer}\n${notes}`) >= 2;
-    let earned = clamp(row.earned, 0, item.points);
+    const rubricCap = source.rubric.reduce(
+      (sum, point) => sum + (Number.isFinite(point.points) ? point.points : 0),
+      0,
+    );
+    const cap = rubricCap > 0 ? Math.min(item.points, rubricCap) : item.points;
+    let earned = clamp(row.earned, 0, cap);
     earned = supportedAnswer
       ? Math.max(earned, item.earned)
       : Math.min(earned, item.earned);

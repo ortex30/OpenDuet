@@ -1,6 +1,10 @@
 import type { RunAgentInput } from "@ag-ui/client";
 import { HELP_LEVEL_LABEL } from "@openbot/shared/study";
-import { loadEnabledPack, type PrivatePack } from "./private-pack";
+import {
+  loadEnabledPack,
+  type PrivatePack,
+  teacherRuleOnFile,
+} from "./private-pack";
 
 /**
  * The teacher's levels, put on every chat run when the school pack is loaded.
@@ -23,12 +27,17 @@ const MAY = {
 export function classRulesText(pack: PrivatePack): string {
   const lines = pack.classes.map((row) => {
     const short = row.shortName ? ` (${row.shortName})` : "";
-    return `${row.name}${short}: ${HELP_LEVEL_LABEL[row.help]}. ${MAY[row.help]}`;
+    const onFile = teacherRuleOnFile(row.id, row.name);
+    const say = onFile
+      ? "A teacher rule is on file. Say that's how the teacher set it."
+      : "No teacher rule is on file. Say that's the app's default. Do not say the teacher set it.";
+    return `${row.name}${short}: ${HELP_LEVEL_LABEL[row.help]}. ${MAY[row.help]} ${say}`;
   });
   return [
-    "CLASS RULES. These are the teacher's AI help levels. They are already known.",
+    "CLASS RULES. These levels are already known.",
     "When a class is listed, its level is known. Never say the AI help level is unavailable, missing, or that you could not look it up.",
-    "When you tell the student a level, say it as the teacher's rule. For example: Calc BC is hints only. That's how your teacher set it. Never write Source or school pack.",
+    "Only say a teacher set the level when that class's line says a teacher rule is on file. Otherwise say it is the app's default.",
+    "A no-help class gets no notes sent to a model, no quiz, and no worked answers. make_page must not save a guide or quiz for it.",
     "Do not search mail for a level that is listed here. Mail and calendar are optional.",
     ...lines,
   ].join("\n");

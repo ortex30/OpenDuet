@@ -227,17 +227,23 @@ export function blankState(name: string): CoachState {
  * their account's name, and keeps Jordan only when the account has none. A week the student set
  * up, or started empty, keeps the name they gave. Returns the same state when nothing changes.
  */
+function firstName(name: string | null | undefined): string {
+  const first = name?.trim().split(/\s+/)[0] ?? "";
+  if (!first || first.includes("@")) return "";
+  return first;
+}
+
 export function withAccountName(
   state: CoachState,
   accountName: string | null | undefined,
 ): CoachState {
-  const first = accountName?.trim().split(/\s+/)[0] ?? "";
+  const first = firstName(accountName);
   if (
     !first ||
-    first.includes("@") ||
     !state.demo ||
     state.profile.setupDone ||
-    state.profile.name === first
+    state.profile.name === first ||
+    (state.source === "private" && state.profile.name.trim() !== "")
   )
     return state;
   return { ...state, profile: { ...state.profile, name: first } };
@@ -269,12 +275,13 @@ export type PrivateDemoPayload = {
   timeZone: string;
   historicalExcluded: number;
   classes: { id: string; name: string; teacher: string; help: HelpLevel }[];
+  studentName?: string | null;
   assignments: {
     id: string;
     classId: string;
     title: string;
     dueAt: string;
-    points: number;
+    points: number | null;
     estimateMin: number;
     helpLevel: HelpLevel;
     source: string | null;
@@ -313,7 +320,7 @@ export function privatePackState(pack: PrivateDemoPayload): CoachState {
     demo: true,
     source: "private",
     profile: {
-      name: "Viren",
+      name: firstName(pack.studentName),
       dailyGoalMin: 60,
       bedtime: "22:30",
       dailyCapacityMin: 120,

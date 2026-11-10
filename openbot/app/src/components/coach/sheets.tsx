@@ -310,7 +310,7 @@ export function SetupSheet({
         <button
           className="type-caption font-semibold text-duet-ink-2 hover:text-duet-red"
           onClick={() => {
-            startFresh(name.trim() || "Viren");
+            startFresh(name.trim() || "Student");
             onClose();
           }}
           type="button"

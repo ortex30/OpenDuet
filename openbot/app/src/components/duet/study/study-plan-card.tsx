@@ -187,10 +187,21 @@ export function StudyPlanCard({
                     name="clock"
                     size={16}
                   />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {`Didn't fit: ${plan.remaining
-                      .map((item) => `${item.minutes} min of ${item.title}`)
-                      .join(", ")}`}
+                  <span className="min-w-0">
+                    <span className="block font-semibold">Didn't fit</span>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {plan.remaining.slice(0, 4).map((item) => (
+                        <li
+                          className="[overflow-wrap:anywhere]"
+                          key={item.assignmentId}
+                        >
+                          {`${item.minutes} min of ${item.title}`}
+                        </li>
+                      ))}
+                      {plan.remaining.length > 4 ? (
+                        <li>{`${plan.remaining.length - 4} more`}</li>
+                      ) : null}
+                    </ul>
                   </span>
                 </li>
               ) : null}

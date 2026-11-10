@@ -116,7 +116,7 @@ test("a no-help class is refused", () => {
     draftPractice(input("Advanced Chemistry", HISTORY, "none"), "quiz"),
   ).toEqual({
     refused:
-      "Advanced Chemistry is set to no AI help, so no practice test was made.",
+      "Advanced Chemistry doesn't allow AI help, so no quiz was made. Review your own notes.",
   });
 });
 
@@ -169,6 +169,73 @@ test("a model rewrite that invents a fact is dropped", () => {
     HISTORY,
   );
   expect(merged.items[0]?.prompt).toBe(item.prompt);
+});
+
+test("a model choice list is deduped and the answer index follows the answer text", () => {
+  const paper = draftPractice(
+    input("AP United States History", HISTORY),
+    "quiz",
+  );
+  if ("refused" in paper) throw new Error(paper.refused);
+  const item = paper.items.find((row) => row.kind === "mcq");
+  if (!item?.choices) throw new Error("no mcq");
+  const answer =
+    "The Missouri Compromise kept a balance of free and slave states.";
+  const merged = mergeDraft(
+    paper,
+    {
+      items: [
+        {
+          id: item.id,
+          kind: "mcq",
+          prompt:
+            "Which statement matches the notes on the Missouri Compromise?",
+          choices: [
+            answer,
+            answer,
+            "A later chapter, not this one",
+            "None of these",
+          ],
+          answerIndex: 3,
+          answer,
+        },
+      ],
+    },
+    HISTORY,
+  );
+  expect(merged.items[0]?.choices).toEqual(item.choices);
+  expect(merged.items[0]?.answerIndex).toBe(item.answerIndex);
+});
+
+test("model scores cannot pass the rubric", () => {
+  const paper = draftPractice(input("AP Calculus BC", CALC), "quiz");
+  if ("refused" in paper) throw new Error(paper.refused);
+  const written = paper.items.find((item) => item.kind !== "mcq");
+  if (!written) throw new Error("no written");
+  const local = gradePracticeLocal(paper.items, [
+    { id: written.id, text: written.answer },
+  ]);
+  const merged = mergeGrades(
+    local,
+    {
+      items: [
+        {
+          id: written.id,
+          earned: 99,
+          feedback: "Every step is in the notes and complete.",
+        },
+      ],
+    },
+    paper.items,
+    [{ id: written.id, text: written.answer }],
+    CALC,
+  );
+  const grade = merged.items.find((item) => item.id === written.id);
+  const rubric = written.rubric.reduce((sum, point) => sum + point.points, 0);
+  expect(grade?.earned).not.toBe(99);
+  expect(grade?.earned ?? 0).toBeLessThanOrEqual(
+    Math.min(written.points, rubric),
+  );
 });
 
 test("model grading cannot give full credit to an answer the notes do not support", () => {

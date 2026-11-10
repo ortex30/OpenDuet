@@ -11,6 +11,7 @@ import {
   loadEnabledPack,
   packCalendarSlice,
   privateDemoSummary,
+  schoolGreeting,
 } from "../private-pack";
 import { readCalendar } from "./calendar-source";
 import {
@@ -237,7 +238,12 @@ export function planRoutes(deps: StudyRouteDeps) {
     .get("/private-demo", (context) => {
       const pack = loadEnabledPack();
       if (!pack) return context.json({ available: false });
-      return context.json(privateDemoSummary(pack));
+      const studentName = process.env.ACADEMIC_OS_STUDENT_NAME?.trim() || null;
+      return context.json({
+        ...privateDemoSummary(pack),
+        studentName,
+        greeting: schoolGreeting(pack, clock(), studentName),
+      });
     })
     .get("/calendar", async (context) => {
       const from = context.req.query("from") ?? "";

@@ -59,10 +59,7 @@ function usePath(): string {
 export function StudyDock() {
   const path = usePath();
   return (
-    <nav
-      aria-label="Study tools"
-      className="mb-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
+    <nav aria-label="Study tools" className="mb-2 flex flex-wrap gap-1.5 pb-1">
       {TOOLS.map((tool) => {
         const current = path === tool.to || path.startsWith(`${tool.to}/`);
         return (
@@ -70,8 +67,8 @@ export function StudyDock() {
             aria-current={current ? "page" : undefined}
             className={
               current
-                ? "type-caption inline-flex min-h-11 shrink-0 items-center rounded-full bg-duet-ink px-3.5 font-semibold text-duet-surface focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
-                : "type-caption inline-flex min-h-11 shrink-0 items-center rounded-full bg-duet-tile px-3.5 font-semibold text-duet-ink transition-colors hover:bg-duet-ink hover:text-duet-surface focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+                ? "type-caption inline-flex min-h-11 items-center rounded-full bg-duet-ink px-3 font-semibold text-duet-surface focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+                : "type-caption inline-flex min-h-11 items-center rounded-full bg-duet-tile px-3 font-semibold text-duet-ink transition-colors hover:bg-duet-ink hover:text-duet-surface focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
             }
             href={tool.to}
             key={tool.to}

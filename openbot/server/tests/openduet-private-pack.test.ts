@@ -127,10 +127,13 @@ test("the calendar slice uses weekdays in range and skips the chemistry deadline
     new Date("2026-11-10T18:00:00.000Z"),
   );
   expect(slice.today).toBe("2026-11-10");
-  // Tue–Thu. Saturday is outside this range. Block 4 and block 5 each day.
-  expect(slice.events).toHaveLength(6);
-  expect(slice.events.every((event) => event.date !== "2026-11-15")).toBe(true);
-  expect(slice.deadlines.map((row) => row.help)).toEqual(["hints", "none"]);
+  // Quests and exams sit at 9:00 on their due day. Block numbers are not hours.
+  expect(slice.events.map((event) => [event.date, event.start])).toEqual([
+    ["2026-11-11", "09:00"],
+    ["2026-11-12", "09:00"],
+  ]);
+  expect(slice.events.every((event) => event.end === "10:00")).toBe(true);
+  expect(slice.deadlines).toEqual([]);
   const guide = studyGuideFromPack(
     pack,
     (file) => readFile(root, file),

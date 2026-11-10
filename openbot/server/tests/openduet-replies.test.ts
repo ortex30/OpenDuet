@@ -40,6 +40,10 @@ describe("the suggest_replies tool", () => {
       "openduet/make_flashcards",
       "openduet/show_progress",
       "openduet/propose_study_plan",
+      "openduet/class_help",
+      "openduet/make_notes_quiz",
+      "openduet/record_study",
+      "openduet/study_memory",
     ]);
   });
 

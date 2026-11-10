@@ -7,12 +7,14 @@ import {
 import type { GrantedTool } from "@openbot/toolkit/granted-tool";
 import { z } from "zod";
 import { REFUSAL_MARKER } from "../../plugins/tools";
+import { loadEnabledPack } from "../private-pack";
 import { readCalendar } from "./calendar-source";
 import {
   type StudyContext,
   StudyInputError,
   type StudyToolDeps,
 } from "./contracts";
+import { eveningSummary, planTonight } from "./craft";
 import {
   appliedPlans,
   busyFrom,
@@ -215,6 +217,48 @@ function fixFor(
   return `${fix} ${AGAIN}`;
 }
 
+/** A one-day plan that starts today uses the same evening planner as Tonight. */
+export function usesSharedEvening(
+  request: {
+    days?: number;
+    startDate?: string;
+    startDay?: string;
+    startInDays?: number;
+  },
+  today: string,
+  weekdayName: string,
+): boolean {
+  if ((request.days ?? 1) !== 1) return false;
+  if ((request.startInDays ?? 0) > 0) return false;
+  if (
+    request.startDay !== undefined &&
+    request.startDay !== "today" &&
+    request.startDay !== weekdayName
+  ) {
+    return false;
+  }
+  if (request.startDate !== undefined && request.startDate !== today)
+    return false;
+  return true;
+}
+
+/** The time the student actually named, when the reason says it and minutes does not. */
+export function statedMinutes(reason: string, fallback: number): number {
+  const text = reason.toLowerCase();
+  const hours = /(\d+)\s*hours?/.exec(text);
+  const fromHours = hours ? Number(hours[1]) * 60 : undefined;
+  const words = /\btwo hours\b/.test(text)
+    ? 120
+    : /\b(an|one) hour\b/.test(text)
+      ? 60
+      : undefined;
+  const mins = /(\d+)\s*min/.exec(text);
+  const fromMins = mins ? Number(mins[1]) : undefined;
+  const stated = fromHours ?? words ?? fromMins;
+  if (stated === undefined || !Number.isFinite(stated)) return fallback;
+  return Math.min(600, Math.max(15, Math.round(stated)));
+}
+
 async function propose(deps: StudyToolDeps, args: unknown): Promise<string> {
   const context: StudyContext = {
     actorId: deps.actorId,
@@ -234,6 +278,57 @@ async function propose(deps: StudyToolDeps, args: unknown): Promise<string> {
   const parsed = parameters.safeParse(args);
   if (!parsed.success) return refused(fixFor(parsed.error.issues, today));
   const request = parsed.data;
+  const pack = loadEnabledPack();
+  // One day from the school pack is tonight's plan, even if the model
+  // also sent today's date, a start time, or a priority list.
+  const eveningToday = pack ? zonedParts(now, pack.timeZone).date : today;
+  const thisEvening =
+    pack !== null &&
+    usesSharedEvening(
+      request,
+      eveningToday,
+      WEEKDAYS[weekdayOf(eveningToday)] ?? "today",
+    );
+  if (pack && thisEvening) {
+    const draft = planTonight(pack, now, {
+      minutes: statedMinutes(request.reason, request.minutes),
+    });
+    const plan: Omit<StudyPlan, "stale" | "staleReason"> = {
+      id: randomUUID(),
+      status: "proposed",
+      reason: eveningSummary(draft),
+      timeZone: isTimeZone(pack.timeZone) ? pack.timeZone : "UTC",
+      startDate: draft.startDate,
+      days: draft.days,
+      blocks: draft.blocks,
+      remaining: draft.remaining,
+      warnings: draft.warnings,
+      totalMinutes: draft.totalMinutes,
+      createdAt: now.toISOString(),
+      appliedAt: null,
+    };
+    await deps.store.put(deps.actorId, {
+      id: plan.id,
+      kind: "plan",
+      botId: deps.botId,
+      status: plan.status,
+      ...planSpan(plan.blocks, plan.timeZone),
+      data: planData(plan),
+    });
+    const result: PlanToolResult & { startDate: string } = {
+      kind: "plan",
+      id: plan.id,
+      startDate: plan.startDate,
+      blocks: plan.blocks.length,
+      totalMinutes: plan.totalMinutes,
+      remainingMinutes: plan.remaining.reduce(
+        (sum, item) => sum + item.minutes,
+        0,
+      ),
+      warnings: plan.warnings,
+    };
+    return JSON.stringify(result);
+  }
   const ask: Omit<PlanInput, "tasks" | "busy"> = {
     today,
     nowMinute,
@@ -344,7 +439,7 @@ export function planTools(deps: StudyToolDeps): GrantedTool[] {
       ref: PLAN_TOOL_REF,
       initiator: deps.initiator,
       description: [
-        "Plan the student's study time: sessions for their open assignments, quizzes and tests, fitted around their classes, practices and anything else on their calendar, soonest due first unless priority says otherwise. Call it when they ask to plan an afternoon, a night or the week.",
+        "Plan the student's study time. For tonight, pass minutes as the time they said they have. Tomorrow morning's tests and quests come before homework due at 11:59. Never plan drafting an in-class essay. The minutes you pass are the plan's length.",
         "To start on another day, give startDay by name (tomorrow, or a weekday such as saturday) or startInDays (1 for tomorrow) rather than working out a date; the result's startDate is the first day it planned.",
         "It shows as a card that lists every session with an Apply button, so never list the sessions or their times in the chat: say in one sentence what the plan covers and what didn't fit.",
         "Nothing goes on their calendar until they press Apply on the card, so never say it is on their calendar.",

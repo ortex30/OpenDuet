@@ -575,7 +575,7 @@ describe("make_quiz", () => {
 
   test("makes no quiz or deck when the classes were never read, and says why, as the guard does", async () => {
     const why =
-      "This Bot hasn't been given Gmail, so your classes couldn't be read. Ask an admin to give it Gmail.";
+      "This Bot hasn't been given Gmail, so your classes couldn't be read. Gmail needs to be turned on for this coach.";
     const { tool, store } = setup({ school: schoolOf(null, why).service });
     // The DBQ's No help can't be seen, so nothing is made under the default level instead.
     expect(

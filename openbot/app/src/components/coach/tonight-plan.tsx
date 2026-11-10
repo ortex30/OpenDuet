@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DuetIcon } from "@/components/duet/icons";
 
 type Block = {
@@ -9,35 +9,60 @@ type Block = {
   end: string;
 };
 
+type Left = {
+  assignmentId: string;
+  title: string;
+  minutes: number;
+};
+
 type TonightBody = {
   planId?: string | null;
   plan?: {
     summary?: string;
     warnings?: string[];
     blocks?: Block[];
+    remaining?: Left[];
   };
   error?: string;
 };
 
-const SKIP_KEY = "academic-os.tonight-skip";
-const PLAN_KEY = "academic-os.tonight-plan";
+const STORE = "academic-os.tonight";
 
-/** Work the student already checked off, kept for this browser tab. */
-function readSkip(): string[] {
-  try {
-    const raw = window.sessionStorage.getItem(SKIP_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed)
-      ? parsed.filter((id): id is string => typeof id === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
+type Saved = {
+  rows: Row[];
+  summary: string;
+  warnings: string[];
+  remaining: Left[];
+  planId: string | null;
+  skip: string[];
+  minutes: number;
+  hidden: boolean;
+};
 
-function readPlanId(): string | null {
+type Row = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  minutes: number;
+};
+
+function readSaved(): Saved | null {
   try {
-    return window.sessionStorage.getItem(PLAN_KEY);
+    const raw = window.localStorage.getItem(STORE);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Saved>;
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    return {
+      rows: parsed.rows,
+      summary: parsed.summary ?? "",
+      warnings: parsed.warnings ?? [],
+      remaining: parsed.remaining ?? [],
+      planId: parsed.planId ?? null,
+      skip: parsed.skip ?? [],
+      minutes: parsed.minutes ?? 120,
+      hidden: parsed.hidden === true,
+    };
   } catch {
     return null;
   }
@@ -56,14 +81,6 @@ function clockSpan(start: string, end: string): number {
   }
   return Math.max(0, eh * 60 + em - (sh * 60 + sm));
 }
-
-type Row = {
-  id: string;
-  title: string;
-  start: string;
-  end: string;
-  minutes: number;
-};
 
 /** One row per assignment, from the first block to the last. */
 function rowsOf(blocks: Block[]): Row[] {
@@ -89,20 +106,59 @@ function rowsOf(blocks: Block[]): Row[] {
 }
 
 /**
- * Tonight's plan from what's due. Checking an item off asks for a new plan
- * without that work. Once it's on the calendar, later checks update that plan.
+ * Tonight's plan from what's due. The same plan chat makes. Checking an item
+ * off asks for a new plan without that work, and replaces the calendar copy.
  */
 export function TonightPlan() {
   const [rows, setRows] = useState<Row[]>([]);
   const [summary, setSummary] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [remaining, setRemaining] = useState<Left[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
-  const [skip, setSkip] = useState<string[]>(readSkip);
-  const [planId, setPlanId] = useState<string | null>(readPlanId);
+  const [skip, setSkip] = useState<string[]>([]);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [minutes, setMinutes] = useState(120);
   const [asked, setAsked] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  async function load(nextSkip: string[], save: boolean) {
+  useEffect(() => {
+    const saved = readSaved();
+    if (saved) {
+      setRows(saved.rows);
+      setSummary(saved.summary);
+      setWarnings(saved.warnings);
+      setRemaining(saved.remaining);
+      setPlanId(saved.planId);
+      setSkip(saved.skip);
+      setMinutes(saved.minutes);
+      setAsked(saved.rows.length > 0 || saved.summary.length > 0);
+      setHidden(saved.hidden);
+    }
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const next: Saved = {
+      rows,
+      summary,
+      warnings,
+      remaining,
+      planId,
+      skip,
+      minutes,
+      hidden,
+    };
+    window.localStorage.setItem(STORE, JSON.stringify(next));
+  }, [ready, rows, summary, warnings, remaining, planId, skip, minutes, hidden]);
+
+  async function load(
+    nextSkip: string[],
+    save: boolean,
+    nextMinutes = minutes,
+  ) {
     setBusy(save ? "save" : "plan");
     setError("");
     try {
@@ -112,6 +168,7 @@ export function TonightPlan() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           skip: nextSkip,
+          minutes: nextMinutes,
           ...(save || planId ? { save: true, planId } : {}),
         }),
       });
@@ -123,11 +180,10 @@ export function TonightPlan() {
       setWarnings(
         (body.plan?.warnings ?? []).filter((warning) => warning.trim()),
       );
+      setRemaining((body.plan?.remaining ?? []).slice(0, 4));
       setAsked(true);
-      if (body.planId) {
-        setPlanId(body.planId);
-        window.sessionStorage.setItem(PLAN_KEY, body.planId);
-      }
+      setHidden(false);
+      if (body.planId) setPlanId(body.planId);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Try again.");
     } finally {
@@ -138,14 +194,29 @@ export function TonightPlan() {
   function checkOff(id: string) {
     const next = skip.includes(id) ? skip : [...skip, id];
     setSkip(next);
-    window.sessionStorage.setItem(SKIP_KEY, JSON.stringify(next));
     void load(next, Boolean(planId));
   }
 
   function startOver() {
     setSkip([]);
-    window.sessionStorage.removeItem(SKIP_KEY);
     void load([], Boolean(planId));
+  }
+
+  if (hidden) {
+    return (
+      <section
+        aria-label="Tonight"
+        className="mb-3 rounded-[20px] bg-duet-card px-4 py-3 shadow-duet-card"
+      >
+        <button
+          className="type-sub font-semibold text-duet-ink"
+          onClick={() => setHidden(false)}
+          type="button"
+        >
+          Show tonight's plan
+        </button>
+      </section>
+    );
   }
 
   return (
@@ -156,18 +227,36 @@ export function TonightPlan() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="type-sub font-semibold">Tonight</h2>
-          <p className="type-caption mt-0.5 text-duet-ink-2">
+          <p className="type-caption mt-0.5 text-duet-ink-2 [overflow-wrap:anywhere]">
             {summary || "A short plan from what's actually due."}
           </p>
         </div>
-        <button
-          className="type-caption min-h-11 shrink-0 rounded-full bg-duet-ink px-4 font-semibold text-duet-surface disabled:opacity-50"
-          disabled={busy !== ""}
-          onClick={() => void load(skip, false)}
-          type="button"
-        >
-          {busy === "plan" ? "Planning…" : asked ? "Replan" : "Plan tonight"}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <label className="type-caption text-duet-ink-2">
+            <span className="sr-only">Minutes</span>
+            <input
+              className="w-16 rounded-full bg-duet-tile px-2 py-2 text-center text-duet-ink"
+              min={15}
+              max={600}
+              type="number"
+              value={minutes}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (!Number.isFinite(next)) return;
+                setMinutes(next);
+                if (asked) void load(skip, Boolean(planId), next);
+              }}
+            />
+          </label>
+          <button
+            className="type-caption min-h-11 rounded-full bg-duet-ink px-4 font-semibold text-duet-surface disabled:opacity-50"
+            disabled={busy !== ""}
+            onClick={() => void load(skip, false)}
+            type="button"
+          >
+            {busy === "plan" ? "Planning…" : asked ? "Replan" : "Plan tonight"}
+          </button>
+        </div>
       </div>
       {error ? (
         <p className="type-sub mt-3 text-duet-red" role="alert">
@@ -193,6 +282,7 @@ export function TonightPlan() {
               <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-duet-tile px-3 py-2.5">
                 <input
                   className="mt-1 size-4 shrink-0"
+                  checked={false}
                   type="checkbox"
                   onChange={() => checkOff(row.id)}
                 />
@@ -201,7 +291,7 @@ export function TonightPlan() {
                     {index + 1}. {row.start}–{row.end}
                     {row.minutes > 0 ? ` · ${row.minutes} min` : ""}
                   </span>
-                  <span className="type-sub block text-duet-ink">
+                  <span className="type-sub block text-duet-ink [overflow-wrap:anywhere]">
                     {row.title}
                   </span>
                 </span>
@@ -210,8 +300,32 @@ export function TonightPlan() {
           ))}
         </ul>
       ) : null}
+      {remaining.length > 0 ? (
+        <ul className="mt-3 flex flex-col gap-1">
+          <li className="type-caption font-semibold text-duet-ink-2">
+            Didn't fit
+          </li>
+          {remaining.map((item) => (
+            <li
+              className="type-caption text-duet-ink-2 [overflow-wrap:anywhere]"
+              key={item.assignmentId}
+            >
+              {item.minutes} min of {item.title}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {warnings.length > 0 ? (
-        <p className="type-caption mt-3 text-duet-ink-2">{warnings[0]}</p>
+        <ul className="mt-2 flex flex-col gap-1">
+          {warnings.slice(0, 3).map((warning) => (
+            <li
+              className="type-caption text-duet-ink-2 [overflow-wrap:anywhere]"
+              key={warning}
+            >
+              {warning}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {rows.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -259,6 +373,13 @@ export function TonightPlan() {
               Start over
             </button>
           ) : null}
+          <button
+            className="type-caption min-h-11 rounded-full px-3 font-semibold text-duet-ink-2"
+            onClick={() => setHidden(true)}
+            type="button"
+          >
+            Dismiss
+          </button>
         </div>
       ) : null}
     </section>

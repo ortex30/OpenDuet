@@ -593,7 +593,7 @@ describe("the school service", () => {
     google.state.ungranted.add(OTHER_BOT.botId);
     const refused = {
       snapshot: null,
-      why: "This Bot hasn't been given Gmail, so your classes couldn't be read. Ask an admin to give it Gmail.",
+      why: "This Bot hasn't been given Gmail, so your classes couldn't be read. Gmail needs to be turned on for this coach.",
     };
     // While the first Bot's copy is fresh, and once a failed read would fall back to it.
     expect(await school.current(OTHER_BOT)).toEqual(refused);
@@ -704,7 +704,7 @@ describe("the school service", () => {
           "This Bot has not been given the tool google-workspace/gmail_search_messages.",
           null,
         ),
-        "This Bot hasn't been given Gmail, so your classes couldn't be read. Ask an admin to give it Gmail.",
+        "This Bot hasn't been given Gmail, so your classes couldn't be read. Gmail needs to be turned on for this coach.",
       ],
     ];
     for (const [failure, sentence] of reasons) {
@@ -792,7 +792,7 @@ describe("the school service", () => {
     );
     expect(await school.current(CONTEXT)).toEqual({
       snapshot: null,
-      why: "This Bot hasn't been given Gmail, so your Classroom emails couldn't be read. Your classes weren't updated. Ask an admin to give it Gmail.",
+      why: "This Bot hasn't been given Gmail, so your Classroom emails couldn't be read. Your classes weren't updated. Gmail needs to be turned on for this coach.",
     });
   });
 

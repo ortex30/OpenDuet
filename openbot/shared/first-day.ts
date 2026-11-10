@@ -163,7 +163,7 @@ export const FIRST_DAY_REQUEST_WITHOUT_MAIL =
  * mail or calendar, and it does not ask for a connect card.
  */
 export const FIRST_DAY_REQUEST_SCHOOL =
-  "Get to know me from my classes and notes, which are already loaded. Do not mention Gmail, Calendar, or connecting an account. In three short sentences, say how you will help me study, name one class I can start with, and ask what I want to work on.";
+  "The screen already greeted them with their name and what is due tomorrow. Reply in one short sentence offering to plan tonight. Do not greet again. Do not mention Gmail, Calendar, or connecting an account.";
 
 /** Which first day: mail is readable, mail is not connected, or the school pack is the source. */
 export type FirstDayGreeting = "with_mail" | "without_mail" | "school";

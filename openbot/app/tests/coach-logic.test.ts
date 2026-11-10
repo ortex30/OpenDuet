@@ -412,12 +412,13 @@ describe("the student's name", () => {
     expect(withAccountName(fresh, "Viren Shah")).toBe(fresh);
   });
 
-  test("a school pack greets Viren", () => {
+  test("a school pack uses the name it was given, and not an email", () => {
     const state = privatePackState({
       available: true,
       school: "St. Andrew's",
       timeZone: "America/Chicago",
       historicalExcluded: 0,
+      studentName: "Viren Harding",
       classes: [
         {
           id: "apush",

@@ -234,7 +234,7 @@ function unreadable(
   if (prompt)
     return `${product} isn't connected, so ${lost.what} couldn't be read.${meaning} Connect Google on the Connections page.`;
   if (/has not been given the tool/i.test(text))
-    return `This Bot hasn't been given ${product}, so ${lost.what} couldn't be read.${meaning} Ask an admin to give it ${product}.`;
+    return `This Bot hasn't been given ${product}, so ${lost.what} couldn't be read.${meaning} ${product} needs to be turned on for this coach.`;
   const reason = reasonOf(text);
   const what = lost.what.charAt(0).toUpperCase() + lost.what.slice(1);
   return `${what} couldn't be read from ${product}.${meaning}${reason ? ` ${reason}` : ""}`;

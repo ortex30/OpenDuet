@@ -149,7 +149,7 @@ OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACA
 
 Chat threads need CopilotKit Intelligence. The dev script does that locally: if `INTELLIGENCE_API_KEY` is empty or still the old placeholder, it writes a `local-` key, points `INTELLIGENCE_API_URL` and `INTELLIGENCE_GATEWAY_WS_URL` at `127.0.0.1:7091`, and starts that service. A key you already set is left as it is.
 
-The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. With the pack present, the demo student is Viren. Spring 2026 rows in the pack are not deadlines.
+The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. With the pack present, the coach uses the signed-in name, or `ACADEMIC_OS_STUDENT_NAME` when that is set. Spring 2026 rows in the pack are not deadlines.
 
 ```sh
 cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --reset

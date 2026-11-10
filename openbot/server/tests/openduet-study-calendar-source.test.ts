@@ -564,7 +564,7 @@ describe("reading the calendar", () => {
           "This Bot has not been given the tool google-workspace/calendar_list_events.",
           null,
         ),
-        "This Bot hasn't been given Google Calendar, so your calendar couldn't be read. Ask an admin to give it Google Calendar.",
+        "This Bot hasn't been given Google Calendar, so your calendar couldn't be read. Google Calendar needs to be turned on for this coach.",
       ],
       [
         "Google's own refusal",

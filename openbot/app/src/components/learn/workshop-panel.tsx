@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DuetCard, SectionLabel } from "@/components/duet/kit";
 import { SmallPill } from "@/components/shell/suggestion-card";
 import { client } from "@/lib/client";
@@ -43,11 +43,32 @@ export function WorkshopPanel({
   const [showTutor, setShowTutor] = useState(false);
   const [paper, setPaper] = useState<PracticePaper | null>(null);
   const queryClient = useQueryClient();
+  const lock = useRef(false);
+  const PAPER_KEY = "academic-os.practice";
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PAPER_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as PracticePaper;
+      if (saved?.id && saved.result == null) setPaper(saved);
+    } catch {
+      // A bad saved quiz is ignored. The student can start a new one.
+    }
+  }, []);
+
+  function remember(next: PracticePaper | null) {
+    setPaper(next);
+    if (!next || next.result) window.localStorage.removeItem(PAPER_KEY);
+    else window.localStorage.setItem(PAPER_KEY, JSON.stringify(next));
+  }
   if (pack.data?.available !== true) return null;
   const classes = pack.data.classes ?? [];
   const selected = classId || classes[0]?.id || "";
 
   async function openGuide() {
+    if (lock.current) return;
+    lock.current = true;
     setBusy("guide");
     setError("");
     try {
@@ -64,16 +85,19 @@ export function WorkshopPanel({
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Try again.");
     } finally {
+      lock.current = false;
       setBusy("");
     }
   }
 
   async function openPractice(mode: "quiz" | "test", topic = focus.trim()) {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(mode);
     setError("");
     setShowTutor(false);
     try {
-      setPaper(
+      remember(
         await createPractice({
           classId: selected,
           mode,
@@ -83,6 +107,7 @@ export function WorkshopPanel({
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Try again.");
     } finally {
+      lock.current = false;
       setBusy("");
     }
   }
@@ -101,7 +126,7 @@ export function WorkshopPanel({
           value={selected}
           onChange={(event) => {
             setClassId(event.target.value);
-            setPaper(null);
+            remember(null);
             setShowTutor(false);
             setError("");
           }}
@@ -155,7 +180,7 @@ export function WorkshopPanel({
         <SmallPill
           disabled={busy !== ""}
           onClick={() => {
-            setPaper(null);
+            remember(null);
             setShowTutor(true);
             setError("");
           }}
@@ -172,6 +197,7 @@ export function WorkshopPanel({
             setBusy("grade");
             try {
               const result = await gradePractice(paper.id, answers);
+              remember(null);
               void queryClient.invalidateQueries({ queryKey: ["study"] });
               return result;
             } finally {

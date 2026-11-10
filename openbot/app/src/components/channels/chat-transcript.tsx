@@ -26,6 +26,7 @@ import { DuetIcon } from "@/components/duet/icons";
 import { Seen, TypingDots } from "@/components/duet/kit";
 import { PageText } from "@/components/duet/page-text";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { tryClient } from "@/lib/client";
 import {
   Dialog,
   DialogClose,
@@ -88,6 +89,7 @@ import { splitChatOrigin } from "./chat-origin";
 import type { QueuedMessage } from "./composer";
 import {
   FIRST_DAY_PLAN,
+  FIRST_DAY_REQUEST_SCHOOL,
   firstDayPlan,
   firstDayWelcome,
   firstNameOf,
@@ -143,13 +145,14 @@ type ChatTranscriptProps = {
  * scale: body text, and one radius on every corner with no tail (parity-spec 2.3, 2.4).
  */
 const BUBBLE_CONTENT =
-  "duet-face type-body rounded-[var(--duet-radius-bubble)] px-4 py-3 text-duet-ink [&>*:first-child]:mt-0 [&>*:last-child]:mb-0";
+  "duet-face type-body min-w-0 max-w-full rounded-[var(--duet-radius-bubble)] px-4 py-3 text-duet-ink [overflow-wrap:anywhere] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0";
 /** Streamdown's prose, tightened to a bubble: closer paragraphs, bullets hung outside the text. */
 const AGENT_PROSE =
   "[&>div]:space-y-2.5 [&_ol]:list-outside [&_ol]:pl-5 [&_ul]:list-outside [&_ul]:pl-5 [&_li]:py-0.5";
 const AGENT_BUBBLE =
-  "max-w-[82%] *:data-[slot=bubble-content]:bg-duet-bubble *:data-[slot=bubble-content]:text-duet-ink";
-const USER_BUBBLE = "max-w-[85%] *:data-[slot=bubble-content]:bg-duet-user";
+  "min-w-0 max-w-[min(82%,100%)] *:data-[slot=bubble-content]:bg-duet-bubble *:data-[slot=bubble-content]:text-duet-ink";
+const USER_BUBBLE =
+  "min-w-0 max-w-[min(85%,100%)] *:data-[slot=bubble-content]:bg-duet-user";
 
 /** One shared empty array, so a screen without a queue does not hand down a new one per render. */
 const EMPTY_QUEUE: readonly QueuedMessage[] = [];
@@ -624,21 +627,38 @@ function FirstDayGreeting({
   request: string | null;
 }) {
   const { data: me } = useQuery(currentUserQueryOptions(), queryClient);
+  const school = request === FIRST_DAY_REQUEST_SCHOOL;
+  const pack = useQuery(
+    {
+      queryKey: ["private-demo", "greeting-line"],
+      enabled: school,
+      queryFn: async () => {
+        const response = await tryClient("/api/openduet/study/private-demo");
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          greeting?: string;
+          studentName?: string | null;
+        };
+      },
+    },
+    queryClient,
+  );
+  const name = firstNameOf(pack.data?.studentName) ?? firstNameOf(me?.name);
+  const plan =
+    school && pack.data?.greeting ? pack.data.greeting : firstDayPlan(request);
   return (
     <MessageRow align="start">
       <MessageContent>
         <Arriving delay={delay}>
           <Bubble align="start" className={AGENT_BUBBLE} variant="secondary">
             <BubbleContent className={BUBBLE_CONTENT}>
-              {firstDayWelcome(firstNameOf(me?.name))}
+              {firstDayWelcome(name)}
             </BubbleContent>
           </Bubble>
         </Arriving>
         <Arriving delay={delay + FIRST_DAY_PLAN_DELAY_SECONDS}>
           <Bubble align="start" className={AGENT_BUBBLE} variant="secondary">
-            <BubbleContent className={BUBBLE_CONTENT}>
-              {firstDayPlan(request)}
-            </BubbleContent>
+            <BubbleContent className={BUBBLE_CONTENT}>{plan}</BubbleContent>
           </Bubble>
         </Arriving>
       </MessageContent>

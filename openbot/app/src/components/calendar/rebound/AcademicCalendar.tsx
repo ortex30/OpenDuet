@@ -276,7 +276,7 @@ function Chip({
       title={chip.hint}
       type="button"
     >
-      <span className="truncate">{chip.title}</span>
+      <span>{chip.title}</span>
     </button>
   );
 }

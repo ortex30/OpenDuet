@@ -5,6 +5,10 @@ import { join } from "node:path";
 import { pageBlockSchema } from "../src/openduet/page-content";
 import { loadPrivatePack } from "../src/openduet/private-pack";
 import {
+  statedMinutes,
+  usesSharedEvening,
+} from "../src/openduet/study/plan-tools";
+import {
   checkTeachBack,
   craftGuide,
   craftQuiz,
@@ -17,6 +21,7 @@ import {
   schoolSnapshotFromPack,
 } from "../src/openduet/study/craft";
 import {
+  clipAt,
   guideFromModelText,
   guideProblems,
   prepareNotes,
@@ -71,7 +76,7 @@ test("a no-help class gets notes and no practice test", () => {
   expect(guide.markdown).not.toContain("## Practice");
   expect(craftQuiz({ ...input, help: "none" })).toEqual({
     refused:
-      "AP United States History is set to no AI help, so no practice test was made.",
+      "AP United States History doesn't allow AI help, so no quiz was made. Review your own notes.",
   });
 });
 
@@ -531,6 +536,129 @@ test("with a key, the model guide replaces the draft", async () => {
   expect(polished).not.toBe(guide);
   expect(polished.markdown).toContain("Emancipation Proclamation");
   expect(polished.title).toBe("APUSH Period 5");
+});
+
+test("clipAt stays inside the page limit", () => {
+  const long = `${"The Missouri Compromise kept a balance. ".repeat(20)}`;
+  expect(clipAt(long, 240).length).toBeLessThanOrEqual(240);
+  expect(clipAt("Short.", 240)).toBe("Short.");
+});
+
+test("a no-help guide is not sent to a model", async () => {
+  let called = false;
+  const guide = craftGuide({ ...input, help: "none" });
+  const polished = await polishGuide(
+    guide,
+    NOTES,
+    { OPENAI_API_KEY: "test-key" },
+    async () => {
+      called = true;
+      return new Response("no");
+    },
+    { ...input, help: "none" },
+  );
+  expect(called).toBe(false);
+  expect(polished).toBe(guide);
+});
+
+test("tonight puts tomorrow morning ahead of 11:59 homework and honors a short evening", () => {
+  const root = mkdtempSync(join(tmpdir(), "craft-rank-"));
+  mkdirSync(join(root, "materials"));
+  writeFileSync(
+    join(root, "classes.json"),
+    JSON.stringify({
+      timezone: "America/Chicago",
+      school: "Example",
+      classes: [
+        {
+          id: "calc",
+          name: "AP Calculus BC",
+          short_name: "Calc BC",
+          status: "Current",
+          block: "4",
+          teachers: [],
+          materials: [],
+        },
+        {
+          id: "latin",
+          name: "Honors Latin 4",
+          short_name: "Latin",
+          status: "Current",
+          block: "1",
+          teachers: [],
+          materials: [],
+        },
+        {
+          id: "apush",
+          name: "AP United States History",
+          short_name: "APUSH",
+          status: "Current",
+          block: "2",
+          teachers: [],
+          materials: [],
+        },
+      ],
+    }),
+  );
+  writeFileSync(
+    join(root, "assignments_and_tests.json"),
+    JSON.stringify({
+      current_term_2026_2027: [
+        {
+          name: "Latin form",
+          class_id: "latin",
+          type: "homework",
+          due: "2026-11-10",
+        },
+        {
+          name: "APUSH LEQ 3",
+          class_id: "apush",
+          type: "in-class essay / test",
+          due: "2026-11-11",
+        },
+        {
+          name: "Unit 5 Quest",
+          class_id: "calc",
+          type: "quest / test",
+          due: "2026-11-11",
+        },
+      ],
+      historical_unconfirmed_spring_2026: { items: [] },
+    }),
+  );
+  const pack = loadPrivatePack(root);
+  const now = new Date("2026-11-10T22:00:00.000Z");
+  const plan = planTonight(pack, now);
+  expect(plan.blocks[0]?.title.toLowerCase()).toMatch(/quest|leq/);
+  expect(plan.blocks.some((block) => /draft the/i.test(block.title))).toBe(
+    false,
+  );
+  expect(plan.blocks.some((block) => /don't draft/i.test(block.title))).toBe(
+    true,
+  );
+  const short = planTonight(pack, now, { minutes: 30 });
+  expect(short.totalMinutes).toBeLessThanOrEqual(30);
+  expect(short.totalMinutes).toBeLessThan(plan.totalMinutes);
+  expect(short.remaining.some((item) => item.minutes > 0)).toBe(true);
+});
+
+test("chat's one-day plan is the same evening planner, and two hours means 120", () => {
+  expect(
+    usesSharedEvening(
+      { days: 1, startDate: "2026-11-10", startDay: "today" },
+      "2026-11-10",
+      "tuesday",
+    ),
+  ).toBe(true);
+  expect(
+    usesSharedEvening(
+      { days: 3, startDay: "saturday" },
+      "2026-11-10",
+      "tuesday",
+    ),
+  ).toBe(false);
+  expect(statedMinutes("Viren has exactly two hours tonight", 60)).toBe(120);
+  expect(statedMinutes("a normal evening", 90)).toBe(90);
 });
 
 test("without a key the guide is not sent to a model", async () => {

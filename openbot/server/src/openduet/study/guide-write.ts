@@ -158,6 +158,9 @@ function groundedSentences(text: string, source: string): string {
       return false;
     const years = sentence.match(/\b\d{4}\b/g) ?? [];
     if (years.some((year) => !source.includes(year))) return false;
+    if (!mathOk(sentence) || inventedAttribution(sentence, source))
+      return false;
+    if (formulaGrounded(sentence, source)) return true;
     const words = sentence
       .toLowerCase()
       .replace(/[^a-z0-9$\\ ]/g, " ")
@@ -170,13 +173,52 @@ function groundedSentences(text: string, source: string): string {
   return kept.join(" ");
 }
 
-function clipAt(value: string, max: number): string {
+/** Never longer than `max`, including the ellipsis. */
+export function clipAt(value: string, max: number): string {
   const clean = value.replace(/\s+/g, " ").trim();
+  if (max <= 0) return "";
   if (clean.length <= max) return clean;
-  const cut = clean.slice(0, max);
+  const room = Math.max(1, max - 1);
+  const cut = clean.slice(0, room);
   const stop = cut.lastIndexOf(". ");
-  if (stop > max * 0.55) return cut.slice(0, stop + 1);
-  return `${cut.trimEnd()}…`;
+  if (stop > room * 0.55) {
+    const sentence = cut.slice(0, stop + 1);
+    return sentence.length <= max ? sentence : sentence.slice(0, max);
+  }
+  const word = cut.lastIndexOf(" ");
+  const base = (word > room * 0.6 ? cut.slice(0, word) : cut).trimEnd();
+  const withMark = `${base}…`;
+  return withMark.length <= max ? withMark : withMark.slice(0, max);
+}
+
+const BROKEN_MATH = /dt\s*=\s*_|\b0\s*\/\s*0\b|\\int_\s*\^|=_+\d|_{2,}|\^\s*$/i;
+
+function mathOk(sentence: string): boolean {
+  if (BROKEN_MATH.test(sentence)) return false;
+  const marks = sentence.match(/\$/g) ?? [];
+  if (marks.length % 2 !== 0) return false;
+  const bits = sentence.match(/\$[^$]+\$/g) ?? [];
+  return bits.every((bit) => bit.length >= 3 && !/_{2,}|\\int_\s*\^/.test(bit));
+}
+
+function formulaGrounded(sentence: string, source: string): boolean {
+  const bits = sentence.match(/\$[^$]+\$/g) ?? [];
+  if (bits.length === 0) return false;
+  const hay = source.replace(/\s+/g, "");
+  return bits.some((bit) => {
+    const core = bit.replace(/\$/g, "").replace(/\s+/g, "");
+    const slice = core.slice(0, Math.min(24, core.length));
+    return slice.length >= 4 && hay.includes(slice);
+  });
+}
+
+function inventedAttribution(sentence: string, source: string): boolean {
+  if (
+    !/memory trick|mnemonic|class calls this|your teacher calls/i.test(sentence)
+  )
+    return false;
+  const hay = source.toLowerCase();
+  return !hay.includes("memory trick") && !hay.includes("mnemonic");
 }
 
 function subjectHint(input: GuideInput): string {
@@ -188,7 +230,7 @@ function subjectHint(input: GuideInput): string {
     return `This class does not allow AI on graded work. Organize only what the notes say, for review. Do not write practice questions or answers that could be turned in. Each key term needs a specific fact.${math} Leave the timeline empty.`;
   }
   if (/calc|statistic|chem|math/.test(name)) {
-    return "For formulas, units, and scientific notation, use LaTeX between single dollar signs, as in $\\int_a^b f(x)\\,dx=F(b)-F(a)$. A worked example ends with the finished result in math, then one sentence on the mistake that loses the point. Do not stop after naming the steps.";
+    return "For formulas, units, and scientific notation, use LaTeX between single dollar signs, as in $\\int_a^b f(x)\\,dx=F(b)-F(a)$. A worked example keeps every algebra step that the notes show, then the finished result. Do not collapse an integral to dt=_ or 0/0, and do not drop the antiderivative. Practice is six items: two worked examples and four retrieval questions, each with one checkable answer from the notes. Do not invent a class memory trick or a mnemonic the notes do not contain.";
   }
   if (/history|apush|english|latin/.test(name)) {
     return "Each section is a claim a student could use, then the names, dates, and what changed. Write it so it could support an essay, without writing the essay. One practice question asks for a claim and two pieces of evidence. The answer gives the claim and the evidence, not a full essay.";
@@ -225,6 +267,7 @@ export async function writeGuideFromNotes(
   env: Record<string, string | undefined>,
   fetchImpl: typeof fetch = fetch,
 ): Promise<CraftedGuide | null> {
+  if (input.help === "none") return null;
   const key = env.OPENAI_API_KEY?.trim();
   if (!key) return null;
   const notes = notesForGuide(input);
@@ -239,6 +282,7 @@ export async function writeGuideFromNotes(
           authorization: `Bearer ${key}`,
           "content-type": "application/json",
         },
+        signal: AbortSignal.timeout(45_000),
         body: JSON.stringify({
           model: studyModels(env).guide,
           max_completion_tokens: 5000,
@@ -377,27 +421,40 @@ export function guideFromModelText(
         answer: keep(item.answer ?? ""),
       }))
       .filter((item) => item.prompt.length >= 12 && item.answer.length >= 12)
-      .slice(0, 5);
-    if (practice.length >= 3) {
-      blocks.push({ type: "heading", text: "Practice" });
-      blocks.push({
-        type: "bullets",
-        items: practice.map((item) => clipAt(item.prompt, 300)),
-      });
-      blocks.push({ type: "heading", text: "Answers" });
-      blocks.push({
-        type: "table",
+      .slice(0, /calc/i.test(input.className) ? 8 : 5);
+    const calc = /calc/i.test(input.className);
+    const filled = calc ? fillCalcPractice(practice, source) : practice;
+    if (filled.length >= 3) {
+      const rows = filled.map((item) => [
+        clipAt(item.prompt, 240),
+        clipAt(item.answer, 240),
+      ]);
+      const table = {
+        type: "table" as const,
         columns: ["Prompt", "Answer"],
-        rows: practice.map((item) => [
-          clipAt(item.prompt, 240),
-          clipAt(item.answer, 240),
-        ]),
-      });
+        rows,
+      };
+      if (pageBlockSchema.safeParse(table).success) {
+        blocks.push({ type: "heading", text: "Practice" });
+        blocks.push({
+          type: "bullets",
+          items: filled.map((item) => clipAt(item.prompt, 300)),
+        });
+        blocks.push({ type: "heading", text: "Answers" });
+        blocks.push(table);
+      }
     }
   }
-  const valid = blocks.filter(
+  const accepted = blocks.filter(
     (block) => pageBlockSchema.safeParse(block).success,
   );
+  const valid = accepted.filter((block, index) => {
+    if (block.type !== "heading") return true;
+    const next = accepted[index + 1];
+    if (block.text === "Answers") return next?.type === "table";
+    if (block.text === "Practice") return next?.type === "bullets";
+    return true;
+  });
   const prose = valid.filter((block) => block.type === "heading").length;
   if (prose < 3) return null;
   const title = clipAt(
@@ -415,6 +472,32 @@ export function guideFromModelText(
     dropped,
     markdown: renderBlocks(title, valid),
   };
+}
+
+/** Worked examples from the notes' own formulas, when the model sent only concept questions. */
+function fillCalcPractice(
+  practice: { prompt: string; answer: string }[],
+  source: string,
+): { prompt: string; answer: string }[] {
+  if (practice.length >= 6) return practice;
+  const lines = source
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-*]\s*/, "").trim())
+    .filter(
+      (line) => line.includes("$") && line.length > 20 && line.length < 400,
+    );
+  const extra: { prompt: string; answer: string }[] = [];
+  for (const line of lines) {
+    if (practice.length + extra.length >= 6) break;
+    const answer = line.replace(/\s+/g, " ");
+    if (practice.some((item) => item.answer.includes(answer.slice(0, 40))))
+      continue;
+    extra.push({
+      prompt: `Work the notes' example. Write each step, then the result: ${answer.slice(0, 180)}`,
+      answer,
+    });
+  }
+  return [...practice, ...extra];
 }
 
 function renderBlocks(title: string, blocks: PageBlock[]): string {

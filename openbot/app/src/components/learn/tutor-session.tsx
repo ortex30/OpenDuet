@@ -39,6 +39,7 @@ export function TutorSession({
   const [turn, setTurn] = useState<Turn | null>(null);
   const [answer, setAnswer] = useState("");
   const [phase, setPhase] = useState<"check" | "teach">("check");
+  const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
@@ -60,6 +61,7 @@ export function TutorSession({
       setStarted(true);
       setTurn(null);
       setPhase("check");
+      setQuestion(step.check);
       setAnswer("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Try again.");
@@ -80,7 +82,7 @@ export function TutorSession({
           topic: opening.topic,
           explanation: turn?.adjustment || opening.explanation,
           example: turn?.example || opening.example,
-          check: turn?.nextCheck || opening.check,
+          check: question || opening.check,
           expects: opening.expects,
           answer,
           phase,
@@ -91,8 +93,11 @@ export function TutorSession({
       if (!body.turn) throw new Error("Couldn't check that.");
       setTurn(body.turn);
       setAnswer("");
+      const next = body.turn.teachBack || body.turn.nextCheck || question;
+      if (next) setQuestion(next);
       if (body.turn.understood && body.turn.teachBack) setPhase("teach");
       if (body.turn.understood && !body.turn.teachBack) setPhase("check");
+      if (!body.turn.understood && body.turn.nextCheck) setPhase("check");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Try again.");
     } finally {
@@ -102,10 +107,7 @@ export function TutorSession({
 
   const explanation = turn?.adjustment || opening?.explanation || "";
   const example = turn?.example || opening?.example || "";
-  const question =
-    phase === "teach"
-      ? turn?.teachBack || opening?.check || ""
-      : turn?.nextCheck || opening?.check || "";
+  const shown = question || opening?.check || "";
 
   return (
     <div className="mt-4 flex flex-col gap-2">
@@ -127,7 +129,7 @@ export function TutorSession({
             </p>
           ) : null}
           <p className="type-sub font-semibold">
-            <PageText text={question} />
+            <PageText text={shown} />
           </p>
           <textarea
             className="type-sub min-h-24 rounded-xl bg-duet-tile px-3 py-2 text-duet-ink"

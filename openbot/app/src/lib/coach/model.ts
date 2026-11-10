@@ -47,7 +47,8 @@ export type Assignment = {
   title: string;
   /** ISO time it is due. */
   dueAt: string;
-  points: number;
+  /** Null when the school pack did not record a point value. */
+  points: number | null;
   /** The student's own estimate of the whole job, in minutes. */
   estimateMin: number;
   /** Minutes of focus already logged against it. */

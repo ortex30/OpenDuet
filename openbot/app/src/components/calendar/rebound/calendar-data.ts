@@ -65,6 +65,12 @@ export const KIND_WORD: Record<AssignmentKind, string> = {
   material: "Material",
 };
 
+/** The part of a long title that still reads in a narrow week column. */
+function shortChip(title: string): string {
+  const last = title.split(" - ").at(-1)?.trim() || title;
+  return last.length > 32 ? `${last.slice(0, 30).trimEnd()}…` : last;
+}
+
 /** When a deadline is, in words: "Due 11:59 PM", or its kind alone with no time, "Quiz". */
 export function deadlineWhen(deadline: CalendarDeadline): string {
   const word = KIND_WORD[deadline.kind];
@@ -125,7 +131,7 @@ export function allDayChips(input: {
         {
           id,
           date,
-          title: event.title,
+          title: shortChip(event.title),
           label: `All day: ${event.title}`,
           hint: `${event.title} · All day`,
           courseId: UNCLASSED_COURSE_ID,
@@ -146,7 +152,7 @@ export function allDayChips(input: {
         {
           id,
           date,
-          title: deadline.title,
+          title: shortChip(deadline.title),
           label: `${KIND_WORD[deadline.kind]}: ${deadline.title}`,
           hint: `${deadline.title} · ${deadlineWhen(deadline)}`,
           courseId: known(deadline.classId)

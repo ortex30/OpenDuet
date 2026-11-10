@@ -6,7 +6,7 @@ import {
 } from "@openbot/shared/study";
 import type { GrantedTool } from "@openbot/toolkit/granted-tool";
 import { z } from "zod";
-import { loadEnabledPack } from "../private-pack";
+import { loadEnabledPack, teacherRuleOnFile } from "../private-pack";
 import { StudyInputError, type StudyToolDeps } from "./contracts";
 import { schoolSnapshotFromPack } from "./craft";
 import { teacherRuleRefusal } from "./guard";
@@ -81,11 +81,24 @@ export function coachTools(deps: StudyToolDeps): GrantedTool[] {
             });
           }
           const level = stricter(input.help, target.level);
+          const onFile = teacherRuleOnFile(input.classId, input.className);
+          const attribution =
+            target.source === "override"
+              ? "Set on the Teacher rules screen."
+              : target.source === "notice" || (onFile && level === "none")
+                ? "That's how your teacher set it."
+                : "That's the app's default.";
           return JSON.stringify({
             className: target.className,
             level,
             label: HELP_LEVEL_LABEL[level],
-            source: level === input.help ? "class" : target.source,
+            source:
+              target.source === "override"
+                ? "override"
+                : onFile
+                  ? "teacher"
+                  : "default",
+            attribution,
             may: MAY[level],
           });
         } catch (error) {

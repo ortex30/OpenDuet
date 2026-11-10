@@ -120,7 +120,9 @@ export function QuestionSheet({
                       className="type-sub mt-2 min-h-28 w-full resize-none rounded-[22px] bg-duet-tile px-4 py-3 text-duet-ink outline-none placeholder:text-duet-ink-3 focus-visible:ring-3 focus-visible:ring-duet-violet/25"
                       disabled={answer.isPending}
                       onChange={(event) => setDraft(event.target.value)}
-                      placeholder={`Reply to ${botName ?? "the Bot"}`}
+                      placeholder={
+                        botName ? `Reply to ${botName}` : "Your answer"
+                      }
                       value={draft}
                     />
                     {answer.error ? (

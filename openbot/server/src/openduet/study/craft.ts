@@ -5,6 +5,7 @@ import {
   type PrivateAssignment,
   type PrivatePack,
   packCalendarSlice,
+  teacherRuleOnFile,
 } from "../private-pack";
 import { writeGuideFromNotes } from "./guide-write";
 import { makePlan, type PlanDraft } from "./scheduler";
@@ -171,9 +172,7 @@ export function craftQuiz(
   input: GuideInput,
 ): CraftedQuiz | { refused: string } {
   if (input.help === "none") {
-    return {
-      refused: `${input.className} is set to no AI help, so no practice test was made.`,
-    };
+    return { refused: noHelpRefusal(input.className, "quiz") };
   }
   const source =
     (pickFile(input.files, input.focus) ?? input.files[0])?.markdown ?? "";
@@ -245,9 +244,7 @@ export function craftWritten(
   input: GuideInput,
 ): { questions: WrittenQuestion[] } | { refused: string } {
   if (input.help === "none") {
-    return {
-      refused: `${input.className} is set to no AI help, so no practice test was made.`,
-    };
+    return { refused: noHelpRefusal(input.className, "quiz") };
   }
   const source =
     (pickFile(input.files, input.focus) ?? input.files[0])?.markdown ?? "";
@@ -313,9 +310,7 @@ export function craftTutor(
   topic: string,
 ): TutorStep | { refused: string } {
   if (input.help === "none") {
-    return {
-      refused: `${input.className} is set to no AI help. Review your own notes, and don't ask for the graded work.`,
-    };
+    return { refused: noHelpRefusal(input.className, "tutor") };
   }
   const primary = pickFile(input.files, topic || input.focus) ?? input.files[0];
   const source = primary?.markdown ?? "";
@@ -363,48 +358,58 @@ export function checkTeachBack(step: TutorStep, answer: string): TutorCheck {
   };
 }
 
+/** What tonight's plan may be asked to change. `skip` is work already checked off. */
+export type TonightOptions = {
+  skip?: readonly string[];
+  /** Study minutes the student actually has. 120 when they have not said. */
+  minutes?: number;
+};
+
 /**
- * One evening, fitted around classes.
+ * One evening, shared by chat and Tonight.
  *
- * Due today comes first, then tomorrow's test or quiz, then other work due
- * in the next two days. Yesterday's unfinished homework can still take a
- * block. Older work, and a test whose period has passed, stay off the list.
- * Minutes are study time: a quest is a review sitting, not the exam itself.
- * `skip` is work the student already checked off.
+ * Tomorrow morning's tests, quests, and in-class essays come first, as prep.
+ * An in-class essay is review time, never a draft. Work due at 11:59 tonight
+ * comes after that. Anything already past its deadline stays off the list.
+ * A shorter time limit drops the later blocks and leaves their minutes in
+ * `remaining`, including a block that only partly fit.
  */
 export function planTonight(
   pack: PrivatePack,
   now: Date,
-  skip: readonly string[] = [],
+  skipOrOptions: readonly string[] | TonightOptions = [],
 ): PlanDraft {
+  const options = tonightOptions(skipOrOptions);
   const parts = zonedParts(now, pack.timeZone);
-  const yesterday = addDays(parts.date, -1);
-  const soon = addDays(parts.date, 2);
-  const done = new Set(skip);
-  const tasks = pack.assignments
-    .filter((item) => !done.has(item.id))
-    .filter((item) => item.due >= yesterday && item.due <= soon)
-    .filter((item) => item.due >= parts.date || item.kind === "assignment")
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      classId: item.classId,
-      due: item.due,
-      dueTime: item.dueTime,
-      minutes: sittingMinutes(item),
-    }));
-  const priority = [...tasks]
-    .sort((a, b) => rank(b.id, pack, parts.date) - rank(a.id, pack, parts.date))
-    .map((task) => task.id);
-  const slice = packCalendarSlice(
-    pack,
-    parts.date,
-    addDays(parts.date, 1),
-    now,
+  const today = parts.date;
+  const soon = addDays(today, 2);
+  const done = new Set(options.skip ?? []);
+  const minutes = askedMinutes(options.minutes);
+  const names = new Map(pack.classes.map((row) => [row.id, row]));
+  const open = pack.assignments.filter((item) => {
+    if (done.has(item.id) || item.completed) return false;
+    if (item.due < today || item.due > soon) return false;
+    return !(item.due === today && clockMinute(item.dueTime) <= parts.minute);
+  });
+  const ordered = [...open].sort(
+    (a, b) =>
+      eveningTier(a, today) - eveningTier(b, today) ||
+      a.due.localeCompare(b.due) ||
+      a.dueTime.localeCompare(b.dueTime) ||
+      a.title.localeCompare(b.title),
   );
-  const plan = makePlan(
+  const tasks = ordered.map((item) => ({
+    id: item.id,
+    title: eveningTitle(item, names.get(item.classId)?.shortName ?? null),
+    classId: item.classId,
+    due: item.due,
+    dueTime: item.dueTime,
+    minutes: sittingMinutes(item),
+  }));
+  const slice = packCalendarSlice(pack, today, addDays(today, 1), now);
+  return makePlan(
     {
-      today: parts.date,
+      today,
       nowMinute: parts.minute,
       tasks,
       busy: slice.events.map((event) => ({
@@ -418,14 +423,14 @@ export function planTonight(
         enabled: true,
         start: "16:00",
         end: "22:00",
-        cap: 120,
+        cap: minutes,
         focus: 25,
         rest: 5,
       }),
       classBufferMin: 10,
-      minutes: 120,
+      minutes,
       days: 1,
-      priority,
+      priority: tasks.map((task) => task.id),
     },
     {
       newId() {
@@ -433,16 +438,20 @@ export function planTonight(
       },
     },
   );
-  const scheduled = new Set(plan.blocks.map((block) => block.assignmentId));
-  const left = tasks.filter((task) => !scheduled.has(task.id)).slice(0, 4);
-  if (left.length === 0) return plan;
-  return {
-    ...plan,
-    warnings: [
-      ...plan.warnings,
-      `Also due soon, if you have time: ${left.map((task) => task.title).join("; ")}`,
-    ],
-  };
+}
+
+/** One sentence for the plan card, from the blocks, not from the student's words. */
+export function eveningSummary(plan: PlanDraft): string {
+  if (plan.blocks.length === 0) return "Nothing fits before tomorrow morning.";
+  const titles: string[] = [];
+  for (const block of plan.blocks) {
+    if (!titles.includes(block.title)) titles.push(block.title);
+  }
+  const head = titles
+    .slice(0, 3)
+    .map((title) => title.replace(/\.$/, ""))
+    .join(", ");
+  return `${plan.totalMinutes} min. Tomorrow morning comes first: ${head}.`;
 }
 
 export function schoolSnapshotFromPack(
@@ -455,22 +464,28 @@ export function schoolSnapshotFromPack(
     timeZone: pack.timeZone,
     classes: slice.classes,
     couldNotRead: [],
-    assignments: pack.assignments.map((item) => ({
-      id: item.id,
-      classId: item.classId,
-      title: item.title,
-      kind: item.kind,
-      status: "open" as const,
-      due: zonedInstant(item.due, item.dueTime, pack.timeZone).toISOString(),
-      dueDate: item.due,
-      dueTime: item.dueTime,
-      points: item.points,
-      grade: null,
-      help: item.help,
-      minutes: item.estimateMin,
-      link: item.source,
-      noticeId: `pack:${item.id}`,
-    })),
+    assignments: pack.assignments.map((item) => {
+      const schoolClass = pack.classes.find((row) => row.id === item.classId);
+      const onFile = schoolClass
+        ? teacherRuleOnFile(schoolClass.id, schoolClass.name)
+        : false;
+      return {
+        id: item.id,
+        classId: item.classId,
+        title: item.title,
+        kind: item.kind,
+        status: item.completed ? ("returned" as const) : ("open" as const),
+        due: zonedInstant(item.due, item.dueTime, pack.timeZone).toISOString(),
+        dueDate: item.due,
+        dueTime: item.dueTime,
+        points: item.points,
+        grade: null,
+        help: onFile ? item.help : null,
+        minutes: item.estimateMin,
+        link: item.source,
+        noticeId: `pack:${item.id}`,
+      };
+    }),
   };
 }
 
@@ -478,6 +493,16 @@ export function schoolSnapshotFromPack(
  * Ask the guide model to add nothing the notes do not already say.
  * Without a key, the drafted guide is the one that is saved.
  */
+export function noHelpRefusal(
+  className: string,
+  kind: "quiz" | "tutor",
+): string {
+  if (kind === "tutor") {
+    return `${className} doesn't allow AI help. Review your own notes, and don't ask for the graded work.`;
+  }
+  return `${className} doesn't allow AI help, so no quiz was made. Review your own notes.`;
+}
+
 export async function polishGuide(
   guide: CraftedGuide,
   source: string,
@@ -485,6 +510,7 @@ export async function polishGuide(
   fetchImpl: typeof fetch = fetch,
   input?: GuideInput,
 ): Promise<CraftedGuide> {
+  if (input?.help === "none") return guide;
   if (input) {
     const written = await writeGuideFromNotes(input, env, fetchImpl);
     if (written) return written;
@@ -998,25 +1024,69 @@ function freeResponse(
   };
 }
 
-function sittingMinutes(item: PrivateAssignment): number {
-  if (item.kind === "test") return Math.min(60, Math.max(45, item.estimateMin));
-  if (item.kind === "quiz") return Math.min(40, Math.max(25, item.estimateMin));
-  return Math.min(45, Math.max(30, item.estimateMin));
+function isSkipList(
+  value: readonly string[] | TonightOptions,
+): value is readonly string[] {
+  return Array.isArray(value);
 }
 
-function rank(id: string, pack: PrivatePack, today: string): number {
-  const item = pack.assignments.find((row) => row.id === id);
-  if (!item) return 0;
-  const kind = item.kind === "test" ? 3 : item.kind === "quiz" ? 2 : 1;
-  const when =
-    item.due < today
-      ? 4
-      : item.due === today
-        ? 12
-        : item.due === addDays(today, 1)
-          ? 8
-          : 1;
-  return when * 10 + kind;
+function tonightOptions(
+  value: readonly string[] | TonightOptions,
+): TonightOptions {
+  if (isSkipList(value)) return { skip: [...value] };
+  return { skip: value.skip, minutes: value.minutes };
+}
+
+function askedMinutes(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) return 120;
+  return Math.min(600, Math.max(15, Math.round(value)));
+}
+
+function clockMinute(time: string): number {
+  const [hour, minute] = time.split(":").map(Number);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 24 * 60;
+  return hour * 60 + minute;
+}
+
+/** An essay written in class is prep tonight, not a draft to schedule. */
+export function inClassEssay(
+  item: Pick<PrivateAssignment, "title" | "kind">,
+): boolean {
+  const text = item.title.toLowerCase();
+  return (
+    /\bleq\b/.test(text) || /in-class/.test(text) || /\bessay\b/.test(text)
+  );
+}
+
+function eveningTier(item: PrivateAssignment, today: string): number {
+  const tomorrow = addDays(today, 1);
+  const morning = item.kind !== "assignment" || inClassEssay(item);
+  if (morning && item.due === tomorrow) return 0;
+  if (morning && item.due === today) return 1;
+  if (item.due === today) return 2;
+  if (morning && item.due === addDays(today, 2)) return 3;
+  if (item.due === tomorrow) return 4;
+  return 5;
+}
+
+function eveningTitle(
+  item: PrivateAssignment,
+  shortName: string | null,
+): string {
+  const short = item.title.split(" - ").at(-1)?.trim() || item.title;
+  const who = shortName ? `${shortName}: ` : "";
+  if (inClassEssay(item))
+    return `${who}Prep for ${short}. In class, so don't draft it.`;
+  if (item.kind === "test") return `${who}Review for ${short}`;
+  if (item.kind === "quiz") return `${who}Quiz prep: ${short}`;
+  return `${who}${short}`;
+}
+
+function sittingMinutes(item: PrivateAssignment): number {
+  if (inClassEssay(item)) return 45;
+  if (item.kind === "test") return Math.min(60, Math.max(45, item.estimateMin));
+  if (item.kind === "quiz") return Math.min(40, Math.max(25, item.estimateMin));
+  return Math.min(30, Math.max(20, item.estimateMin));
 }
 
 function shuffle(choices: string[], seed: string): string[] {

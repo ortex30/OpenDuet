@@ -162,18 +162,19 @@ function LearnBody({
             >
               Review {totals.due} {totals.due === 1 ? "topic" : "topics"}
             </SmallPill>
-          ) : (
+          ) : totals.openMistakes === 0 ? (
             <p className="type-sub flex min-h-11 flex-1 items-center justify-center text-duet-green">
               <DuetIcon className="mr-1" name="checkCircle" size={16} />
               All caught up on reviews
             </p>
-          )}
+          ) : null}
           {totals.openMistakes > 0 ? (
             <SmallPill
               disabled={busy || !canStart}
               onClick={() => onBegin(STUDY_ASKS.mistakes)}
             >
-              Fix mistakes
+              Fix {totals.openMistakes}{" "}
+              {totals.openMistakes === 1 ? "mistake" : "mistakes"}
             </SmallPill>
           ) : null}
         </div>
@@ -366,7 +367,9 @@ function record(topic: StudyTopic): string {
     [
       topic.correctCount ? `${topic.correctCount} right` : "",
       topic.partlyCount ? `${topic.partlyCount} partly` : "",
-      topic.missedCount ? `${topic.missedCount} missed` : "",
+      topic.openMistakes.length
+        ? `${topic.openMistakes.length} missed`
+        : "",
     ]
       .filter(Boolean)
       .join(", ") || "not tried"

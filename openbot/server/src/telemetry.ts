@@ -21,10 +21,9 @@ export function runtimeTelemetryProperties(accessibility: boolean): {
 }
 
 /*
- * The SDK samples runtime events at 5% unless told otherwise, which is too thin to see one
- * deployment's setup and first use. Default to full capture. An explicit
- * COPILOTKIT_TELEMETRY_SAMPLE_RATE still wins, and COPILOTKIT_TELEMETRY_DISABLED=true or
- * DO_NOT_TRACK=1 still turn telemetry off entirely. `||=`, not `??=`: the SDK treats an empty
- * value as unset, so this does too.
+ * The SDK samples runtime events at 5% unless told otherwise. Keep that rate.
+ * An explicit COPILOTKIT_TELEMETRY_SAMPLE_RATE still wins, and
+ * COPILOTKIT_TELEMETRY_DISABLED=true or DO_NOT_TRACK=1 still turn telemetry off.
+ * `||=`, not `??=`: the SDK treats an empty value as unset, so this does too.
  */
-process.env.COPILOTKIT_TELEMETRY_SAMPLE_RATE ||= "1";
+process.env.COPILOTKIT_TELEMETRY_SAMPLE_RATE ||= "0.05";

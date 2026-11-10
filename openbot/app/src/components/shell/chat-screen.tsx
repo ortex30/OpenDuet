@@ -298,7 +298,7 @@ function FirstMessage({
     // mail, and for the school pack. An account that failed to load still greets. A missing pack
     // reads as no pack. The pack is the source, so a missing mailbox does not open with a nag.
     claimKey:
-      me.isPending || gmail.isPending || pack.isPending
+      me.isPending || pack.isPending || (!schoolPack && gmail.isPending)
         ? null
         : `${me.data?.id ?? "unknown"}:${bot.id}`,
     clear: () => !begun.current && !typed.current,
