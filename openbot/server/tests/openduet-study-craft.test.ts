@@ -248,6 +248,21 @@ test("tonight leaves last week's work off the evening", () => {
     plan.blocks.some((block) => /old translation/i.test(block.title)),
   ).toBe(false);
   expect(plan.blocks.some((block) => /leq/i.test(block.title))).toBe(true);
+  const leq = plan.blocks.find((block) => /leq/i.test(block.title));
+  const minutes = plan.blocks
+    .filter((block) => block.assignmentId === leq?.assignmentId)
+    .reduce((sum, block) => {
+      const [sh, sm] = block.start.split(":").map(Number);
+      const [eh, em] = block.end.split(":").map(Number);
+      return sum + (eh * 60 + em - (sh * 60 + sm));
+    }, 0);
+  expect(minutes).toBeGreaterThanOrEqual(45);
+  const again = planTonight(
+    loadPrivatePack(root),
+    new Date("2026-11-10T22:00:00.000Z"),
+    [leq?.assignmentId ?? ""],
+  );
+  expect(again.blocks.some((block) => /leq/i.test(block.title))).toBe(false);
 });
 
 test("without a key the tutor is not sent to a model", async () => {

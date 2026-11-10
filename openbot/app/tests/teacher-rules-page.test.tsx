@@ -306,11 +306,7 @@ describe("the Teacher rules page", () => {
     expect(
       await view.findByRole("heading", { level: 1, name: "Teacher rules" }),
     ).toBeTruthy();
-    expect(
-      view.getByText(
-        "How much AI help each class allows, from your teachers' Classroom posts.",
-      ),
-    ).toBeTruthy();
+    expect(view.getByText("How much AI help each class allows.")).toBeTruthy();
     await view.findByRole("radiogroup", { name: "AI help for Chemistry" });
     expect(
       view
@@ -350,14 +346,10 @@ describe("the Teacher rules page", () => {
     expect(view.getByText("Last read 5 min ago")).toBeTruthy();
     expect(
       view.getByText(
-        "No help pauses AI quizzes and flashcards for a class while that assignment is open. Planning your time always works.",
+        /No help turns off AI quizzes and flashcards for that assignment/,
       ),
     ).toBeTruthy();
-    expect(
-      view.getByText(
-        "You can make a rule stricter. Only a teacher or an admin can loosen one.",
-      ),
-    ).toBeTruthy();
+    expect(view.getByText(/Only a teacher can loosen a rule/)).toBeTruthy();
   });
 
   test("a student can't choose a looser level, and is told why", async () => {
@@ -585,11 +577,7 @@ describe("the Teacher rules page", () => {
     const user = userEvent.setup({ document });
     const view = drawPage();
     await view.findByRole("radiogroup", { name: "AI help for AP US History" });
-    expect(
-      view.getByText(
-        "You can make a rule stricter. Only a teacher or an admin can loosen one. You're an admin, so you can loosen one too.",
-      ),
-    ).toBeTruthy();
+    expect(view.queryByText("Only a teacher can loosen a rule.")).toBeNull();
     expect(offered(view.container, "AP US History")).toEqual([
       ["Full help", true],
       ["Hints only", true],

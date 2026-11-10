@@ -303,7 +303,7 @@ describe("the study plan card", () => {
       "/calendar?plan=plan-1&date=2026-11-04",
     );
     expect(
-      within(card).getByRole("button", { name: "Apply plan" }),
+      within(card).getByRole("button", { name: "Add to calendar" }),
     ).toHaveProperty("disabled", false);
     expect(state.asked).toContainEqual({
       method: "GET",
@@ -333,11 +333,9 @@ describe("the study plan card", () => {
     const view = renderChat(planned(JSON.stringify(RESULT)));
     const card = await planCard(view);
     fireEvent.click(
-      await within(card).findByRole("button", { name: "Apply plan" }),
+      await within(card).findByRole("button", { name: "Add to calendar" }),
     );
-    expect(
-      await within(card).findByText("Added to your Calendar tab"),
-    ).toBeTruthy();
+    expect(await within(card).findByText("On your calendar")).toBeTruthy();
     expect(state.asked).toContainEqual({
       method: "POST",
       path: "/api/openduet/study/plans/plan-1/apply",
@@ -411,7 +409,7 @@ describe("the study plan card", () => {
         ).length,
       ).toBe(2),
     );
-    expect(within(card).getByText("Added to your Calendar tab")).toBeTruthy();
+    expect(within(card).getByText("On your calendar")).toBeTruthy();
     await waitFor(() =>
       expect(
         within(card).getByRole("button", { name: "Remove from calendar" }),
@@ -484,20 +482,20 @@ describe("the study plan card", () => {
     const [first, second] = view.getAllByRole("region", { name: "Study plan" });
     if (!first || !second) throw new Error("expected two plan cards");
     expect(
-      within(first).getByRole("button", { name: "Apply plan" }),
+      within(first).getByRole("button", { name: "Add to calendar" }),
     ).toHaveProperty("disabled", false);
 
-    fireEvent.click(within(second).getByRole("button", { name: "Apply plan" }));
-    expect(
-      await within(second).findByText("Added to your Calendar tab"),
-    ).toBeTruthy();
+    fireEvent.click(
+      within(second).getByRole("button", { name: "Add to calendar" }),
+    );
+    expect(await within(second).findByText("On your calendar")).toBeTruthy();
     expect(
       await within(first).findByText(
         "Your schedule changed since this plan was made. Ask for a fresh one.",
       ),
     ).toBeTruthy();
     expect(
-      within(first).getByRole("button", { name: "Apply plan" }),
+      within(first).getByRole("button", { name: "Add to calendar" }),
     ).toHaveProperty("disabled", true);
   });
 
@@ -513,7 +511,7 @@ describe("the study plan card", () => {
     const view = renderChat(planned(JSON.stringify(RESULT)));
     const card = await planCard(view);
     fireEvent.click(
-      await within(card).findByRole("button", { name: "Apply plan" }),
+      await within(card).findByRole("button", { name: "Add to calendar" }),
     );
     expect((await within(card).findByRole("alert")).textContent).toBe(sentence);
     // The plan is read again, and is still waiting: both answers are still there to give.
@@ -528,12 +526,12 @@ describe("the study plan card", () => {
     );
     await waitFor(() =>
       expect(
-        within(card).getByRole("button", { name: "Apply plan" }),
+        within(card).getByRole("button", { name: "Add to calendar" }),
       ).toHaveProperty("disabled", false),
     );
     expect(within(card).getByRole("alert").textContent).toBe(sentence);
     refuse = false;
-    fireEvent.click(within(card).getByRole("button", { name: "Not now" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Skip" }));
     expect(await within(card).findByText("Not added")).toBeTruthy();
     expect(within(card).queryByRole("alert")).toBeNull();
   });
@@ -548,10 +546,12 @@ describe("the study plan card", () => {
     });
     const view = renderChat(planned(JSON.stringify(RESULT)));
     const card = await planCard(view);
-    fireEvent.click(within(card).getByRole("button", { name: "Apply plan" }));
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Add to calendar" }),
+    );
     await waitFor(() =>
       expect(
-        within(card).getByRole("button", { name: "Apply plan" }),
+        within(card).getByRole("button", { name: "Add to calendar" }),
       ).toHaveProperty("disabled", true),
     );
     expect(
@@ -566,9 +566,7 @@ describe("the study plan card", () => {
     const state = server();
     const view = renderChat(planned(JSON.stringify(RESULT)));
     const card = await planCard(view);
-    fireEvent.click(
-      await within(card).findByRole("button", { name: "Not now" }),
-    );
+    fireEvent.click(await within(card).findByRole("button", { name: "Skip" }));
     expect(await within(card).findByText("Not added")).toBeTruthy();
     expect(state.asked).toContainEqual({
       method: "POST",
@@ -587,11 +585,12 @@ describe("the study plan card", () => {
       ),
     ).toHaveLength(1);
     expect(
-      within(card).getByRole("button", { name: "Apply plan" }),
+      within(card).getByRole("button", { name: "Add to calendar" }),
     ).toHaveProperty("disabled", true);
-    expect(
-      within(card).getByRole("button", { name: "Not now" }),
-    ).toHaveProperty("disabled", false);
+    expect(within(card).getByRole("button", { name: "Skip" })).toHaveProperty(
+      "disabled",
+      false,
+    );
   });
 
   test("an Apply refused because a session already began says that, once, not that the schedule changed", async () => {
@@ -604,10 +603,12 @@ describe("the study plan card", () => {
     });
     const view = renderChat(planned(JSON.stringify(RESULT)));
     const card = await planCard(view);
-    fireEvent.click(within(card).getByRole("button", { name: "Apply plan" }));
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Add to calendar" }),
+    );
     await waitFor(() =>
       expect(
-        within(card).getByRole("button", { name: "Apply plan" }),
+        within(card).getByRole("button", { name: "Add to calendar" }),
       ).toHaveProperty("disabled", true),
     );
     expect(within(card).getAllByText(started)).toHaveLength(1);

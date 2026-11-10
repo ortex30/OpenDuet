@@ -758,7 +758,7 @@ function CalendarPlaceholder({
           </div>
         </div>
       ) : (
-        <p className="type-sub text-muted-foreground" role="status">
+        <p className="type-sub text-duet-ink-2" role="status">
           Loading your calendar…
         </p>
       )}

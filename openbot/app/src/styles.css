@@ -915,6 +915,28 @@ body {
 }
 
 /*
+ * A formula beside a bold label was inheriting that weight. KaTeX has no
+ * semibold face, so the browser faked one and the integral looked crushed.
+ * Math keeps its own weight, and the line is tall enough for limits.
+ */
+.katex,
+.katex * {
+  font-weight: 400;
+  font-style: normal;
+}
+.katex {
+  font-size: 1.05em;
+  line-height: normal;
+}
+.duet-math-inline {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/*
  * Every control a screen in the app's shell draws is at least 44px to tap (parity-spec 2.11): the
  * configuration pages were built with 28px and 36px buttons, selects and fields for a desktop
  * pointer, and they all open inside the shell on a phone now. The shared primitives mark themselves

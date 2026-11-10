@@ -8,9 +8,9 @@ import {
   test,
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import type { FlashcardDeck as Deck } from "@openbot/shared/study";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { FlashcardDeck as Deck } from "@openbot/shared/study";
 import { FlashcardDeck } from "@/components/duet/study";
 import { settleReactWork } from "./settle-react-work";
 
@@ -87,7 +87,7 @@ describe("turning a card over", () => {
     ).toBeTruthy();
     expect(view.getByText("AP Biology")).toBeTruthy();
     expect(counter(view)).toBe("1 of 4");
-    expect(face(view).getAttribute("aria-label")).toBe("Prompt: Mitochondria");
+    expect(face(view).getAttribute("aria-label")).toBe("Term: Mitochondria");
     expect(shown(view)).toBe("Mitochondria");
 
     fireEvent.click(face(view));
@@ -209,9 +209,7 @@ describe("marking cards", () => {
 
     expect(view.queryByRole("button", { name: "Got it" })).toBeNull();
     expect(view.queryByRole("button", { name: "Again" })).toBeNull();
-    expect(
-      view.getByText("Think of the answer, then flip the card."),
-    ).toBeTruthy();
+    expect(view.getByText("Know it? Flip to check.")).toBeTruthy();
     fireEvent.click(face(view));
     expect(view.getByRole("button", { name: "Got it" })).toBeTruthy();
     expect(view.getByRole("button", { name: "Again" })).toBeTruthy();
@@ -231,7 +229,7 @@ describe("marking cards", () => {
     press(view, "Previous card");
     expect(view.getByText("Got it")).toBeTruthy();
     expect(face(view).getAttribute("aria-label")).toBe(
-      "Prompt: Mitochondria (marked Got it)",
+      "Term: Mitochondria (marked Got it)",
     );
   });
 
@@ -245,9 +243,7 @@ describe("marking cards", () => {
     const summary = view.getByText("2 got it · 2 to review");
     expect(document.activeElement).toBe(summary);
     expect(view.container.querySelector("[data-side]")).toBeNull();
-    expect(
-      view.getByRole("button", { name: "Review the 2 again" }),
-    ).toBeTruthy();
+    expect(view.getByRole("button", { name: "Review 2" })).toBeTruthy();
     expect(view.getByRole("button", { name: "Start over" })).toBeTruthy();
   });
 
@@ -258,7 +254,7 @@ describe("marking cards", () => {
       press(view, markAs);
     }
 
-    press(view, "Review the 2 again");
+    press(view, "Review 2");
     expect(counter(view)).toBe("1 of 2");
     expect(shown(view)).toBe("Ribosome");
     expect(document.activeElement).toBe(face(view));
@@ -272,9 +268,7 @@ describe("marking cards", () => {
     fireEvent.click(face(view));
     press(view, "Again");
     expect(view.getByText("1 got it · 1 to review")).toBeTruthy();
-    expect(
-      view.getByRole("button", { name: "Review that one again" }),
-    ).toBeTruthy();
+    expect(view.getByRole("button", { name: "Review 1" })).toBeTruthy();
 
     press(view, "Start over");
     expect(counter(view)).toBe("1 of 4");
@@ -290,7 +284,7 @@ describe("marking cards", () => {
     }
 
     expect(view.getByText("4 got it · 0 to review")).toBeTruthy();
-    expect(view.getByText("You knew every card in this round.")).toBeTruthy();
+    expect(view.getByText("You knew them all.")).toBeTruthy();
     expect(view.queryByRole("button", { name: /^Review/ })).toBeNull();
     expect(
       view.getByRole("button", { name: "Start over" }).className,

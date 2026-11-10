@@ -109,11 +109,15 @@ export function WorkshopPanel({
           {classes.map((row: ClassRow) => (
             <option key={row.id} value={row.id}>
               {row.name}
-              {row.help === "none" ? " · no AI on graded work" : ""}
             </option>
           ))}
         </select>
       </label>
+      {classes.find((row) => row.id === selected)?.help === "none" ? (
+        <p className="type-caption mb-3 text-duet-ink-2">
+          No AI help on graded work. A guide can still organize your notes.
+        </p>
+      ) : null}
       <label className="type-caption mb-3 block text-duet-ink-2">
         Focus
         <input

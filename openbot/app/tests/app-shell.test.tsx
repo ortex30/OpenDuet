@@ -142,17 +142,22 @@ test("the tab bar draws Chat, Tasks, Coach and Make, the current one marked", as
   expect(links.map((link) => link.textContent)).toEqual([
     "Chat",
     "Tasks",
+    "Calendar",
     "Coach",
+    "Learn",
     "Make",
   ]);
   expect(links.map((link) => link.getAttribute("href"))).toEqual([
     "/",
     "/tasks",
+    "/calendar",
     "/coach",
+    "/learn",
     "/make",
   ]);
   // Make's glyph is the spark, not Pages' sheet of paper.
-  expect(links[3]?.querySelector("svg path")?.getAttribute("d")).toMatch(
+  const make = links.find((link) => link.textContent === "Make");
+  expect(make?.querySelector("svg path")?.getAttribute("d")).toMatch(
     /^M10\.6 3\.6/,
   );
   expect(within(nav).getByRole("link", { current: "page" }).textContent).toBe(
@@ -821,6 +826,7 @@ const MANAGE = [
   ["Capabilities", "/capabilities"],
   ["Routines", "/routines"],
   ["Approval rules", "/settings/approvals"],
+  ["Teacher rules", "/settings/teacher-rules"],
   ["Admin", "/admin"],
 ];
 

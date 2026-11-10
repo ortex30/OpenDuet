@@ -76,11 +76,16 @@ export function LearnScreen() {
         </p>
       ) : null}
       {study.isPending ? (
-        <p className="type-sub px-1 text-duet-ink-2">Loading what you know…</p>
+        <DuetCard className="px-5 py-6 text-center">
+          <p className="type-sub text-duet-ink-2" role="status">
+            Loading what you know…
+          </p>
+        </DuetCard>
       ) : study.error ? (
-        <p className="type-sub px-1 text-duet-red" role="alert">
-          {study.error.message}
-        </p>
+        <DuetCard className="px-5 py-6 text-center" role="alert">
+          <p className="type-row font-semibold">Couldn't load your review</p>
+          <p className="type-sub mt-1 text-duet-ink-2">{study.error.message}</p>
+        </DuetCard>
       ) : study.data.totals.topics === 0 ? (
         <EmptyLearn
           busy={start.isPending}

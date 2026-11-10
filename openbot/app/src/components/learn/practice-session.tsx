@@ -159,9 +159,14 @@ function Question({
               ? "Chapter problem"
               : "Short answer";
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="type-sub font-semibold">
-        {index + 1}. {label}. <PageText text={item.prompt} />
+    <fieldset className="flex flex-col gap-2 rounded-2xl bg-duet-card px-4 py-4 shadow-duet-card">
+      <legend className="type-sub mb-1">
+        <span className="font-semibold">
+          {index + 1}. {label}
+        </span>
+        <span className="mt-1 block">
+          <PageText text={item.prompt} />
+        </span>
       </legend>
       {item.stimulus ? (
         <blockquote className="type-sub border-l-2 border-duet-accent px-3 text-duet-ink">
@@ -170,14 +175,20 @@ function Question({
       ) : null}
       {item.choices
         ? item.choices.map((choice, choiceIndex) => (
-            <label key={choice} className="type-sub flex items-start gap-2">
+            <label
+              key={choice}
+              className="type-sub flex min-h-11 items-start gap-3 rounded-xl bg-duet-tile px-3 py-2.5 leading-relaxed"
+            >
               <input
+                className="mt-1 size-4 shrink-0"
                 type="radio"
                 name={item.id}
                 checked={pick === choiceIndex}
                 onChange={() => onPick(choiceIndex)}
               />
-              <PageText text={choice} />
+              <span className="min-w-0 flex-1">
+                <PageText text={choice} />
+              </span>
             </label>
           ))
         : null}

@@ -37,12 +37,6 @@ export function staleSentence(plan: Pick<StudyPlan, "staleReason">): string {
 }
 
 /** The plan's blocks by day: days in order, and each day's blocks by start time. */
-/** "Lab 6 report: Reaction Rates" → "Lab 6 report": enough to know which one, in a one-line list. */
-function shortTitle(title: string): string {
-  const cut = title.split(/[:(]/)[0]?.trim() ?? title;
-  return cut.length > 0 ? cut : title;
-}
-
 export function blocksByDay(
   blocks: readonly StudyBlock[],
 ): { date: string; blocks: StudyBlock[] }[] {
@@ -147,7 +141,9 @@ export function StudyPlanCard({
             ) : null}
           </div>
           {plan.blocks.length === 0 ? (
-            <p className="type-sub text-duet-ink-2">Nothing fit in that time.</p>
+            <p className="type-sub text-duet-ink-2">
+              Nothing fit in that time.
+            </p>
           ) : null}
           {plan.reason ? (
             <p className="type-sub mt-2 text-duet-ink-2 [overflow-wrap:anywhere]">
@@ -192,7 +188,9 @@ export function StudyPlanCard({
                     size={16}
                   />
                   <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {`Didn't fit: ${plan.remaining.map((item) => shortTitle(item.title)).join(", ")}`}
+                    {`Didn't fit: ${plan.remaining
+                      .map((item) => `${item.minutes} min of ${item.title}`)
+                      .join(", ")}`}
                   </span>
                 </li>
               ) : null}
@@ -258,9 +256,7 @@ export function StudyPlanCard({
               role="status"
               tabIndex={-1}
             >
-              {state === "removed"
-                ? "Removed from your calendar"
-                : "Not added"}
+              {state === "removed" ? "Removed from your calendar" : "Not added"}
             </p>
           ) : (
             <>

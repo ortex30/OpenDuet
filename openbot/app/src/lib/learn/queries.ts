@@ -71,12 +71,16 @@ export const studyKeys = { all: ["openduet", "study"] as const };
 export const studyOverviewQueryOptions = () =>
   queryOptions({
     queryKey: studyKeys.all,
-    queryFn: async () =>
-      overview.parse(
-        await client<unknown>("/api/openduet/memory", "overview", {
-          fallback: "Couldn't load your study memory. Try again.",
-        }),
-      ),
+    queryFn: async () => {
+      const body = await client<unknown>("/api/openduet/memory", "overview", {
+        fallback: "Couldn't load your study memory. Try again.",
+      });
+      const parsed = overview.safeParse(body);
+      if (!parsed.success) {
+        throw new Error("Couldn't load your study memory. Try again.");
+      }
+      return parsed.data;
+    },
   });
 
 /** "Got it": the topic's open mistakes are marked fixed. */

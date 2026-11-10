@@ -8,15 +8,15 @@ import {
   test,
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import type { QuizAttempt, QuizPublic } from "@openbot/shared/study";
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { QuizAttempt, QuizPublic } from "@openbot/shared/study";
 import { QuizCard } from "@/components/duet/study";
 import { settleReactWork } from "./settle-react-work";
 
 /*
  * The quiz card on its own, as the tool renderer will draw it: a question at a time with a native
- * radio group, "Check my work" handing the choices up, and the attempt the server graded drawn as
+ * radio group, "Check" handing the choices up, and the attempt the server graded drawn as
  * the score and each answer with its explanation.
  */
 
@@ -142,7 +142,7 @@ describe("before an attempt", () => {
     });
     expect(within(card).getByText("AP US History")).toBeTruthy();
     expect(within(card).getByText("Causes of the Civil War")).toBeTruthy();
-    expect(view.getByText("Question 1 of 3")).toBeTruthy();
+    expect(view.getByText("1 / 3")).toBeTruthy();
     expect(view.getByText("Sectionalism")).toBeTruthy();
     // The question names its group of choices, so a screen reader reads it on the way in.
     const group = view.getByRole("group", {
@@ -166,7 +166,7 @@ describe("before an attempt", () => {
     ).toBe(String(1 / 3));
     expect(button(view, "Back").disabled).toBe(true);
     expect(button(view, "Next").disabled).toBe(true);
-    expect(view.queryByRole("button", { name: "Check my work" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Check" })).toBeNull();
   });
 
   test("every choice is one native radio of the same group, a whole row to tap", () => {
@@ -201,7 +201,7 @@ describe("before an attempt", () => {
     expect(button(view, "Next").disabled).toBe(false);
     fireEvent.click(button(view, "Next"));
 
-    expect(view.getByText("Question 2 of 3")).toBeTruthy();
+    expect(view.getByText("2 / 3")).toBeTruthy();
     expect(view.getByText("The courts")).toBeTruthy();
     expect(button(view, "Back").disabled).toBe(false);
     expect(button(view, "Next").disabled).toBe(true);
@@ -213,7 +213,7 @@ describe("before an attempt", () => {
     );
 
     fireEvent.click(button(view, "Back"));
-    expect(view.getByText("Question 1 of 3")).toBeTruthy();
+    expect(view.getByText("1 / 3")).toBeTruthy();
     const kept = view.getByRole("radio", {
       name: "Compromise of 1850",
     }) as HTMLInputElement;
@@ -239,7 +239,7 @@ describe("before an attempt", () => {
     expect(button(view, "Next").disabled).toBe(false);
   });
 
-  test("Check my work waits for every answer, then hands them up in order", () => {
+  test("Check waits for every answer, then hands them up in order", () => {
     const view = drawQuiz();
 
     choose(view, "Compromise of 1850");
@@ -247,12 +247,12 @@ describe("before an attempt", () => {
     choose(view, "Congress could not ban slavery in the territories");
     fireEvent.click(button(view, "Next"));
 
-    expect(view.getByText("Question 3 of 3")).toBeTruthy();
+    expect(view.getByText("3 / 3")).toBeTruthy();
     expect(view.queryByRole("button", { name: "Next" })).toBeNull();
-    expect(button(view, "Check my work").disabled).toBe(true);
+    expect(button(view, "Check").disabled).toBe(true);
     choose(view, "Republican");
-    expect(button(view, "Check my work").disabled).toBe(false);
-    fireEvent.click(button(view, "Check my work"));
+    expect(button(view, "Check").disabled).toBe(false);
+    fireEvent.click(button(view, "Check"));
 
     expect(view.submitted).toEqual([[1, 2, 1]]);
   });
@@ -300,9 +300,9 @@ describe("after an attempt", () => {
 
     expect(view.getByText("2 / 3")).toBeTruthy();
     expect(view.getByText("2 out of 3 correct").className).toContain("sr-only");
-    expect(view.getByText("Now you know what to practice next.")).toBeTruthy();
+    expect(view.getByText("1 to look at.")).toBeTruthy();
     expect(view.queryByRole("radio")).toBeNull();
-    expect(view.queryByRole("button", { name: "Check my work" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Check" })).toBeNull();
 
     const rows = Array.from(
       view.container.querySelectorAll<HTMLElement>("[data-result]"),
@@ -314,17 +314,15 @@ describe("after an attempt", () => {
     ]);
 
     const missed = within(rows[1]!);
-    expect(missed.getByText("Question 2 · The courts")).toBeTruthy();
+    expect(missed.getByText("2. The courts")).toBeTruthy();
     expect(missed.getByText("Missed").className).toContain(
       "text-duet-status-problem",
     );
     expect(
-      missed.getByText("You chose: Slavery was banned in the territories"),
+      missed.getByText("You said Slavery was banned in the territories"),
     ).toBeTruthy();
     expect(
-      missed.getByText(
-        "Answer: Congress could not ban slavery in the territories",
-      ),
+      missed.getByText("Congress could not ban slavery in the territories"),
     ).toBeTruthy();
     expect(
       missed.getByText(
@@ -336,21 +334,19 @@ describe("after an attempt", () => {
     expect(right.getByText("Correct").className).toContain(
       "text-duet-status-done",
     );
-    expect(right.getByText("Answer: Compromise of 1850")).toBeTruthy();
+    expect(right.getByText("Compromise of 1850")).toBeTruthy();
     expect(right.queryByText(/^You chose/)).toBeNull();
 
-    expect(
-      view.getByText("A 10-minute review task was added to Tasks."),
-    ).toBeTruthy();
+    expect(view.getByText("Review task added.")).toBeTruthy();
   });
 
-  test("Explain what I missed and Quiz me again call back", () => {
+  test("Explain and Try again call back", () => {
     const explain = mock(() => {});
     const retry = mock(() => {});
     const view = drawQuiz({ attempt, onExplain: explain, onRetry: retry });
 
-    fireEvent.click(button(view, "Explain what I missed"));
-    fireEvent.click(button(view, "Quiz me again"));
+    fireEvent.click(button(view, "Explain"));
+    fireEvent.click(button(view, "Try again"));
 
     expect(explain).toHaveBeenCalledTimes(1);
     expect(retry).toHaveBeenCalledTimes(1);
@@ -374,14 +370,10 @@ describe("after an attempt", () => {
     });
 
     expect(view.getByText("3 / 3")).toBeTruthy();
-    expect(
-      view.getByText("Every answer right. Try a new set to check it sticks."),
-    ).toBeTruthy();
-    expect(
-      view.queryByRole("button", { name: "Explain what I missed" }),
-    ).toBeNull();
-    // Alone, Quiz me again is the card's one primary action.
-    expect(button(view, "Quiz me again").className).toContain("bg-duet-black");
+    expect(view.getByText("Perfect score.")).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Explain" })).toBeNull();
+    // Alone, Try again is the card's one primary action.
+    expect(button(view, "Try again").className).toContain("bg-duet-black");
     expect(view.queryByText(/review task/)).toBeNull();
   });
 
@@ -398,7 +390,7 @@ describe("after an attempt", () => {
     choose(view, "Slavery was banned in the territories");
     fireEvent.click(button(view, "Next"));
     choose(view, "Republican");
-    fireEvent.click(button(view, "Check my work"));
+    fireEvent.click(button(view, "Check"));
 
     view.rerender(
       <QuizCard

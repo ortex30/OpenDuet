@@ -144,7 +144,20 @@ function serving(study: StudyOverview) {
       method,
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
     });
-    if (url === "/api/openduet/study" && method === "GET")
+    if (url.startsWith("/api/agents")) {
+      return Response.json({
+        agents: [
+          {
+            id: "openduet",
+            name: "Academic OS",
+            title: "Your study coach",
+            roleDescription: "",
+            visibility: "public",
+          },
+        ],
+      });
+    }
+    if (url === "/api/openduet/memory" && method === "GET")
       return Response.json({ overview: study });
     if (url.endsWith("/fixed"))
       return Response.json({ topic: { ...doubleAngle, openMistakes: [] } });
@@ -278,7 +291,7 @@ test("Got it marks the topic's mistakes fixed, and Review starts the review skil
     expect(
       calls.some(
         (call) =>
-          call.url === "/api/openduet/study/topics/t-double/fixed" &&
+          call.url === "/api/openduet/memory/topics/t-double/fixed" &&
           call.method === "POST",
       ),
     ).toBe(true),

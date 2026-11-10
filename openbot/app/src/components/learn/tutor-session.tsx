@@ -115,14 +115,15 @@ export function TutorSession({
         </SmallPill>
       ) : null}
       {opening ? (
-        <>
+        <div className="flex flex-col gap-3 rounded-2xl bg-duet-card px-4 py-4 shadow-duet-card">
           <p className="type-row font-semibold">{opening.topic}</p>
           <p className="type-sub text-duet-ink">
             <PageText text={explanation} />
           </p>
           {example ? (
-            <p className="type-sub rounded-xl bg-duet-tile px-3 py-2 text-duet-ink">
-              Example from your notes. <PageText text={example} />
+            <p className="type-sub rounded-xl bg-duet-tile px-3 py-3 text-duet-ink">
+              <span className="font-semibold">Example from your notes. </span>
+              <PageText text={example} />
             </p>
           ) : null}
           <p className="type-sub font-semibold">
@@ -155,9 +156,11 @@ export function TutorSession({
             </SmallPill>
           </div>
           {turn ? (
-            <p className="type-sub text-duet-ink-2">{turn.feedback}</p>
+            <p className="type-sub text-duet-ink-2">
+              <PageText text={turn.feedback} />
+            </p>
           ) : null}
-        </>
+        </div>
       ) : null}
       {error ? (
         <p className="type-sub text-duet-red" role="alert">

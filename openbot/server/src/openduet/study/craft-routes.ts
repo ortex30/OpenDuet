@@ -23,6 +23,7 @@ import {
 } from "./craft";
 import { notesForGuide } from "./guide-write";
 import { buildGuideInput } from "./notes-input";
+import { planData, planSpan } from "./plans";
 import { type PracticeAnswer, storedPracticeSchema } from "./practice";
 import { gradePractice, writePractice } from "./practice-model";
 import {
@@ -395,12 +396,60 @@ export function craftRoutes(deps: StudyRouteDeps) {
 
   routes.post("/workshop/tonight", async (context) => {
     const pack = requirePack();
-    const plan = planTonight(pack, now());
+    const body = (await context.req.json().catch(() => null)) as {
+      skip?: unknown;
+      save?: unknown;
+      planId?: unknown;
+    } | null;
+    const skip = Array.isArray(body?.skip)
+      ? body.skip.filter((id): id is string => typeof id === "string")
+      : [];
+    const plan = planTonight(pack, now(), skip);
+    const save = body?.save === true;
+    let planId: string | null = null;
+    if (save) {
+      const owner = context.var.actor.id;
+      const id =
+        typeof body?.planId === "string" && body.planId.trim()
+          ? body.planId.trim()
+          : randomUUID();
+      const stamp = now().toISOString();
+      const stored = {
+        id,
+        status: "applied" as const,
+        reason: "Tonight's plan, from what's due.",
+        timeZone: pack.timeZone,
+        startDate: plan.startDate,
+        days: plan.days,
+        blocks: plan.blocks,
+        remaining: plan.remaining,
+        warnings: plan.warnings,
+        totalMinutes: plan.totalMinutes,
+        createdAt: stamp,
+        appliedAt: stamp,
+      };
+      const span = planSpan(stored.blocks, pack.timeZone);
+      await deps.store.put(owner, {
+        id,
+        kind: "plan",
+        botId: deps.primaryBot,
+        status: "applied",
+        startsAt: span.startsAt,
+        endsAt: span.endsAt,
+        data: planData(stored),
+      });
+      planId = id;
+    }
     return context.json({
+      planId,
       plan: {
         totalMinutes: plan.totalMinutes,
         warnings: plan.warnings,
         blocks: plan.blocks,
+        summary:
+          plan.blocks.length === 0
+            ? "Nothing due tonight or tomorrow."
+            : "Due today comes first, then a test or quiz tomorrow. Times are study time, not the class period.",
       },
     });
   });

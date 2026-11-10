@@ -102,6 +102,21 @@ function ChatWithScreen({
   const screen = tab === "chat" ? null : tab;
   const navigate = useNavigate();
   useEffect(() => {
+    const onOpen = (event: Event) => {
+      const path = (event as CustomEvent<string>).detail;
+      if (typeof path === "string" && path.startsWith("/")) {
+        void navigate({ href: path });
+      }
+    };
+    window.addEventListener("academic-os-open", onOpen);
+    return () => window.removeEventListener("academic-os-open", onOpen);
+  }, [navigate]);
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("academic-os-navigated", { detail: screen }),
+    );
+  }, [screen]);
+  useEffect(() => {
     if (!screen) return;
     const onKey = (event: KeyboardEvent) => {
       // A screen that used the Escape itself (the calendar closing an item's details) keeps it.
@@ -150,7 +165,7 @@ function ChatWithScreen({
               </p>
               <Link
                 aria-label={`Close ${SCREEN_NAMES[screen].toLowerCase()}`}
-                className="grid size-10 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
+                className="grid size-11 shrink-0 place-items-center rounded-full text-duet-ink-2 transition-colors hover:bg-duet-tile hover:text-duet-ink focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-accent/40"
                 to="/"
               >
                 <DuetIcon name="x" size={20} />

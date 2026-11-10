@@ -195,7 +195,7 @@ function QuizQuestions({
         </div>
         {/* A native radio group: arrow keys move the choice, and the question is its name. */}
         <fieldset className="mt-4 min-w-0" ref={group}>
-          <legend className="type-body font-medium [overflow-wrap:anywhere]">
+          <legend className="type-body [overflow-wrap:anywhere]">
             <PageText text={question.question} />
           </legend>
           <div className="mt-3 flex flex-col gap-2">
@@ -205,7 +205,7 @@ function QuizQuestions({
               return (
                 <label
                   className={cn(
-                    "flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[16px] px-3 py-2 transition-[background-color,box-shadow,transform] has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-duet-accent/40 active:scale-[0.99]",
+                    "flex min-h-[52px] cursor-pointer items-start gap-3 rounded-[16px] px-3 py-3 transition-[background-color,box-shadow,transform] has-[:disabled]:cursor-default has-[:disabled]:opacity-60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-duet-accent/40 active:scale-[0.99]",
                     pop.soft,
                     on
                       ? "shadow-[inset_0_0_0_2px_var(--pop)]"
@@ -228,7 +228,7 @@ function QuizQuestions({
                   <span
                     aria-hidden
                     className={cn(
-                      "type-caption grid size-7 shrink-0 place-items-center rounded-full font-bold transition-colors",
+                      "type-caption mt-0.5 grid size-7 shrink-0 place-items-center rounded-full font-bold transition-colors",
                       on
                         ? cn(pop.full, "text-white")
                         : cn("bg-duet-card", pop.ink),
@@ -236,12 +236,12 @@ function QuizQuestions({
                   >
                     {LETTERS[choiceIndex] ?? ""}
                   </span>
-                  <span className="type-body min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">
+                  <span className="type-body min-w-0 flex-1 leading-relaxed [overflow-wrap:anywhere]">
                     <PageText text={choice} />
                   </span>
                   {on ? (
                     <DuetIcon
-                      className={cn("shrink-0", pop.ink)}
+                      className={cn("mt-1 shrink-0", pop.ink)}
                       name="check"
                       size={18}
                       stroke={2.4}

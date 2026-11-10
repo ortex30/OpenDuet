@@ -49,6 +49,31 @@ test("chemistry is refused", async () => {
   });
 });
 
+test("a file comment is not the example", () => {
+  const opening: TutorOpening = {
+    topic: "FTC",
+    explanation:
+      "The integral of a rate from a to b is the net change in that quantity.",
+    example:
+      "The integral of a rate from a to b is the net change in that quantity.",
+    check: "What does the integral of a rate mean?",
+    expects: ["net change"],
+  };
+  const kept = applyOpening(
+    opening,
+    {
+      explanation:
+        "The integral of a rate from a to b is the net change in that quantity.",
+      example:
+        "<!-- Source: box study guide for AP Calculus BC Unit 5, reviewed Nov 9, 2026.",
+      check: "What does the integral of a rate mean in your notes?",
+    },
+    "The integral of a rate from a to b is the net change in that quantity. <!-- Source: box study guide",
+  );
+  expect(kept.example).not.toContain("<!--");
+  expect(kept.example).not.toContain("Source:");
+});
+
 test("a model explanation that leaves the notes is ignored", () => {
   const opening: TutorOpening = {
     topic: "Emancipation",

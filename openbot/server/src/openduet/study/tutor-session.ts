@@ -1,3 +1,4 @@
+import { prepareReadableMath } from "@openbot/shared/math-text";
 import type { GuideInput } from "./craft";
 import { craftTutor, type TutorStep } from "./craft";
 import { notesForGuide } from "./guide-write";
@@ -31,18 +32,13 @@ export async function openTutor(
 ): Promise<TutorOpening | { refused: string }> {
   const drafted = craftTutor(input, topic);
   if ("refused" in drafted) return drafted;
-  const notes = notesForGuide(input);
-  const example =
-    notes
-      .split(/(?<=[.!?])\s+/)
-      .map((sentence) => sentence.trim())
-      .find(
-        (sentence) =>
-          sentence.length >= 40 &&
-          sentence.length <= 220 &&
-          !sentence.startsWith("#"),
-      ) ?? drafted.explanation;
-  const opening: TutorOpening = { ...drafted, example };
+  const notes = cleanNotes(notesForGuide(input));
+  const example = exampleFrom(notes, drafted.explanation);
+  const opening: TutorOpening = {
+    ...drafted,
+    explanation: prepareReadableMath(drafted.explanation),
+    example,
+  };
   const model = await completeJson({
     env,
     fetchImpl,
@@ -50,6 +46,7 @@ export async function openTutor(
     system: [
       'You are a high school tutor. Return JSON only: {"explanation":"","example":"","check":""}.',
       "Use only the notes. Two short sentences, then one example that appears in the notes, then one check question.",
+      "Write every formula between single dollar signs as LaTeX, such as $\\int_a^b f(x)\\,dx$. Never leave a formula as int _a^b or with raw underscores.",
       "Do not do graded work. Do not write an answer the student could turn in.",
       "If the class is hints, explain the idea with a note example. Do not solve their assignment.",
     ].join(" "),
@@ -76,15 +73,15 @@ export function applyOpening(
   if (
     explanation.length < 40 ||
     sharedWords(explanation, notes) < 2 ||
-    (example && sharedWords(example, notes) < 2)
+    (example && (!usableSentence(example) || sharedWords(example, notes) < 2))
   ) {
     return opening;
   }
   return {
     ...opening,
-    explanation,
-    example: example || opening.example,
-    check: check.length > 8 ? check : opening.check,
+    explanation: prepareReadableMath(explanation),
+    example: prepareReadableMath(example || opening.example),
+    check: prepareReadableMath(check.length > 8 ? check : opening.check),
   };
 }
 
@@ -107,10 +104,11 @@ export async function answerTutor(
       "You are a high school tutor. Return JSON only.",
       '{"understood":false,"feedback":"","adjustment":"","example":"","nextCheck":"","teachBack":""}',
       "Use only the notes. If the answer is wrong, say what was off, give a simpler explanation, a different note example, and one new check question.",
+      "Write every formula between single dollar signs as LaTeX. Never leave raw underscores such as int _a^b.",
       "If the answer is right, ask them to teach it back in their own words.",
       "Do not write a finished answer they could turn in. Do not solve graded work.",
     ].join(" "),
-    user: `Phase: ${input.phase}\nTopic: ${input.opening.topic}\nExplanation: ${input.opening.explanation}\nExample: ${input.opening.example}\nQuestion: ${input.opening.check}\nStudent: ${input.answer}\n\nNotes:\n${input.notes.slice(0, 6000)}`,
+    user: `Phase: ${input.phase}\nTopic: ${input.opening.topic}\nExplanation: ${input.opening.explanation}\nExample: ${input.opening.example}\nQuestion: ${input.opening.check}\nStudent: ${input.answer}\n\nNotes:\n${cleanNotes(input.notes).slice(0, 6000)}`,
   });
   return applyReply(local, model, input.answer, input.notes);
 }
@@ -184,17 +182,52 @@ export function applyReply(
       ? row.adjustment.trim()
       : local.adjustment;
   const example =
-    typeof row.example === "string" && sharedWords(row.example, notes) >= 2
-      ? row.example.trim()
-      : local.example;
+    typeof row.example === "string" &&
+    usableSentence(row.example) &&
+    sharedWords(row.example, notes) >= 2
+      ? prepareReadableMath(row.example.trim())
+      : local.example
+        ? prepareReadableMath(local.example)
+        : null;
   return {
     understood,
     feedback,
-    adjustment: understood ? null : adjustment,
+    adjustment: understood
+      ? null
+      : adjustment
+        ? prepareReadableMath(adjustment)
+        : null,
     example: understood ? null : example,
     nextCheck: understood ? null : textOf(row.nextCheck) || local.nextCheck,
     teachBack: understood ? textOf(row.teachBack) || local.teachBack : null,
   };
+}
+
+function cleanNotes(notes: string): string {
+  return notes.replace(/<!--[\s\S]*?-->/g, " ").replace(/^\s*source:.*$/gim, "");
+}
+
+/** A sentence a student can learn from, not a file header or a citation. */
+export function usableSentence(sentence: string): boolean {
+  const text = sentence.trim();
+  if (text.length < 40 || text.length > 280) return false;
+  if (text.startsWith("#") || text.startsWith("|")) return false;
+  return !/<!--|-->|^\s*source:|citation|what it is|local file:|how to use/i.test(
+    text,
+  );
+}
+
+function exampleFrom(notes: string, fallback: string): string {
+  const sentences = notes
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim());
+  const usable = sentences.filter(usableSentence);
+  const withMath = usable.find((sentence) => sentence.includes("$"));
+  const chosen = (withMath ?? usable[0] ?? fallback).replace(
+    /^\s*[-*]\s*/,
+    "",
+  );
+  return prepareReadableMath(chosen);
 }
 
 function textOf(value: unknown): string | null {

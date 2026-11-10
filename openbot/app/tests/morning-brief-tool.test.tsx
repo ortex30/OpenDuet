@@ -9,8 +9,8 @@ import {
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import { MorningBriefCard } from "@/components/duet/morning-brief-card";
 import { ConversationSendContext } from "@/components/channels/conversation-send";
+import { MorningBriefCard } from "@/components/duet/morning-brief-card";
 import {
   briefCard,
   readBrief,
@@ -136,7 +136,7 @@ describe("the card", () => {
     );
     if (!brief) throw new Error("no brief");
     const view = render(<MorningBriefCard {...briefCard(brief)} />);
-    expect(view.getByText("Couldn't check")).toBeTruthy();
+    expect(view.getByText("Heads up")).toBeTruthy();
     expect(
       view.getByText("Gmail and Google Calendar is not connected."),
     ).toBeTruthy();

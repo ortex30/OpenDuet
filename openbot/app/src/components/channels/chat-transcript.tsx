@@ -24,6 +24,7 @@ import { Streamdown } from "streamdown";
 import { PendingApprovals } from "@/components/approvals/inline-approval";
 import { DuetIcon } from "@/components/duet/icons";
 import { Seen, TypingDots } from "@/components/duet/kit";
+import { PageText } from "@/components/duet/page-text";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import {
   Dialog,
@@ -61,6 +62,7 @@ import { readResponsibilityTurn } from "@/lib/channels/responsibility-turn";
 import { readFiring } from "@/lib/channels/routine-firing";
 import { readTaskBrief } from "@/lib/channels/task-brief";
 import { ReplyChips } from "@/lib/copilot/reply-chips-tool";
+import { friendlyCoachLine } from "@/lib/friendly-line";
 import { markdownComponents } from "@/lib/markdown";
 import { EASE_OUT, ENTRANCE_SECONDS } from "@/lib/motion";
 import { personToolLabel, readToolName } from "@/lib/plugins/tool-name";
@@ -850,6 +852,14 @@ function ResponsibilityFiring({
  *
  * It is also what keeps the entrance honest — no remount means no replay of the fade.
  */
+/** Markdown for a normal reply. A formula is drawn, the same way a study page draws it. */
+function CoachProse({ text }: { text: string }) {
+  if (/\$|\\(?:int|frac|dfrac|sqrt)/.test(text)) {
+    return <PageText text={text} />;
+  }
+  return <Streamdown components={markdownComponents}>{text}</Streamdown>;
+}
+
 const TranscriptMessage = memo(function TranscriptMessage({
   commandNames = "",
   delay,
@@ -967,30 +977,30 @@ const TranscriptMessage = memo(function TranscriptMessage({
             </Bubble>
           ) : (
             <div className="flex flex-col items-start gap-2">
-              {splitBubbles(text).map((part, index) => (
-                <Bubble
-                  align={align}
-                  className={AGENT_BUBBLE}
-                  // biome-ignore lint/suspicious/noArrayIndexKey: a reply's thoughts keep their order as it streams.
-                  key={index}
-                  variant="secondary"
-                >
-                  <BubbleContent className={cn(BUBBLE_CONTENT, AGENT_PROSE)}>
-                    {/*
-                     * A Bot's prose is markdown, and it arrives in pieces.
-                     *
-                     * Rendered with a streaming-aware renderer rather than an ordinary one: half a
-                     * fenced code block or an unclosed bold marker is the NORMAL state for most of
-                     * a run, and a plain markdown parser draws that as literal asterisks and
-                     * backticks until the closing token arrives, so the answer visibly rewrites
-                     * itself as it lands. This closes them for the duration.
-                     */}
-                    <Streamdown components={markdownComponents}>
-                      {part}
-                    </Streamdown>
-                  </BubbleContent>
-                </Bubble>
-              ))}
+              {splitBubbles(isUser ? text : friendlyCoachLine(text)).map(
+                (part, index) => (
+                  <Bubble
+                    align={align}
+                    className={AGENT_BUBBLE}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a reply's thoughts keep their order as it streams.
+                    key={index}
+                    variant="secondary"
+                  >
+                    <BubbleContent className={cn(BUBBLE_CONTENT, AGENT_PROSE)}>
+                      {/*
+                       * A Bot's prose is markdown, and it arrives in pieces.
+                       *
+                       * Rendered with a streaming-aware renderer rather than an ordinary one: half a
+                       * fenced code block or an unclosed bold marker is the NORMAL state for most of
+                       * a run, and a plain markdown parser draws that as literal asterisks and
+                       * backticks until the closing token arrives, so the answer visibly rewrites
+                       * itself as it lands. This closes them for the duration.
+                       */}
+                      <CoachProse text={part} />
+                    </BubbleContent>
+                  </Bubble>
+                ),
+              )}
             </div>
           )}
           {seen ? <Seen /> : null}

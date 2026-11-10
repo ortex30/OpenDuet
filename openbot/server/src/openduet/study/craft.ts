@@ -322,7 +322,9 @@ export function craftTutor(
   const sections = primary ? outline(primary.markdown) : [];
   const useful = sections.filter(
     (section) =>
-      !/review guide|citation|how to use|source/i.test(section.heading),
+      !/review guide|citation|how to use|source|covers|contents/i.test(
+        section.heading,
+      ),
   );
   const pool = useful.length > 0 ? useful : sections;
   const match =
@@ -361,19 +363,35 @@ export function checkTeachBack(step: TutorStep, answer: string): TutorCheck {
   };
 }
 
-/** One evening, tests and quizzes first, fitted around classes. */
-export function planTonight(pack: PrivatePack, now: Date): PlanDraft {
+/**
+ * One evening, fitted around classes.
+ *
+ * Due today comes first, then tomorrow's test or quiz, then other work due
+ * in the next two days. Yesterday's unfinished homework can still take a
+ * block. Older work, and a test whose period has passed, stay off the list.
+ * Minutes are study time: a quest is a review sitting, not the exam itself.
+ * `skip` is work the student already checked off.
+ */
+export function planTonight(
+  pack: PrivatePack,
+  now: Date,
+  skip: readonly string[] = [],
+): PlanDraft {
   const parts = zonedParts(now, pack.timeZone);
-  const soon = addDays(parts.date, 3);
+  const yesterday = addDays(parts.date, -1);
+  const soon = addDays(parts.date, 2);
+  const done = new Set(skip);
   const tasks = pack.assignments
-    .filter((item) => item.due >= parts.date && item.due <= soon)
+    .filter((item) => !done.has(item.id))
+    .filter((item) => item.due >= yesterday && item.due <= soon)
+    .filter((item) => item.due >= parts.date || item.kind === "assignment")
     .map((item) => ({
       id: item.id,
       title: item.title,
       classId: item.classId,
       due: item.due,
       dueTime: item.dueTime,
-      minutes: item.kind === "test" ? 50 : item.kind === "quiz" ? 30 : 25,
+      minutes: sittingMinutes(item),
     }));
   const priority = [...tasks]
     .sort((a, b) => rank(b.id, pack, parts.date) - rank(a.id, pack, parts.date))
@@ -980,11 +998,25 @@ function freeResponse(
   };
 }
 
+function sittingMinutes(item: PrivateAssignment): number {
+  if (item.kind === "test") return Math.min(60, Math.max(45, item.estimateMin));
+  if (item.kind === "quiz") return Math.min(40, Math.max(25, item.estimateMin));
+  return Math.min(45, Math.max(30, item.estimateMin));
+}
+
 function rank(id: string, pack: PrivatePack, today: string): number {
   const item = pack.assignments.find((row) => row.id === id);
   if (!item) return 0;
   const kind = item.kind === "test" ? 3 : item.kind === "quiz" ? 2 : 1;
-  return (item.due === today ? 10 : 0) + kind;
+  const when =
+    item.due < today
+      ? 4
+      : item.due === today
+        ? 12
+        : item.due === addDays(today, 1)
+          ? 8
+          : 1;
+  return when * 10 + kind;
 }
 
 function shuffle(choices: string[], seed: string): string[] {

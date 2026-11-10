@@ -26,8 +26,9 @@ export function classRulesText(pack: PrivatePack): string {
     return `${row.name}${short}: ${HELP_LEVEL_LABEL[row.help]}. ${MAY[row.help]}`;
   });
   return [
-    "CLASS RULES. These are the teacher's AI help levels. They come from the school pack, which is already loaded.",
+    "CLASS RULES. These are the teacher's AI help levels. They are already known.",
     "When a class is listed, its level is known. Never say the AI help level is unavailable, missing, or that you could not look it up.",
+    "When you tell the student a level, say it as the teacher's rule. For example: Calc BC is hints only. That's how your teacher set it. Never write Source or school pack.",
     "Do not search mail for a level that is listed here. Mail and calendar are optional.",
     ...lines,
   ].join("\n");

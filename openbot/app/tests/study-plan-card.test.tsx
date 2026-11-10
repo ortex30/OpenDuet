@@ -8,8 +8,8 @@ import {
   test,
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import type { SchoolClass, StudyPlan } from "@openbot/shared/study";
+import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import {
   blocksByDay,
   StudyPlanCard,
@@ -138,7 +138,7 @@ describe("what the plan holds", () => {
     const view = drawPlan();
 
     const card = view.getByRole("region", { name: "Study plan" });
-    expect(within(card).getByText("Study plan")).toBeTruthy();
+    expect(within(card).getByText("Your plan")).toBeTruthy();
     expect(within(card).getByText("4 sessions · 2 h 45 min")).toBeTruthy();
     expect(
       within(card).getByText("Your DBQ is due Friday, so it goes first."),
@@ -231,9 +231,11 @@ describe("answering it", () => {
     const discard = mock(() => {});
     const view = drawPlan({ onApply: apply, onDiscard: discard });
 
-    expect(button(view, "Apply plan").className).toContain("bg-duet-black");
-    fireEvent.click(button(view, "Apply plan"));
-    fireEvent.click(button(view, "Not now"));
+    expect(button(view, "Add to calendar").className).toContain(
+      "bg-duet-black",
+    );
+    fireEvent.click(button(view, "Add to calendar"));
+    fireEvent.click(button(view, "Skip"));
 
     expect(apply).toHaveBeenCalledTimes(1);
     expect(discard).toHaveBeenCalledTimes(1);
@@ -242,8 +244,8 @@ describe("answering it", () => {
   test("while an answer is on its way, both buttons wait", () => {
     const view = drawPlan({ busy: true });
 
-    expect(button(view, "Apply plan").disabled).toBe(true);
-    expect(button(view, "Not now").disabled).toBe(true);
+    expect(button(view, "Add to calendar").disabled).toBe(true);
+    expect(button(view, "Skip").disabled).toBe(true);
   });
 
   test("an error is said as an alert, and the buttons stay to try again", () => {
@@ -252,7 +254,7 @@ describe("answering it", () => {
     expect(view.getByRole("alert").textContent).toBe(
       "Couldn't add the plan. Try again.",
     );
-    expect(button(view, "Apply plan").disabled).toBe(false);
+    expect(button(view, "Add to calendar").disabled).toBe(false);
   });
 
   test("a stale plan says why and can't be applied, but can still be put away", () => {
@@ -265,8 +267,8 @@ describe("answering it", () => {
         "Your schedule changed since this plan was made. Ask for a fresh one.",
       ),
     ).toBeTruthy();
-    expect(button(view, "Apply plan").disabled).toBe(true);
-    expect(button(view, "Not now").disabled).toBe(false);
+    expect(button(view, "Add to calendar").disabled).toBe(true);
+    expect(button(view, "Skip").disabled).toBe(false);
   });
 
   test("a plan whose session has already begun says that, not that the schedule changed", () => {
@@ -278,7 +280,7 @@ describe("answering it", () => {
       "A session in this plan has already started. Ask for a fresh plan.",
     );
     expect(view.queryByText(/Your schedule changed/)).toBeNull();
-    expect(button(view, "Apply plan").disabled).toBe(true);
+    expect(button(view, "Add to calendar").disabled).toBe(true);
   });
 
   test("each reason a plan is out of date has its own words, and an unnamed one reads as a change", () => {
@@ -296,10 +298,8 @@ describe("answering it", () => {
   test("a plan with no sessions has nothing to apply", () => {
     const view = drawPlan({ plan: { ...plan, blocks: [] } });
 
-    expect(
-      view.getByText("No sessions fit in the time you have."),
-    ).toBeTruthy();
-    expect(button(view, "Apply plan").disabled).toBe(true);
+    expect(view.getByText("Nothing fit in that time.")).toBeTruthy();
+    expect(button(view, "Add to calendar").disabled).toBe(true);
   });
 
   test("applied, it says so in the done tone beside the calendar link, with no buttons", () => {
@@ -314,7 +314,7 @@ describe("answering it", () => {
 
     const status = view.getByRole("status");
     // The Calendar tab, which is where it went: nothing is written to Google Calendar.
-    expect(status.textContent).toBe("Added to your Calendar tab");
+    expect(status.textContent).toBe("On your calendar");
     expect(status.className).toContain("text-duet-status-done");
     expect(
       view.getByRole("link", { name: "View on calendar" }).getAttribute("href"),
@@ -327,9 +327,7 @@ describe("answering it", () => {
       plan: { ...plan, status: "applied", stale: true, staleReason: "started" },
     });
 
-    expect(view.getByRole("status").textContent).toBe(
-      "Added to your Calendar tab",
-    );
+    expect(view.getByRole("status").textContent).toBe("On your calendar");
     expect(
       view.queryByText(/Your schedule changed|already started/),
     ).toBeNull();
@@ -367,9 +365,7 @@ describe("answering it", () => {
     expect(refused.getByRole("alert").textContent).toBe(
       "Couldn't take the plan off your calendar. Try again.",
     );
-    expect(refused.getByRole("status").textContent).toBe(
-      "Added to your Calendar tab",
-    );
+    expect(refused.getByRole("status").textContent).toBe("On your calendar");
     expect(button(refused, "Remove from calendar").disabled).toBe(false);
   });
 
@@ -403,7 +399,7 @@ describe("answering it", () => {
 
   test("answered here, focus moves onto the line that says what happened", () => {
     const view = drawPlan();
-    fireEvent.click(button(view, "Apply plan"));
+    fireEvent.click(button(view, "Add to calendar"));
     view.rerender(
       <StudyPlanCard
         busy={false}

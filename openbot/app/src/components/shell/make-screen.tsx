@@ -335,7 +335,11 @@ export function MakeScreen() {
           Saved for Up next on Tasks.
         </p>
       ) : null}
-      {pages.isPending ? null : pages.error ? (
+      {pages.isPending ? (
+        <p className="type-sub mb-3 px-1 text-duet-ink-2" role="status">
+          Loading what you've made…
+        </p>
+      ) : pages.error ? (
         <p className="type-sub px-1 text-duet-red" role="alert">
           Couldn't load what was made. Reload the page.
         </p>

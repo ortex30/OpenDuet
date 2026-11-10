@@ -142,7 +142,7 @@ const MADE: QuizToolResult = {
 
 const QUIZ_PATH = "/api/openduet/study/quizzes/quiz-1";
 
-/** What "Explain what I missed" sends for ATTEMPT: the one question missed, by its number. */
+/** What "Explain" sends for ATTEMPT: the one question missed, by its number. */
 const EXPLAIN =
   'Explain what I missed on "Trig identities": question 2 (Quotient identities; I picked "cos x / sin x", the answer is "sin x / cos x").';
 
@@ -427,7 +427,7 @@ describe("the quiz card", () => {
     await act(async () =>
       reading.resolve(Response.json({ quiz: QUIZ, attempt: null })),
     );
-    expect(await view.findByText("Question 1 of 3")).toBeTruthy();
+    expect(await view.findByText("1 / 3")).toBeTruthy();
     const line = view.getByText(/Here's a 3-question quiz/);
     const card = view.getByRole("region", { name: "Quiz: Trig identities" });
     // Under the Bot's line about it.
@@ -441,7 +441,7 @@ describe("the quiz card", () => {
     fireEvent.click(view.getByRole("radio", { name: "cos x / sin x" }));
     fireEvent.click(view.getByRole("button", { name: "Next" }));
     fireEvent.click(view.getByRole("radio", { name: "sec²x" }));
-    fireEvent.click(view.getByRole("button", { name: "Check my work" }));
+    fireEvent.click(view.getByRole("button", { name: "Check" }));
 
     expect(await view.findByText("2 out of 3 correct")).toBeTruthy();
     expect(seen).toEqual([
@@ -452,12 +452,10 @@ describe("the quiz card", () => {
         body: { answers: [1, 0, 0] },
       },
     ]);
-    expect(
-      view.getByText("A 10-minute review task was added to Tasks."),
-    ).toBeTruthy();
+    expect(view.getByText("Review task added.")).toBeTruthy();
     expect(view.getByText("Explanation 2.")).toBeTruthy();
-    expect(view.getByText("You chose: cos x / sin x")).toBeTruthy();
-    expect(view.getByText("Answer: sin x / cos x")).toBeTruthy();
+    expect(view.getByText("You said cos x / sin x")).toBeTruthy();
+    expect(view.getByText("sin x / cos x")).toBeTruthy();
   });
 
   test("says when checking failed, and checks again only when pressed again", async () => {
@@ -493,12 +491,12 @@ describe("the quiz card", () => {
       <Chat messages={asked(JSON.stringify(MADE))} queries={fresh()} />,
     );
     fireEvent.click(await view.findByRole("radio", { name: "1" }));
-    fireEvent.click(view.getByRole("button", { name: "Check my work" }));
+    fireEvent.click(view.getByRole("button", { name: "Check" }));
     expect((await view.findByRole("alert")).textContent).toBe(
       "Couldn't reach your study data. Try again.",
     );
     expect(checks).toBe(1);
-    fireEvent.click(view.getByRole("button", { name: "Check my work" }));
+    fireEvent.click(view.getByRole("button", { name: "Check" }));
     expect(await view.findByText("1 out of 1 correct")).toBeTruthy();
     expect(checks).toBe(2);
     expect(view.queryByRole("alert")).toBeNull();
@@ -515,26 +513,22 @@ describe("the quiz card", () => {
       />,
     );
     expect(await view.findByText("2 out of 3 correct")).toBeTruthy();
-    expect(view.queryByText("Question 1 of 3")).toBeNull();
+    expect(view.queryByText("1 / 3")).toBeNull();
 
-    fireEvent.click(
-      view.getByRole("button", { name: "Explain what I missed" }),
-    );
+    fireEvent.click(view.getByRole("button", { name: "Explain" }));
     await waitFor(() =>
       expect(sent.map((draft) => draft.text)).toEqual([EXPLAIN]),
     );
     // Sent, so it can't be sent twice.
-    expect(
-      view.queryByRole("button", { name: "Explain what I missed" }),
-    ).toBeNull();
-    fireEvent.click(view.getByRole("button", { name: "Quiz me again" }));
+    expect(view.queryByRole("button", { name: "Explain" })).toBeNull();
+    fireEvent.click(view.getByRole("button", { name: "Try again" }));
     await waitFor(() =>
       expect(sent.map((draft) => draft.text)).toEqual([
         EXPLAIN,
         "Quiz me again on Trig identities.",
       ]),
     );
-    expect(view.queryByRole("button", { name: "Quiz me again" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Try again" })).toBeNull();
     expect(seen.map((request) => request.method)).toEqual(["GET"]);
   });
 
@@ -549,13 +543,9 @@ describe("the quiz card", () => {
         sent={sent}
       />,
     );
-    fireEvent.click(
-      await view.findByRole("button", { name: "Explain what I missed" }),
-    );
+    fireEvent.click(await view.findByRole("button", { name: "Explain" }));
     expect(sent).toEqual([]);
-    expect(
-      view.getByRole("button", { name: "Explain what I missed" }),
-    ).toBeTruthy();
+    expect(view.getByRole("button", { name: "Explain" })).toBeTruthy();
   });
 
   test("a quiz that can't be read says so, and Try again reads it again", async () => {
@@ -582,7 +572,7 @@ describe("the quiz card", () => {
     const card = view.getByRole("region", { name: "Quiz: Trig identities" });
     expect(card.getAttribute("aria-busy")).toBeNull();
     fireEvent.click(within(card).getByRole("button", { name: "Try again" }));
-    expect(await view.findByText("Question 1 of 3")).toBeTruthy();
+    expect(await view.findByText("1 / 3")).toBeTruthy();
     expect(reads).toBe(2);
   });
 
@@ -596,12 +586,12 @@ describe("the quiz card", () => {
     const held = view.container.querySelector("[data-card-held]");
     expect(held?.textContent).toContain("Wrote your quiz");
     expect(held?.textContent).toContain("Trig identities");
-    expect(view.queryByText("Question 1 of 3")).toBeNull();
+    expect(view.queryByText("1 / 3")).toBeNull();
 
     await act(async () =>
       view.rerender(<Chat messages={messages} queries={queries} />),
     );
-    expect(await view.findByText("Question 1 of 3")).toBeTruthy();
+    expect(await view.findByText("1 / 3")).toBeTruthy();
     expect(view.container.querySelector("[data-card-held]")).toBeNull();
     // It was read once, while it waited.
     expect(seen).toHaveLength(1);
@@ -615,9 +605,7 @@ describe("the quiz card", () => {
       </QueryClientProvider>,
     );
     expect(await view.findByText("2 out of 3 correct")).toBeTruthy();
-    expect(
-      view.queryByRole("button", { name: "Explain what I missed" }),
-    ).toBeNull();
-    expect(view.queryByRole("button", { name: "Quiz me again" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Explain" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Try again" })).toBeNull();
   });
 });
