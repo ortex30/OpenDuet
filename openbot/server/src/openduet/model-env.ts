@@ -11,6 +11,26 @@
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
+/**
+ * Study guides use a strong model. Small tasks (a quiz stem, a tutor check)
+ * use a cheaper one. Either name can be overridden. Chat itself stays on
+ * ACADEMIC_OS_MODEL, or gpt-5.6-terra when that is unset.
+ */
+export const GUIDE_MODEL = "gpt-5.5";
+export const FAST_MODEL = "gpt-4o-mini";
+
+export function studyModels(
+  env: Record<string, string | undefined> = process.env,
+): { guide: string; fast: string } {
+  return {
+    guide:
+      env.ACADEMIC_OS_GUIDE_MODEL?.trim() ||
+      env.ACADEMIC_OS_MODEL?.trim() ||
+      GUIDE_MODEL,
+    fast: env.ACADEMIC_OS_FAST_MODEL?.trim() || FAST_MODEL,
+  };
+}
+
 export function applyChatModelEnv(
   env: Record<string, string | undefined>,
 ): void {

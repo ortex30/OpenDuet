@@ -8,14 +8,15 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelChat } from "@/components/channels/channel-chat";
 import { ConversationView } from "@/components/channels/conversation-view";
-import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
-import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
-import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
-import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import {
   seedMessage,
   stashFirstMessage,
 } from "@/components/channels/transcript-messages";
+import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
+import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
+import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
+import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
+import { StudyDock } from "@/components/shell/study-dock";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { type AgentProfile, agentListQueryOptions } from "@/lib/agents/queries";
 import { botAppQueryOptions } from "@/lib/app-access/queries";
@@ -28,7 +29,6 @@ import {
 } from "@/lib/channels/first-day";
 import { useMarkOpenChannelRead } from "@/lib/channels/mark-read";
 import { localDateOf } from "@/lib/channels/morning-brief";
-import { client } from "@/lib/client";
 import { ONGOING_SEARCH_LIMIT, ongoingChannel } from "@/lib/channels/ongoing";
 import {
   type AgentChannel,
@@ -37,6 +37,7 @@ import {
 } from "@/lib/channels/queries";
 import { routeMessage } from "@/lib/channels/route";
 import { startWithChosen } from "@/lib/channels/start";
+import { client } from "@/lib/client";
 import { newId } from "@/lib/new-id";
 
 /**
@@ -303,11 +304,14 @@ function FirstMessage({
         inShell
         messages={sent ? [sent] : []}
         notice={
-          error ? (
-            <p className="type-label pb-2 text-duet-red" role="alert">
-              {error}
-            </p>
-          ) : null
+          <>
+            <StudyDock />
+            {error ? (
+              <p className="type-label pb-2 text-duet-red" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </>
         }
         // The composer keeps the draft for another try when this throws.
         onSubmit={(draft) => start(draft.text)}

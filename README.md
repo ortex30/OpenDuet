@@ -158,6 +158,10 @@ cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --pack --
 
 The first command is the generic study memory. The second is the private pack.
 
+Chat stays the home. Tonight, Study, Calendar, Tasks, and Rules open from the row above the message box. Study (Learn) writes a guide, a quiz, or a tutor turn from the notes in the pack. A guide is an outline, a draft that keeps only what the notes say, a check that drops the rest, then the page. Print is in the page menu. Quizzes are multiple choice, short answer, and one free response. They are graded from the notes, and misses go into spaced review. Chemistry is no AI help: a guide can organize the notes, and a quiz or tutor turn is refused. Tonight's plan uses the real due dates.
+
+Study guides use `ACADEMIC_OS_GUIDE_MODEL` (default `gpt-5.5`). Short tutor passes use `ACADEMIC_OS_FAST_MODEL` (default `gpt-4o-mini`). With no `OPENAI_API_KEY`, the same pages are built straight from the notes and nothing is sent to a model.
+
 App tests, from `openbot/`:
 
 ```sh

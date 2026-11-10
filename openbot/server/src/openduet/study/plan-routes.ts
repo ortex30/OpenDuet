@@ -348,7 +348,6 @@ export function planRoutes(deps: StudyRouteDeps) {
         pack &&
         view.events.length === 0 &&
         view.allDay.length === 0 &&
-        view.deadlines.length === 0 &&
         view.couldNotRead.length > 0
       ) {
         const local = packCalendarSlice(pack, from, to, now);

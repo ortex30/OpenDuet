@@ -6,12 +6,14 @@ import {
 } from "@openbot/shared/study";
 import { z } from "zod";
 import { CALENDAR_LIST, type CallTool, GMAIL_SEARCH } from "../brief";
+import { loadEnabledPack } from "../private-pack";
 import type {
   SchoolRead,
   SchoolService,
   StudyContext,
   StudyStore,
 } from "./contracts";
+import { schoolSnapshotFromPack } from "./craft";
 import {
   buildSnapshot,
   carriedNotices,
@@ -528,9 +530,24 @@ export function createSchoolService(deps: {
       // One under way, or started while the stored copy was being read, is shared, never doubled.
       const started = running.get(key);
       if (started) return started;
-      const syncing = sync(context, stored).finally(() => {
-        running.delete(key);
-      });
+      const syncing = sync(context, stored)
+        .then((read) => {
+          const snapshot = read.snapshot;
+          const empty =
+            !snapshot ||
+            (snapshot.classes.length === 0 &&
+              snapshot.assignments.length === 0);
+          if (!empty) return read;
+          const pack = loadEnabledPack();
+          if (!pack) return read;
+          return {
+            snapshot: schoolSnapshotFromPack(pack, now()),
+            why: null,
+          };
+        })
+        .finally(() => {
+          running.delete(key);
+        });
       running.set(key, syncing);
       return syncing;
     },

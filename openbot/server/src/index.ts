@@ -2787,6 +2787,8 @@ const app = createApp(
           directChannel: openDuetDirectChannel,
         }),
         primaryBot: openDuetPrimaryBot,
+        pages: openDuetPages,
+        memory: openDuetStudyMemory,
       },
     },
     responsibilities: {

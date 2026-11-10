@@ -343,6 +343,15 @@ const storedQuestionSchema = z.object({
   topic: z.string(),
 });
 
+const storedWrittenSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["short", "free"]),
+  prompt: z.string(),
+  answer: z.string(),
+  topic: z.string(),
+  expects: z.array(z.string()),
+});
+
 const storedQuizSchema = z.object({
   title: z.string(),
   classId: z.string(),
@@ -350,6 +359,8 @@ const storedQuizSchema = z.object({
   assignmentId: z.string().nullable(),
   questions: z.array(storedQuestionSchema).min(1),
   createdAt: z.string(),
+  /** Short-answer and free-response items kept with the quiz, never shown with their answers. */
+  written: z.array(storedWrittenSchema).optional(),
 });
 
 /** A quiz as it is kept: every question with its answer and explanation. Never sent whole. */

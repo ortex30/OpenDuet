@@ -953,3 +953,8 @@ body {
 .duet-composer-editor > [role="listbox"] {
   margin-block: 25px;
 }
+
+/* The unlicensed CopilotKit dev banner sits on top of the composer. */
+div[style*="z-index: 99999"]:has(a[href="https://copilotkit.ai/pricing"]) {
+  display: none !important;
+}

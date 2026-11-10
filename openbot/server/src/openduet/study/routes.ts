@@ -11,6 +11,7 @@ import {
   StudyNotFoundError,
   type StudyRouteDeps,
 } from "./contracts";
+import { craftRoutes } from "./craft-routes";
 import { planRoutes } from "./plan-routes";
 import { quizRoutes } from "./quiz-routes";
 import { rulesRoutes } from "./rules-routes";
@@ -99,7 +100,7 @@ export function createStudyRoutes(
   requireUser: MiddlewareHandler<{ Variables: AppVariables }>,
 ) {
   return mountStudyRoutes(
-    [quizRoutes(deps), planRoutes(deps), rulesRoutes(deps)],
+    [quizRoutes(deps), planRoutes(deps), rulesRoutes(deps), craftRoutes(deps)],
     requireUser,
   );
 }

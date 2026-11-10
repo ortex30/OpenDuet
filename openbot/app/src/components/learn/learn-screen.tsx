@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { DuetIcon } from "@/components/duet/icons";
 import { DuetCard, SectionLabel } from "@/components/duet/kit";
+import { WorkshopPanel } from "@/components/learn/workshop-panel";
 import { ScreenScroll, ScreenTitle } from "@/components/shell/screen";
 import { SmallPill } from "@/components/shell/suggestion-card";
 import { primaryBot } from "@/lib/agents/primary-bot";
@@ -64,12 +65,19 @@ export function LearnScreen() {
       <ScreenTitle title="Learn">
         What you know, and what to review today.
       </ScreenTitle>
+      <WorkshopPanel
+        onOpenPage={(pageId) =>
+          navigate({ to: "/make/$pageId", params: { pageId } })
+        }
+      />
       {start.error ? (
         <p className="type-sub mb-3 px-1 text-duet-red" role="alert">
           {start.error.message}
         </p>
       ) : null}
-      {study.isPending ? null : study.error ? (
+      {study.isPending ? (
+        <p className="type-sub px-1 text-duet-ink-2">Loading what you know…</p>
+      ) : study.error ? (
         <p className="type-sub px-1 text-duet-red" role="alert">
           {study.error.message}
         </p>

@@ -240,4 +240,32 @@ export type StudyRouteDeps = {
   /** The Bot routes read Gmail and Calendar through: the tenant's primary Bot (setup.ts primaryBotIdOf). */
   primaryBot: string;
   now?: () => Date;
+  /** Where a notes-built study guide is saved. Absent in tests that never make one. */
+  pages?: {
+    save(
+      owner: string,
+      botId: string,
+      input: {
+        kind: "doc";
+        title: string;
+        summary?: string;
+        theme?: "editorial";
+        blocks: import("../page-content").PageBlock[];
+      },
+    ): Promise<{ id: string }>;
+  };
+  /** Spaced review. Absent when a route only needs to grade. */
+  memory?: {
+    record(
+      owner: string,
+      botId: string,
+      entries: {
+        subject: string;
+        topic: string;
+        result: "correct" | "partly" | "missed";
+        activity?: "quiz" | "teach-back";
+        misconception?: string;
+      }[],
+    ): Promise<unknown>;
+  };
 };

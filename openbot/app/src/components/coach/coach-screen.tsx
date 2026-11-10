@@ -194,6 +194,7 @@ export function CoachScreen() {
         </div>
       ) : null}
 
+      <TonightPlan />
       <TodayHero now={now} pace={pace} state={state} />
       <CheckInCard now={now} onEarned={onEarned} pace={pace} state={state} />
       <DoNextCard
@@ -249,5 +250,75 @@ export function CoachScreen() {
       <FocusOverlay breakMin={pace.breakMin} onEarned={onEarned} />
       <Celebration achievements={earned} onDone={() => setEarned([])} />
     </ScreenScroll>
+  );
+}
+
+/** One evening from the school pack. Hidden until asked, so the sample week stays quiet. */
+function TonightPlan() {
+  const [lines, setLines] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="mb-3 rounded-[20px] bg-duet-card px-4 py-3 shadow-duet-card">
+      <div className="flex items-center justify-between gap-2">
+        <p className="type-sub font-semibold">Tonight</p>
+        <button
+          className="type-caption min-h-11 rounded-full bg-duet-ink px-4 font-semibold text-duet-surface disabled:opacity-50"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setError("");
+            void fetch("/api/openduet/study/workshop/tonight", {
+              method: "POST",
+              credentials: "include",
+            })
+              .then(async (response) => {
+                const body = (await response.json()) as {
+                  error?: string;
+                  plan?: {
+                    blocks?: { title: string; start: string; end: string }[];
+                    warnings?: string[];
+                  };
+                };
+                if (!response.ok) throw new Error(body.error || "No plan yet.");
+                const blocks = body.plan?.blocks ?? [];
+                const warnings = body.plan?.warnings ?? [];
+                setLines(
+                  blocks.length
+                    ? [
+                        ...blocks.map(
+                          (block) =>
+                            `${block.start}–${block.end} ${block.title}`,
+                        ),
+                        ...warnings.filter((warning) => warning.trim()),
+                      ]
+                    : ["Nothing due in the next few days."],
+                );
+              })
+              .catch((reason: unknown) =>
+                setError(
+                  reason instanceof Error ? reason.message : "Try again.",
+                ),
+              )
+              .finally(() => setBusy(false));
+          }}
+          type="button"
+        >
+          {busy ? "Planning…" : "What should I do tonight?"}
+        </button>
+      </div>
+      {error ? (
+        <p className="type-sub mt-2 text-duet-red" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {lines.length > 0 ? (
+        <ul className="type-sub mt-2 list-disc pl-4 text-duet-ink">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
