@@ -13,8 +13,9 @@ export const FIRST_DAY_CLOSE =
   "If any of these sound off, just let me know and I'll learn.";
 
 /**
- * On the first day the Bot speaks first: Chat opened on nothing sends the greeting itself, once,
- * instead of waiting for the person to press anything.
+ * Claims one first-day greeting, once, across tabs. Chat does not call this. An empty conversation
+ * stays on the study home until the student taps or types. A caller that does want the server to
+ * speak first passes `greet`.
  *
  * `claimKey` names whose first day it is, with which Bot; null while that is not known yet, which
  * waits. `clear` is read at the last moment, after the claim is held and in the same tick as the

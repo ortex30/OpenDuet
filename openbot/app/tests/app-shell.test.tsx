@@ -32,7 +32,7 @@ import { settleReactWork } from "./settle-react-work";
 
 /**
  * The film's shell: the tab bar at the foot of Chat, Tasks and Make, and the drawer that opens on
- * Everything, then the person's channels, New channel and Archived, with every page OpenBot's
+ * Everything, then the person's channels, New class and Archived, with every page OpenBot's
  * sidebar listed under Manage and Settings.
  */
 
@@ -425,7 +425,7 @@ function archivedToggle(dialog: HTMLElement) {
   return within(dialog).getByRole("button", { name: /^Archived/ });
 }
 
-test("the drawer reads Everything, the channels, New channel, Archived folded, then Manage and Settings", async () => {
+test("the drawer reads Everything, the channels, New class, Archived folded, then Manage and Settings", async () => {
   serving();
   const view = draw(
     <MenuSheet onNewChannel={() => {}} onOpenChange={() => {}} open />,
@@ -437,7 +437,7 @@ test("the drawer reads Everything, the channels, New channel, Archived folded, t
     `Everything${EVERYTHING_LINE}`,
     `Kiln move${kiln.purpose}`,
     `Glazes${glazes.purpose}`,
-    "New channel",
+    "New class",
     "Archived",
     "Manage",
     "Settings",
@@ -730,7 +730,7 @@ test.each(["drawer", "sidebar"])(
   },
 );
 
-test("New channel stays in reach under a long list of channels: only the channels scroll", async () => {
+test("New class stays in reach under a long list of channels: only the channels scroll", async () => {
   serving();
   const many = Array.from({ length: 30 }, (_, index) =>
     channel(`c-${index}`, `Channel ${index}`, null, {
@@ -744,7 +744,7 @@ test("New channel stays in reach under a long list of channels: only the channel
   );
   const dialog = await view.findByRole("dialog");
   const newChannel = await within(dialog).findByRole("button", {
-    name: "New channel",
+    name: "New class",
   });
   const scroller = within(dialog).getByTestId("drawer-channels");
   expect(scroller.className).toContain("overflow-y-auto");
@@ -753,23 +753,23 @@ test("New channel stays in reach under a long list of channels: only the channel
   expect(scroller.contains(newChannel)).toBe(false);
 });
 
-test("with no channels yet the drawer is Everything and New channel, and no Archived", async () => {
+test("with no channels yet the drawer is Everything and New class, and no Archived", async () => {
   serving();
   const view = draw(
     <MenuSheet onNewChannel={() => {}} onOpenChange={() => {}} open />,
     seedMenu("admin", true, []),
   );
   const dialog = await view.findByRole("dialog");
-  await within(dialog).findByRole("button", { name: "New channel" });
+  await within(dialog).findByRole("button", { name: "New class" });
   expect(menuRows(dialog)).toEqual([
     `Everything${EVERYTHING_LINE}`,
-    "New channel",
+    "New class",
     "Manage",
     "Settings",
   ]);
 });
 
-test("New channel asks the shell to open the sheet", async () => {
+test("New class asks the shell to open the sheet", async () => {
   serving();
   let asked = 0;
   const user = userEvent.setup({ document });
@@ -785,7 +785,7 @@ test("New channel asks the shell to open the sheet", async () => {
   );
   const dialog = await view.findByRole("dialog");
   await user.click(
-    await within(dialog).findByRole("button", { name: "New channel" }),
+    await within(dialog).findByRole("button", { name: "New class" }),
   );
   expect(asked).toBe(1);
 });

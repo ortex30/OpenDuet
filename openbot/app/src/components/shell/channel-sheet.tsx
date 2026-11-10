@@ -131,7 +131,7 @@ export function ChannelSheet({
   const pickerId = useId();
   const nameId = useId();
   const purposeId = useId();
-  const title = editing ? "Edit channel" : "New channel";
+  const title = editing ? "Edit class" : "New class";
   /*
    * Whether there is anything typed or chosen that leaving would lose: for a new channel, a name
    * or a purpose; for one being edited, anything that differs from what it is now.

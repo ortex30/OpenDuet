@@ -599,7 +599,7 @@ function MakeFan({
                     }
                   >
                     <button
-                      aria-label={`Make a ${kind.label.toLowerCase()}`}
+                      aria-label={`Make ${kind.label.toLowerCase()}`}
                       className="type-row flex min-h-11 max-w-full items-center gap-2.5 rounded-full py-1.5 pr-5 pl-1.5 text-left font-semibold text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
                       data-kind={kind.id}
                       style={{

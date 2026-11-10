@@ -69,5 +69,5 @@ export function readChannelHello(text: string): ChannelHello | null {
 
 /** A hello in one line, for a reader that names the conversation from its opening. */
 export function describeChannelHello(hello: ChannelHello): string {
-  return hello.name ? `New channel: ${hello.name}` : "New channel";
+  return hello.name ? `New class: ${hello.name}` : "New class";
 }

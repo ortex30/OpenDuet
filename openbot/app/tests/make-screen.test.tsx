@@ -243,7 +243,7 @@ function expectFinalPageCache() {
 
 async function startMaking(view: ReturnType<typeof app>["view"]) {
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a slides" }));
+  fireEvent.click(view.getByRole("button", { name: "Make slides" }));
   const sheet = await view.findByRole("dialog");
   const field = within(sheet).getByRole("textbox");
   fireEvent.focus(field);
@@ -851,7 +851,7 @@ test("the + fans out Page, Deck, Dashboard and Doc, nearest first, and folds the
   const { view } = app();
   const plus = await view.findByRole("button", { name: "Make something" });
   expect(plus.getAttribute("aria-expanded")).toBe("false");
-  expect(view.queryByRole("button", { name: "Make a slides" })).toBeNull();
+  expect(view.queryByRole("button", { name: "Make slides" })).toBeNull();
 
   fireEvent.click(plus);
   const fan = view.getByRole("list", { name: "What to make" });
@@ -882,7 +882,7 @@ test("the + fans out Page, Deck, Dashboard and Doc, nearest first, and folds the
   // last pill has folded, and the list is hidden again.
   await runMotionFrames(40);
   await waitFor(() =>
-    expect(view.queryByRole("button", { name: "Make a slides" }) === null).toBe(
+    expect(view.queryByRole("button", { name: "Make slides" }) === null).toBe(
       true,
     ),
   );
@@ -913,7 +913,7 @@ test("Deck opens the + sheet with its starter and the blank selected; Start now 
   const { view, router } = app();
   await view.findByRole("list", { name: "Made for you" });
   fireEvent.click(view.getByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a slides" }));
+  fireEvent.click(view.getByRole("button", { name: "Make slides" }));
 
   const sheet = await view.findByRole("dialog", {
     name: "What should OpenDuet make?",
@@ -995,7 +995,7 @@ test("Save for Up next from Make says where it went", async () => {
   }) as unknown as typeof fetch;
   const { view } = app();
   fireEvent.click(await view.findByRole("button", { name: "Make something" }));
-  fireEvent.click(view.getByRole("button", { name: "Make a notes" }));
+  fireEvent.click(view.getByRole("button", { name: "Make notes" }));
   const sheet = await view.findByRole("dialog");
   const field = within(sheet).getByRole("textbox") as HTMLTextAreaElement;
   expect(field.value).toBe("Write notes about …");

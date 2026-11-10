@@ -191,8 +191,8 @@ function BriefToolView({
  */
 export function startRequest(item: Brief["needsYou"][number]): string {
   return item.subject
-    ? `Take care of ${item.from}'s email: ${item.subject}`
-    : `Take care of ${item.from}'s email.`;
+    ? `Help me with ${item.from}'s email: ${item.subject}`
+    : `Help me with ${item.from}'s email.`;
 }
 
 /**

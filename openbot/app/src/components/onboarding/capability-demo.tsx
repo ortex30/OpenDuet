@@ -20,10 +20,10 @@ const APPROVAL: ApprovalRequest = {
     threadId: "onboarding-example",
     toolRef: "openbot/share_private_information",
     effect: "share_private",
-    scope: "external:ana@example.com",
+    scope: "external:ms.patel@lakeview.edu",
     args: {
-      audience: "google-workspace: ana@example.com",
-      preview: "Hi Ana, Friday works. I'll bring the samples.",
+      audience: "google-workspace: ms.patel@lakeview.edu",
+      preview: "Hi Ms. Patel, Thursday works for the meeting.",
     },
     target: {},
   },
@@ -31,11 +31,11 @@ const APPROVAL: ApprovalRequest = {
 
 const LABELS: Record<CapabilityDemoKind, string> = {
   brief:
-    "Example: a morning brief arrives with a delivery to confirm and a studio visit today",
+    "Example: a morning brief arrives with a lab report due and a quiz today",
   search:
-    "Example: the Bot searches your email, then brings you a morning brief",
+    "Example: the coach searches your school mail, then brings you what's due",
   approval:
-    "Example: the Bot asks before sending an email, with Refuse and Allow once",
+    "Example: the coach asks before sending an email, with Refuse and Allow once",
   task: "Example: a task moves from Working to Ready for review",
 };
 
@@ -98,10 +98,10 @@ export function CapabilityDemo({ kind }: { kind: CapabilityDemoKind }) {
     : task
       ? done
         ? "Ready when you are"
-        : "Taking care of it"
+        : "Working on it"
       : done
-        ? "Here's what needs you today"
-        : "Searching your email";
+        ? "Here's what's due today"
+        : "Searching your school mail";
 
   return (
     <div
@@ -150,26 +150,26 @@ export function CapabilityDemo({ kind }: { kind: CapabilityDemoKind }) {
             <DuetCard>
               <TaskRow
                 status={done ? "ready_for_review" : "working"}
-                title="Confirm Friday's delivery"
+                title="Finish the lab report"
               />
             </DuetCard>
           ) : (
             <MorningBriefCard
               canWait={[]}
               date={demoDate()}
-              greeting="Your day, at a glance."
+              greeting="What's due, at a glance."
               needsYou={[
                 {
-                  id: "delivery",
-                  title: "Confirm the delivery",
-                  why: "Ana needs a yes for Friday.",
+                  id: "lab",
+                  title: "Lab report due tomorrow",
+                  why: "Dr. Okoro wants the data table.",
                 },
               ]}
               today={[
                 {
-                  id: "visit",
-                  title: "Studio visit at 2",
-                  why: "The samples are ready.",
+                  id: "quiz",
+                  title: "Precalculus quiz",
+                  why: "Unit 4, no calculator.",
                 },
               ]}
             />

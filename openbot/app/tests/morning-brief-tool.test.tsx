@@ -9,8 +9,8 @@ import {
 } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import { MorningBriefCard } from "@/components/duet/morning-brief-card";
 import { ConversationSendContext } from "@/components/channels/conversation-send";
+import { MorningBriefCard } from "@/components/duet/morning-brief-card";
 import {
   briefCard,
   readBrief,
@@ -156,10 +156,10 @@ describe("Start on what needs her", () => {
     const first = brief().needsYou[0];
     if (!first) throw new Error("no row");
     expect(startRequest(first)).toBe(
-      "Take care of Ana Pereira's email: Friday ship date?",
+      "Help me with Ana Pereira's email: Friday ship date?",
     );
     expect(startRequest({ ...first, subject: "" })).toBe(
-      "Take care of Ana Pereira's email.",
+      "Help me with Ana Pereira's email.",
     );
   });
 
@@ -178,7 +178,7 @@ describe("Start on what needs her", () => {
       }),
     );
     expect(send).toHaveBeenCalledWith(
-      "Take care of Ana Pereira's email: Friday ship date?",
+      "Help me with Ana Pereira's email: Friday ship date?",
     );
     const done = view.getByRole("button", {
       name: "Started",
@@ -272,7 +272,7 @@ describe("a long brief", () => {
       view.getByRole("button", { name: "Start: Sender 0 · Subject 0" }),
     );
     expect(send).toHaveBeenCalledWith(
-      "Take care of Sender 0's email: Subject 0",
+      "Help me with Sender 0's email: Subject 0",
     );
   });
 });

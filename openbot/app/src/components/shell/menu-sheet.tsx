@@ -235,7 +235,7 @@ export function MenuSheet({
                 type="button"
               >
                 <RowIcon name="plus" />
-                New channel
+                New class
               </button>
             ) : null}
             {away.length > 0 || earlier.length > 0 ? (
