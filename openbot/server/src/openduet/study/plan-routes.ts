@@ -7,6 +7,11 @@ import type {
 } from "@openbot/shared/study";
 import { Hono } from "hono";
 import type { AppVariables } from "../../auth/guards";
+import {
+  loadEnabledPack,
+  packCalendarSlice,
+  privateDemoSummary,
+} from "../private-pack";
 import { readCalendar } from "./calendar-source";
 import {
   StudyConflictError,
@@ -229,6 +234,11 @@ export function planRoutes(deps: StudyRouteDeps) {
       const plan = await applying(owner, () => remove(owner, id));
       return context.json({ plan });
     })
+    .get("/private-demo", (context) => {
+      const pack = loadEnabledPack();
+      if (!pack) return context.json({ available: false });
+      return context.json(privateDemoSummary(pack));
+    })
     .get("/calendar", async (context) => {
       const from = context.req.query("from") ?? "";
       const to = context.req.query("to") ?? "";
@@ -331,6 +341,26 @@ export function planRoutes(deps: StudyRouteDeps) {
           ]),
         ],
       };
+      // Google isn't connected. A local school pack, when the demo asked for
+      // one, is the calendar until a real account is.
+      const pack = loadEnabledPack();
+      if (
+        pack &&
+        view.events.length === 0 &&
+        view.allDay.length === 0 &&
+        view.deadlines.length === 0 &&
+        view.couldNotRead.length > 0
+      ) {
+        const local = packCalendarSlice(pack, from, to, now);
+        view.timeZone = local.timeZone;
+        view.today = local.today;
+        view.nowMinute = local.nowMinute;
+        view.classes = local.classes;
+        view.events = local.events;
+        view.allDay = local.allDay;
+        view.deadlines = local.deadlines;
+        view.couldNotRead = [];
+      }
       return context.json({ calendar: view });
     });
 }

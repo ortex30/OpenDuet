@@ -1,4 +1,7 @@
 model:
   provider: openai
   credential_secret_ref: openai-api-key
-  default_model: gpt-5.6-terra
+  # OPENAI_API_KEY is the primary key. Set ACADEMIC_OS_MODEL to pick another
+  # OpenAI model. OpenRouter: ACADEMIC_OS_PROVIDER=openrouter, or only
+  # OPENROUTER_API_KEY, which fills this from OPENROUTER_MODEL or BOT_MODEL.
+  default_model: ${ACADEMIC_OS_MODEL:-gpt-5.6-terra}

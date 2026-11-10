@@ -10,10 +10,21 @@
  * practiced, so its Leitner box, mastery and next review are what real practice would have left.
  * With no --email, the only person in the database is used; --reset clears their memory first.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { and, eq } from "drizzle-orm";
 import { createDatabase } from "../src/db/client";
 import { agents, users } from "../src/db/schema/core";
+import { openduetPages } from "../src/db/schema/openduet";
 import { openduetStudyTopics } from "../src/db/schema/study";
+import { createPageStore } from "../src/openduet/pages";
+import {
+  loadPrivatePack,
+  privatePackDir,
+  studyGuideFromPack,
+  studyTopicsFromPack,
+} from "../src/openduet/private-pack";
+import { zonedParts } from "../src/openduet/study/time";
 import {
   createStudyStore,
   type StudyEntry,
@@ -163,7 +174,9 @@ export async function seedStudyDemo(
 if (import.meta.main) {
   const argument = (name: string) => {
     const at = process.argv.indexOf(name);
-    return at > -1 ? process.argv[at + 1] : undefined;
+    const next = at > -1 ? process.argv[at + 1] : undefined;
+    if (!next || next.startsWith("--")) return undefined;
+    return next;
   };
   const url = process.env.DATABASE_URL;
   if (!url)
@@ -204,6 +217,79 @@ if (import.meta.main) {
           eq(openduetStudyTopics.botId, botId),
         ),
       );
+  if (process.argv.includes("--pack")) {
+    const named = argument("--pack");
+    const dir =
+      named ??
+      privatePackDir({
+        ACADEMIC_OS_DATA_DIR: process.env.ACADEMIC_OS_DATA_DIR,
+      });
+    if (!dir) {
+      console.error(
+        "No school pack. Unzip it so data/private/classes.json exists, or pass --pack <dir>.",
+      );
+      process.exit(1);
+    }
+    const pack = loadPrivatePack(dir);
+    if (process.argv.includes("--reset"))
+      await database
+        .delete(openduetStudyTopics)
+        .where(
+          and(
+            eq(openduetStudyTopics.ownerUserId, person.id),
+            eq(openduetStudyTopics.botId, botId),
+          ),
+        );
+    const store = createStudyStore(database);
+    const topics = studyTopicsFromPack(pack, (file) =>
+      readFileSync(join(dir, file), "utf8"),
+    );
+    await store.record(
+      person.id,
+      botId,
+      topics.map((topic) => ({
+        subject: topic.subject,
+        topic: topic.topic,
+        result: topic.result,
+        activity: "quiz" as const,
+        ...(topic.result === "missed"
+          ? {
+              misconception:
+                "Still shaky. Review the notes before the next try.",
+            }
+          : {}),
+      })),
+    );
+    const today = zonedParts(new Date(), pack.timeZone).date;
+    const guide = studyGuideFromPack(
+      pack,
+      (file) => readFileSync(join(dir, file), "utf8"),
+      today,
+    );
+    if (guide) {
+      await database
+        .delete(openduetPages)
+        .where(
+          and(
+            eq(openduetPages.ownerUserId, person.id),
+            eq(openduetPages.title, guide.title),
+          ),
+        );
+      await createPageStore(database).save(person.id, botId, {
+        kind: "doc",
+        title: guide.title,
+        summary: guide.summary,
+        theme: "editorial",
+        blocks: guide.blocks,
+      });
+      console.log(`Study guide: ${guide.title}`);
+    }
+    const overview = await store.overview(person.id, botId);
+    console.log(
+      `School pack (${pack.classes.length} current classes, ${pack.assignments.length} deadlines, ${pack.historicalExcluded} spring rows left out). Study memory: ${overview.totals.topics} topics, ${overview.totals.openMistakes} open mistakes.`,
+    );
+    process.exit(0);
+  }
   const overview = await seedStudyDemo(database, person.id, botId);
   console.log(
     `Filled ${person.email}'s study memory: ${overview.totals.topics} topics, ${overview.totals.due} due for review, ${overview.totals.openMistakes} open mistakes. Open the Learn tab.`,

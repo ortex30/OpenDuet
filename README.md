@@ -131,6 +131,41 @@ Then start it:
 bash scripts/start.sh
 ```
 
+## Academic OS demo
+
+This fork is Academic OS, the school coach. The full app (chat, Tasks, Calendar, Today's plan, Learn, and Made for you) is on the `desktop-web` line: pull requests #1, #2, and #3 are already combined there.
+
+One command from a fresh checkout, after `bun install` (or `bash scripts/cloud-install.sh`):
+
+```sh
+bash scripts/academic-os-dev.sh
+```
+
+Open <http://127.0.0.1:3010>. Postgres runs locally. The Bot computer from `scripts/start.sh` is not started.
+
+Live chat needs two keys in `openbot/.env`, then a restart:
+
+- `OPENAI_API_KEY` is the primary model. `ACADEMIC_OS_MODEL` picks the OpenAI model. Unset, it stays `gpt-5.6-terra`.
+- OpenRouter still works. Set `OPENROUTER_API_KEY` with no OpenAI key, or set `ACADEMIC_OS_PROVIDER=openrouter`. `OPENROUTER_MODEL` names the model.
+- `INTELLIGENCE_API_KEY` is still required for real threads. The dev script puts a placeholder in so the API can boot. Chat will not answer until that placeholder is a real key.
+
+The generic demo student is Jordan Rivera. To use a private class export instead, unzip it under `data/private/` as described in [data/private/README.md](data/private/README.md). That folder is gitignored. Current-term classes load into Today's plan, the calendar, Learn, and one study guide. Spring 2026 rows in the pack are not deadlines.
+
+```sh
+cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --reset
+cd openbot/server && bun --env-file=../.env scripts/seed-study-demo.ts --pack --reset
+```
+
+The first command is the generic study memory. The second is the private pack.
+
+App tests, from `openbot/`:
+
+```sh
+TEST_DATABASE_URL=postgres://openbot:openbot@127.0.0.1:5432/openbot_test bun test app/tests
+```
+
+`scripts/academic-os-dev.sh` migrates that test database too.
+
 and open <http://localhost:3010>. The script starts Postgres and each Bot's computer in Docker, applies the database migrations, and starts the API server, the routine worker, and the app. It checks that each one answers before it prints the next steps. `bash scripts/stop.sh` stops the app, the worker, the API server and the Docker services, and removes the Bot computers that belong to this install, the ones with its `COMPUTER_NAMESPACE`. It does not touch another install's. The database, each Bot's files and its browser profile are Docker volumes, so they stay. Add `--keep-computers` to leave the Bot computers running.
 
 If port 5432 is already taken on your machine, set `POSTGRES_PORT` in `.env` to a free port and change the port in `DATABASE_URL` to match.

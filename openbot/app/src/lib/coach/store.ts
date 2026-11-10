@@ -210,6 +210,41 @@ export function restartWithDemo(now = new Date()) {
   write(demoState(now));
 }
 
+const SAMPLE_ASSIGNMENT_IDS = [
+  "apush-dbq",
+  "chem-lab5",
+  "chem-lab6",
+  "eng-gatsby",
+  "precalc-hw43",
+  "precalc-quiz4",
+  "spanish-u5",
+].join(",");
+
+/** The generic week, still the one first written, so a school pack may replace it. */
+export function isUntouchedSample(state: CoachState): boolean {
+  if (!state.demo || state.profile.setupDone || state.source === "private")
+    return false;
+  const ids = state.assignments
+    .map((assignment) => assignment.id)
+    .sort()
+    .join(",");
+  if (ids !== SAMPLE_ASSIGNMENT_IDS) return false;
+  const lab5 = state.assignments.find(
+    (assignment) => assignment.id === "chem-lab5",
+  );
+  const lab6 = state.assignments.find(
+    (assignment) => assignment.id === "chem-lab6",
+  );
+  return lab5?.status === "done" && lab6?.status === "doing";
+}
+
+/** Replace the generic week with a school pack. A week the student edited is kept. */
+export function adoptPrivatePack(next: CoachState): boolean {
+  if (!isUntouchedSample(read())) return false;
+  write(next);
+  return true;
+}
+
 export function startFresh(name: string) {
   write(blankState(name));
 }

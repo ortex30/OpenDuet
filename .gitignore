@@ -2,3 +2,7 @@
 node_modules/
 .DS_Store
 .copilotkit/
+
+# Private school export. See data/private/README.md. The README in this folder is tracked.
+/data/private/**
+!/data/private/README.md

@@ -264,6 +264,7 @@ import {
 } from "./openduet/channels";
 import type { CallTool } from "./openduet/brief";
 import { createComputerCheck } from "./openduet/computer-check";
+import { applyChatModelEnv } from "./openduet/model-env";
 import { createPageStore } from "./openduet/pages";
 import { createStudyStore as createStudyMemoryStore } from "./openduet/study-memory";
 import { withRunChannels } from "./openduet/run-channel";
@@ -361,6 +362,7 @@ const identifyActor: IdentifyActor = async (request) => {
   }
 };
 
+applyChatModelEnv(process.env);
 const config = loadConfig();
 // The environment seeds local policy once. The SDK fallback must not reapply an old revision
 // after an administrator clears a pin to follow the latest published Skills.

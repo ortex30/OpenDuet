@@ -93,6 +93,11 @@ export type CoachState = {
   version: 1;
   /** True while the state is the seeded demo week. */
   demo: boolean;
+  /**
+   * "sample" is the generic week. "private" is a school pack loaded from this
+   * machine. Missing means sample, including weeks saved before the field existed.
+   */
+  source?: "sample" | "private";
   profile: Profile;
   classes: CoachClass[];
   assignments: Assignment[];

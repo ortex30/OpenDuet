@@ -17,8 +17,16 @@ import {
 } from "@/lib/coach/model";
 import { catchUpInstruction } from "@/lib/coach/plan";
 import { type Achievement, pacing, todaysCheckIn } from "@/lib/coach/progress";
-import { withAccountName, withSampleColors } from "@/lib/coach/seed";
 import {
+  type PrivateDemoPayload,
+  privatePackState,
+  withAccountName,
+  withSampleColors,
+} from "@/lib/coach/seed";
+import {
+  adoptPrivatePack,
+  getCoachState,
+  isUntouchedSample,
   syncAchievements,
   updateCoach,
   useCoachState,
@@ -96,6 +104,37 @@ export function CoachScreen() {
 
   useEffect(() => syncAchievements(), []);
 
+  // Once per tab, and only while Today's plan is still the generic sample week.
+  // The flag is set after the read finishes. Setting it first lets React's
+  // strict-mode remount cancel the only request.
+  useEffect(() => {
+    const key = "academic-os.pack-checked";
+    if (window.sessionStorage.getItem(key) === "1") return;
+    if (!isUntouchedSample(getCoachState())) {
+      window.sessionStorage.setItem(key, "1");
+      return;
+    }
+    let cancel = false;
+    void fetch("/api/openduet/study/private-demo")
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { available?: boolean };
+      })
+      .then((body) => {
+        if (cancel || !body || body.available !== true) return;
+        adoptPrivatePack(privatePackState(body as PrivateDemoPayload));
+      })
+      .catch(() => {
+        // No pack, or the server is not up yet. The sample week stays.
+      })
+      .finally(() => {
+        if (!cancel) window.sessionStorage.setItem(key, "1");
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
   // Until the student sets it up as their own, the sample week greets whoever is signed in, not
   // Jordan, and one this browser saved before its classes took the calendar's colours takes them.
   useEffect(() => {
@@ -147,7 +186,9 @@ export function CoachScreen() {
       {!state.profile.setupDone ? (
         <div className="mb-3 flex items-center gap-3 rounded-[20px] bg-duet-card px-4 py-3 shadow-duet-card">
           <p className="type-sub min-w-0 flex-1 text-duet-ink-2">
-            This is a sample week. Add your classes to make it yours.
+            {state.source === "private"
+              ? "These classes are from your school pack. Older spring work is left out."
+              : "This is a sample week. Add your classes to make it yours."}
           </p>
           <CoachButton onClick={() => setSetup(true)}>Set up</CoachButton>
         </div>

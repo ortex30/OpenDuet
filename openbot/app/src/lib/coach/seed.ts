@@ -1,10 +1,12 @@
 import {
   type Assignment,
+  addDays,
+  CLASS_COLORS,
   type ClassColor,
   type CoachClass,
   type CoachState,
-  addDays,
   type FocusSession,
+  type HelpLevel,
   localDate,
   startOfDay,
 } from "./model";
@@ -149,6 +151,7 @@ export function demoState(now: Date): CoachState {
   return {
     version: 1,
     demo: true,
+    source: "sample",
     profile: {
       // Only for an account with no name: see withAccountName.
       name: "Jordan",
@@ -246,7 +249,8 @@ export function withAccountName(
  * same state when nothing changes.
  */
 export function withSampleColors(state: CoachState): CoachState {
-  if (!state.demo || state.profile.setupDone) return state;
+  if (!state.demo || state.profile.setupDone || state.source === "private")
+    return state;
   const colorOf = (c: CoachClass): ClassColor =>
     Object.hasOwn(SAMPLE_COLORS, c.id)
       ? SAMPLE_COLORS[c.id as keyof typeof SAMPLE_COLORS]
@@ -255,5 +259,70 @@ export function withSampleColors(state: CoachState): CoachState {
   return {
     ...state,
     classes: state.classes.map((c) => ({ ...c, color: colorOf(c) })),
+  };
+}
+
+/** What GET /api/openduet/study/private-demo returns when a pack is loaded. */
+export type PrivateDemoPayload = {
+  available: true;
+  school: string;
+  timeZone: string;
+  historicalExcluded: number;
+  classes: { id: string; name: string; teacher: string; help: HelpLevel }[];
+  assignments: {
+    id: string;
+    classId: string;
+    title: string;
+    dueAt: string;
+    points: number;
+    estimateMin: number;
+    helpLevel: HelpLevel;
+    source: string | null;
+  }[];
+};
+
+/** Today's plan from a local school pack. The generic sample week stays demoState. */
+export function privatePackState(pack: PrivateDemoPayload): CoachState {
+  const classes: CoachClass[] = [...pack.classes]
+    .sort((a, b) => {
+      const byName = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      return byName || a.id.localeCompare(b.id);
+    })
+    .map((row, index) => ({
+      id: row.id,
+      name: row.name,
+      teacher: row.teacher,
+      color: CLASS_COLORS[index % CLASS_COLORS.length] ?? "accent",
+    }));
+  const assignments: Assignment[] = pack.assignments.map((row) => ({
+    id: row.id,
+    classId: row.classId,
+    title: row.title,
+    dueAt: row.dueAt,
+    points: row.points,
+    estimateMin: row.estimateMin,
+    spentMin: 0,
+    helpLevel: row.helpLevel,
+    status: "todo",
+    doneAt: null,
+    lateCredit: null,
+    source: row.source,
+  }));
+  return {
+    version: 1,
+    demo: true,
+    source: "private",
+    profile: {
+      name: "there",
+      dailyGoalMin: 60,
+      bedtime: "22:30",
+      dailyCapacityMin: 120,
+      setupDone: false,
+    },
+    classes,
+    assignments,
+    sessions: [],
+    checkIns: [],
+    unlocked: {},
   };
 }
