@@ -37,7 +37,7 @@ import {
 } from "@/lib/channels/queries";
 import { routeMessage } from "@/lib/channels/route";
 import { startWithChosen } from "@/lib/channels/start";
-import { client } from "@/lib/client";
+import { client, tryClient } from "@/lib/client";
 import { newId } from "@/lib/new-id";
 
 /**
@@ -281,18 +281,33 @@ function FirstMessage({
   };
 
   const gmail = useQuery(botAppQueryOptions(bot.id, GOOGLE_WORKSPACE));
+  const pack = useQuery({
+    queryKey: ["private-demo", "greeting"],
+    queryFn: async () => {
+      const response = await tryClient("/api/openduet/study/private-demo");
+      if (!response.ok) return { available: false };
+      const body = (await response.json()) as { available?: boolean };
+      return { available: body.available === true };
+    },
+  });
   const canReadMail = gmail.data?.state === "ready";
+  const schoolPack = pack.data?.available === true;
 
   useFirstDayGreeting({
-    // Whose first day, with which Bot. Waits for the account and for whether the Bot can read their
-    // mail; an account that failed to load still greets, and a state that failed reads as no mail.
+    // Whose first day, with which Bot. Waits for the account, for whether the Bot can read their
+    // mail, and for the school pack. An account that failed to load still greets. A missing pack
+    // reads as no pack. The pack is the source, so a missing mailbox does not open with a nag.
     claimKey:
-      me.isPending || gmail.isPending
+      me.isPending || gmail.isPending || pack.isPending
         ? null
         : `${me.data?.id ?? "unknown"}:${bot.id}`,
     clear: () => !begun.current && !typed.current,
     greet: () => {
-      const which = canReadMail ? "with_mail" : "without_mail";
+      const which = canReadMail
+        ? "with_mail"
+        : schoolPack
+          ? "school"
+          : "without_mail";
       return start(firstDayGreeting(which), which);
     },
   });

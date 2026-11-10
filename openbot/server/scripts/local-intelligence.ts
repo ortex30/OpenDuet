@@ -14,7 +14,12 @@ if (!apiKey.startsWith("local-")) {
 }
 
 const port = Number(process.env.LOCAL_INTELLIGENCE_PORT ?? 7091);
-const running = startLocalIntelligence({ apiKey, port });
+const persistPath = process.env.LOCAL_INTELLIGENCE_STORE?.trim();
+const running = startLocalIntelligence({
+  apiKey,
+  port,
+  ...(persistPath ? { persistPath } : {}),
+});
 console.log(`Local intelligence is at ${running.apiUrl}`);
 
 const shutdown = () => {

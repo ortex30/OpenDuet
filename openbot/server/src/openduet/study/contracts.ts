@@ -31,7 +31,8 @@ export type StudyKind =
   | "quiz"
   | "attempt"
   | "deck"
-  | "plan";
+  | "plan"
+  | "practice";
 
 export type StudyRecord = {
   id: string;
@@ -263,7 +264,7 @@ export type StudyRouteDeps = {
         subject: string;
         topic: string;
         result: "correct" | "partly" | "missed";
-        activity?: "quiz" | "teach-back";
+        activity?: "quiz" | "teach-back" | "tutor";
         misconception?: string;
       }[],
     ): Promise<unknown>;

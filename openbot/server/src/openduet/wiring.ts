@@ -10,12 +10,8 @@ import { buildMorningBrief, type CallTool, openduetTools } from "./brief";
 import { offerTools } from "./offers";
 import { createPageStore, type PageStore, pageTools } from "./pages";
 import { replyTools } from "./replies";
-import {
-  createStudyStore as createStudyMemoryStore,
-  type StudyStore as StudyMemoryStore,
-  studyTools as studyMemoryTools,
-} from "./study-memory";
 import { currentRunChannelId } from "./run-channel";
+import { coachTools } from "./study/coach-tools";
 import type {
   RulesService,
   SchoolService,
@@ -29,6 +25,11 @@ import { quizTools } from "./study/quiz-tools";
 import { createRulesService } from "./study/rules";
 import { createSchoolService } from "./study/school";
 import { createStudyStore } from "./study/store";
+import {
+  createStudyStore as createStudyMemoryStore,
+  type StudyStore as StudyMemoryStore,
+  studyTools as studyMemoryTools,
+} from "./study-memory";
 import type { TaskIntake } from "./task-store";
 import {
   type TaskSink,
@@ -232,12 +233,15 @@ export function createOpenDuetTools(deps: {
       ...study,
       callTool: deps.callTool,
     };
-    return guardTeacherRules([...quizTools(toolDeps), ...planTools(toolDeps)], {
-      ...context,
-      school: study.school,
-      rules: study.rules,
-      auditStore: deps.auditStore,
-    });
+    return guardTeacherRules(
+      [...quizTools(toolDeps), ...planTools(toolDeps), ...coachTools(toolDeps)],
+      {
+        ...context,
+        school: study.school,
+        rules: study.rules,
+        auditStore: deps.auditStore,
+      },
+    );
   };
   const studyMemory = deps.studyMemory ?? createStudyMemoryStore(deps.database);
   return (actorId, botId, initiator) => [

@@ -155,7 +155,7 @@ start_intelligence() {
   if curl -fsS --max-time 2 http://127.0.0.1:7091/health >/dev/null 2>&1; then
     return 0
   fi
-  nohup bash -c 'cd openbot/server && exec bun --env-file=../.env scripts/local-intelligence.ts' \
+  nohup bash -c "cd openbot/server && LOCAL_INTELLIGENCE_STORE='$(pwd)/data/private/local-threads.json' exec bun --env-file=../.env scripts/local-intelligence.ts" \
     >openbot/.logs/intelligence.log 2>&1 &
   echo $! >openbot/.logs/intelligence.pid
   for _ in $(seq 1 30); do

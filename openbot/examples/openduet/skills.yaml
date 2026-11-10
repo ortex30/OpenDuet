@@ -91,8 +91,11 @@ skills:
     title: Quiz me
     summary: A short practice quiz on a class or an upcoming test, graded as you go.
     instructions: >-
-      Work out what to quiz on: what they named, or else their nearest upcoming quiz or test from
-      their calendar and Classroom notices, and read the notice for what it covers. Then call
+      If they want a quiz or a practice test from their notes, call make_notes_quiz once with the
+      class name, the focus when they named a unit or period, and mode quiz or test. The card runs
+      it, so do not write the questions. If no notes are loaded, work out what to quiz on: what they
+      named, or else their nearest upcoming quiz or test from their calendar and Classroom notices,
+      and read the notice for what it covers. Then call
       make_quiz once, with the class's exact name from the notice, the assignment when the quiz is
       for one, a title naming the topic, and five questions unless they ask for another number,
       mixing easy and hard, each with four plausible choices, the index of the right one, a
@@ -147,9 +150,12 @@ skills:
     title: Explain it simply
     summary: Explain a concept from class in plain words, with one example, then check you got it.
     instructions: >-
-      Explain the concept they asked about the way a good tutor would to a high school student:
-      start with the idea in one or two plain sentences, then one short example worked step by step,
-      then one quick question that checks they understood. Keep it short enough to read on a phone,
+      Call class_help with the class before you explain. Use the level it returns. Never say the AI
+      help level is unavailable when class_help or CLASS RULES gave you one. Explain the concept
+      they asked about the way a good tutor would to a high school student:
+      start with the idea in one or two plain sentences, then one short example from their notes,
+      then one quick question that checks they understood. If they get it wrong, explain it a simpler
+      way and ask again. Keep it short enough to read on a phone,
       and use make_page only if they ask for notes to keep. If the concept is tied to an assignment,
       follow that assignment's AI help level: under Hints only explain the concept with a different
       example than the assignment's own problems, and under No help explain nothing about that
@@ -172,9 +178,11 @@ skills:
       work, the people and companies they deal with most, and what is coming up, using only what
       the tools returned. Second, "How I'll help:" and three bullets, one line each and under 60
       characters, each tied to something you saw. Third, end with this sentence on its own: "If any
-      of these sound off, just let me know and I'll learn." If mail or calendar is not connected, say
-      which one and that it can be connected on the Connections page, and never guess at what you
-      could not read.
+      of these sound off, just let me know and I'll learn." If CLASS RULES are in the conversation,
+      their classes and notes are already loaded. Do not say mail or calendar is disconnected, and
+      do not ask them to connect anything. If mail or calendar is not connected and there are no
+      CLASS RULES, say which one and that it can be connected on the Connections page, and never
+      guess at what you could not read.
     tools:
       - google-workspace/gmail_search_messages
       - google-workspace/gmail_read_message
@@ -475,8 +483,13 @@ skills:
     title: Walk me through it
     summary: Step-by-step tutoring on a problem, one hint at a time, so you solve it yourself.
     instructions: >-
-      Get the problem: what they typed or attached, or ask for it in one short question. Work out
-      which assignment it belongs to and find that assignment's AI help level in their Classroom mail.
+      Call class_help with the class first. Use that level. Never say the AI help level is unavailable
+      when class_help or CLASS RULES gave you one. Explain from their notes in two simple sentences,
+      then one example from the notes, then one check question. If they are wrong, say what was off,
+      explain it a simpler way, and ask again. When they have it, ask them to teach it back, and offer
+      make_notes_quiz on that topic when they want a quiz. Get the problem: what they typed or
+      attached, or ask for it in one short question. Work out
+      which assignment it belongs to and use class_help for its AI help level, not mail.
       No help: do not touch it; say so in a sentence and offer to tutor them on a similar practice
       problem you make up for the same skill. Hints only, and whenever you cannot tell: never solve any
       step of their problem; ask what they know and what the question wants, then give one hint or one

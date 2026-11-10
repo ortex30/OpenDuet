@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import type { AppVariables } from "../../auth/guards";
 import type { PageBlock } from "../page-content";
 import { loadEnabledPack, type PrivatePack } from "../private-pack";
+import { practiceView } from "./coach-tools";
 import {
   StudyForbiddenError,
   StudyInputError,
@@ -14,14 +15,16 @@ import {
   checkTeachBack,
   craftGuide,
   craftQuiz,
-  craftTutor,
   craftWritten,
   type GuideInput,
   gradeWritten,
   planTonight,
   polishGuide,
-  polishTutor,
 } from "./craft";
+import { notesForGuide } from "./guide-write";
+import { buildGuideInput } from "./notes-input";
+import { type PracticeAnswer, storedPracticeSchema } from "./practice";
+import { gradePractice, writePractice } from "./practice-model";
 import {
   attemptData,
   attemptFromRecord,
@@ -31,6 +34,7 @@ import {
   quizData,
   quizFromRecord,
 } from "./quizzes";
+import { answerTutor, openTutor } from "./tutor-session";
 
 /**
  * Notes-first study tools: a guide, a quiz, a tutor check, and tonight's plan.
@@ -185,17 +189,176 @@ export function craftRoutes(deps: StudyRouteDeps) {
     });
   });
 
+  routes.post("/workshop/practice", async (context) => {
+    const body = (await context.req.json().catch(() => null)) as {
+      classId?: string;
+      focus?: string;
+      mode?: string;
+    } | null;
+    const pack = requirePack();
+    const input = buildGuideInput(pack, {
+      ...(body?.classId ? { classId: body.classId } : {}),
+      ...(body?.focus?.trim() ? { focus: body.focus.trim() } : {}),
+    });
+    const mode = body?.mode === "test" ? "test" : "quiz";
+    const made = await writePractice(input, mode, process.env);
+    if ("refused" in made) throw new StudyForbiddenError(made.refused);
+    const id = randomUUID();
+    const record = {
+      title: made.title,
+      classId: input.classId,
+      className: input.className,
+      focus: input.focus,
+      subject: made.subject,
+      mode: made.mode,
+      suggestedMinutes: made.suggestedMinutes,
+      items: made.items,
+      createdAt: now().toISOString(),
+      result: null,
+    };
+    await deps.store.insertOnce(context.var.actor.id, {
+      id,
+      kind: "practice",
+      botId: deps.primaryBot,
+      classId: input.classId,
+      data: record,
+    });
+    return context.json({ practice: practiceView(record, id) });
+  });
+
+  routes.get("/workshop/practice/:id", async (context) => {
+    const record = await deps.store.get(
+      context.var.actor.id,
+      "practice",
+      context.req.param("id"),
+    );
+    if (!record) throw new StudyInputError("That practice isn't here anymore.");
+    return context.json({ practice: practiceView(record.data, record.id) });
+  });
+
+  routes.post("/workshop/practice/:id/grade", async (context) => {
+    const body = (await context.req.json().catch(() => null)) as {
+      answers?: PracticeAnswer[];
+    } | null;
+    const owner = context.var.actor.id;
+    const id = context.req.param("id");
+    const record = await deps.store.get(owner, "practice", id);
+    if (!record) throw new StudyInputError("That practice isn't here anymore.");
+    const parsed = storedPracticeSchema.safeParse(record.data);
+    if (!parsed.success)
+      throw new StudyInputError("That practice isn't here anymore.");
+    if (parsed.data.result) {
+      return context.json({
+        practice: practiceView(record.data, id),
+        result: parsed.data.result,
+      });
+    }
+    const answers = body?.answers ?? [];
+    if (answers.length === 0) throw new StudyInputError("Answer a question.");
+    const pack = requirePack();
+    const input = buildGuideInput(pack, {
+      classId: parsed.data.classId,
+      focus: parsed.data.focus,
+    });
+    const result = await gradePractice(
+      parsed.data.items,
+      answers,
+      notesForGuide(input),
+      process.env,
+    );
+    const data = { ...parsed.data, result };
+    await deps.store.update(owner, "practice", id, () => ({ data }));
+    if (deps.memory) {
+      await deps.memory.record(
+        owner,
+        deps.primaryBot,
+        result.items.map((item) => ({
+          subject: parsed.data.className,
+          topic: item.topic,
+          result: item.correct
+            ? ("correct" as const)
+            : item.partial
+              ? ("partly" as const)
+              : ("missed" as const),
+          activity: "quiz" as const,
+          ...(item.correct
+            ? {}
+            : { misconception: item.feedback.slice(0, 200) }),
+        })),
+      );
+    }
+    return context.json({ practice: practiceView(data, id), result });
+  });
+
   routes.post("/workshop/tutor", async (context) => {
     const body = (await context.req.json().catch(() => null)) as {
       classId?: string;
       topic?: string;
     } | null;
     const pack = requirePack();
-    const input = guideInput(pack, body?.classId, body?.topic);
-    const drafted = craftTutor(input, body?.topic?.trim() || input.focus);
-    if ("refused" in drafted) throw new StudyForbiddenError(drafted.refused);
-    const step = await polishTutor(drafted, joined(input), process.env);
+    const input = buildGuideInput(pack, {
+      ...(body?.classId ? { classId: body.classId } : {}),
+      ...(body?.topic?.trim() ? { focus: body.topic.trim() } : {}),
+    });
+    const step = await openTutor(
+      input,
+      body?.topic?.trim() || input.focus,
+      process.env,
+    );
+    if ("refused" in step) throw new StudyForbiddenError(step.refused);
     return context.json({ tutor: step });
+  });
+
+  routes.post("/workshop/tutor/turn", async (context) => {
+    const body = (await context.req.json().catch(() => null)) as {
+      classId?: string;
+      topic?: string;
+      explanation?: string;
+      example?: string;
+      check?: string;
+      expects?: string[];
+      answer?: string;
+      phase?: string;
+    } | null;
+    if (!body?.answer?.trim() || !body.topic)
+      throw new StudyInputError("Write an answer first.");
+    const pack = requirePack();
+    const input = buildGuideInput(pack, {
+      ...(body.classId ? { classId: body.classId } : {}),
+      focus: body.topic,
+    });
+    if (input.help === "none") {
+      throw new StudyForbiddenError(
+        `${input.className} is set to no AI help. Review your own notes, and don't ask for the graded work.`,
+      );
+    }
+    const phase = body.phase === "teach" ? "teach" : "check";
+    const turn = await answerTutor(
+      {
+        opening: {
+          topic: body.topic,
+          explanation: body.explanation ?? "",
+          example: body.example ?? "",
+          check: body.check ?? "",
+          expects: body.expects ?? [],
+        },
+        answer: body.answer,
+        phase,
+        notes: notesForGuide(input),
+      },
+      process.env,
+    );
+    if (deps.memory) {
+      await deps.memory.record(context.var.actor.id, deps.primaryBot, [
+        {
+          subject: input.className,
+          topic: body.topic,
+          result: turn.understood ? "correct" : "partly",
+          activity: phase === "teach" ? "teach-back" : "tutor",
+        },
+      ]);
+    }
+    return context.json({ turn });
   });
 
   routes.post("/workshop/tutor/check", async (context) => {

@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { startLocalIntelligence } from "../src/openduet/local-intelligence";
 
 const key = "local-test-key";
@@ -149,6 +152,49 @@ test("a local thread accepts a run and plays it to the browser socket", async ()
     client.close();
   } finally {
     service.stop();
+  }
+});
+
+test("a local thread is still there after the service stops", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "threads-")), "threads.json");
+  const headers = {
+    authorization: `Bearer ${key}`,
+    "content-type": "application/json",
+  };
+  const first = startLocalIntelligence({
+    apiKey: key,
+    port: 0,
+    persistPath: path,
+  });
+  const created = await fetch(`${first.apiUrl}/api/threads`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      threadId: "kept",
+      userId: "viren",
+      agentId: "openduet",
+    }),
+  });
+  expect(created.status).toBe(200);
+  first.stop();
+
+  const second = startLocalIntelligence({
+    apiKey: key,
+    port: 0,
+    persistPath: path,
+  });
+  try {
+    const loaded = await fetch(
+      `${second.apiUrl}/api/threads/kept?userId=viren`,
+      {
+        headers,
+      },
+    );
+    expect(loaded.status).toBe(200);
+    const body = (await loaded.json()) as { thread: { id: string } };
+    expect(body.thread.id).toBe("kept");
+  } finally {
+    second.stop();
   }
 });
 

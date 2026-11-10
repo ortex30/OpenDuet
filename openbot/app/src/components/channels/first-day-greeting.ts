@@ -1,4 +1,7 @@
-import { FIRST_DAY_REQUEST_WITHOUT_MAIL } from "@openbot/shared/first-day";
+import {
+  FIRST_DAY_REQUEST_SCHOOL,
+  FIRST_DAY_REQUEST_WITHOUT_MAIL,
+} from "@openbot/shared/first-day";
 
 /**
  * What the Bot says on the person's first day, drawn in place of the message Chat sent for them.
@@ -38,18 +41,23 @@ export const FIRST_DAY_PLAN =
  * builds the message from it. Its words are matched exactly by {@link firstDayPlan}, so the
  * transcript draws the plan that goes with it, on every reload.
  */
-export { FIRST_DAY_REQUEST_WITHOUT_MAIL };
+export { FIRST_DAY_REQUEST_SCHOOL, FIRST_DAY_REQUEST_WITHOUT_MAIL };
 
 /** The second bubble when the mail and calendar aren't connected: no promise to read them. */
 export const FIRST_DAY_PLAN_WITHOUT_MAIL =
   "I can't see your mail or calendar yet, so I'll start with what I can do for you now.";
+
+/** The second bubble when the school pack is already the source. Mail can wait. */
+export const FIRST_DAY_PLAN_SCHOOL =
+  "Your classes and notes are already here. I'll start from those.";
 
 /**
  * The plan bubble for the request Chat sent: the one without mail for that request, and the mail
  * plan for anything else, which is every first day sent before this choice existed.
  */
 export function firstDayPlan(request: string | null): string {
-  return request === FIRST_DAY_REQUEST_WITHOUT_MAIL
-    ? FIRST_DAY_PLAN_WITHOUT_MAIL
-    : FIRST_DAY_PLAN;
+  if (request === FIRST_DAY_REQUEST_WITHOUT_MAIL)
+    return FIRST_DAY_PLAN_WITHOUT_MAIL;
+  if (request === FIRST_DAY_REQUEST_SCHOOL) return FIRST_DAY_PLAN_SCHOOL;
+  return FIRST_DAY_PLAN;
 }

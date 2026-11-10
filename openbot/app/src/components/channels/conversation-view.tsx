@@ -624,47 +624,58 @@ export function ConversationView({
            * begin with a slash, and its message rows are memoised on primitives — handing them an
            * array would give every message a new prop identity on each refetch and re-render the
            * whole conversation to change nothing.
+           *
+           * The dock floats over the column, so this wrapper stops the scrollport above it. A long
+           * reply then ends in the open area. Padding inside the scroller left the last lines under
+           * the composer until somebody scrolled.
            */}
-          <ChatTranscript
-            busy={busy}
-            {...(inShell
-              ? {
-                  contentClassName:
-                    "max-w-none gap-[14px] px-4 pt-[100px] pb-[calc(var(--duet-dock,0px)+24px)] lg:mx-auto lg:max-w-3xl lg:px-6 lg:pt-10",
-                }
-              : {})}
-            folded={folded}
-            lead={lead}
-            commandNames={(commands ?? [])
-              .map((command) => command.name)
-              .join(",")}
-            messages={messages}
-            onRemoveQueued={
-              serverQueued.length
-                ? undefined
-                : (id) => {
-                    apply({ id, type: "remove" });
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1",
+              inShell && !empty && "pb-[var(--duet-dock,0px)]",
+            )}
+          >
+            <ChatTranscript
+              busy={busy}
+              {...(inShell
+                ? {
+                    contentClassName:
+                      "max-w-none gap-[14px] px-4 pt-[100px] pb-6 lg:mx-auto lg:max-w-3xl lg:px-6 lg:pt-10",
                   }
-            }
-            queued={[
-              ...queued,
-              ...serverQueued
-                .filter(
-                  (row) =>
-                    !messages.some((message) => message.id === row.messageId),
-                )
-                .map((row) => ({
-                  id: row.messageId,
-                  text: row.text,
-                  attachments: [],
-                  commandIds: [],
-                })),
-            ]}
-            restoring={restoring}
-            {...(stopped && !empty ? { stopped } : {})}
-          />
-          {/* A page the Bot made, opened from its card over this conversation. */}
-          <PageSheetHost />
+                : {})}
+              folded={folded}
+              lead={lead}
+              commandNames={(commands ?? [])
+                .map((command) => command.name)
+                .join(",")}
+              messages={messages}
+              onRemoveQueued={
+                serverQueued.length
+                  ? undefined
+                  : (id) => {
+                      apply({ id, type: "remove" });
+                    }
+              }
+              queued={[
+                ...queued,
+                ...serverQueued
+                  .filter(
+                    (row) =>
+                      !messages.some((message) => message.id === row.messageId),
+                  )
+                  .map((row) => ({
+                    id: row.messageId,
+                    text: row.text,
+                    attachments: [],
+                    commandIds: [],
+                  })),
+              ]}
+              restoring={restoring}
+              {...(stopped && !empty ? { stopped } : {})}
+            />
+            {/* A page the Bot made, opened from its card over this conversation. */}
+            <PageSheetHost />
+          </div>
         </ConversationSendContext.Provider>
       </div>
       {/*

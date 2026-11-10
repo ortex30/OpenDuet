@@ -7,6 +7,16 @@ import {
   test,
 } from "bun:test";
 import { randomUUID } from "node:crypto";
+import {
+  FIRST_DAY_REQUEST,
+  FIRST_DAY_REQUEST_WITHOUT_MAIL,
+  firstDayGreeting,
+  frameFirstDay,
+} from "@openbot/shared/first-day";
+import {
+  frameMorningBrief,
+  morningBriefMessage,
+} from "@openbot/shared/morning-brief";
 import { and, eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -29,16 +39,6 @@ import {
   parseChannelInput,
 } from "../src/channels/routes";
 import { createThreadIdentity } from "../src/channels/thread-identity";
-import {
-  FIRST_DAY_REQUEST,
-  FIRST_DAY_REQUEST_WITHOUT_MAIL,
-  firstDayGreeting,
-  frameFirstDay,
-} from "@openbot/shared/first-day";
-import {
-  frameMorningBrief,
-  morningBriefMessage,
-} from "@openbot/shared/morning-brief";
 import { loadConfig } from "../src/config";
 import { createDatabase } from "../src/db/client";
 import {
@@ -722,12 +722,13 @@ describe("the first day's date", () => {
         return { channel: channel(), claimed: true };
       },
     });
+    const day = new Date().toISOString().slice(0, 10);
     const response = await post(store, {
       agentId: "agent-1",
-      date: "2026-10-26",
+      date: day,
     });
     expect(response.status).toBe(200);
-    expect(calls).toEqual([[actor, "agent-1", undefined, "2026-10-26"]]);
+    expect(calls).toEqual([[actor, "agent-1", undefined, day]]);
   });
 
   /*

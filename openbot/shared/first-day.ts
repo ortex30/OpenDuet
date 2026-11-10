@@ -42,6 +42,16 @@ export const FIRST_DAY_FRAME_WITHOUT_MAIL = [
 ] as const;
 
 /**
+ * The frame when the school pack is already the source. Mail can wait. The
+ * model is not asked to say that anything is disconnected.
+ */
+export const FIRST_DAY_FRAME_SCHOOL = [
+  FIRST_DAY_FRAME[0],
+  "The app has already welcomed them. Their classes, notes, and deadlines are already loaded. Do not greet them again, and do not mention Gmail, Calendar, or connecting an account.",
+  NO_BUTTONS,
+] as const;
+
+/**
  * Frames first days were sent with before the two above, still in threads. Read, never sent: a
  * stored first day has to keep drawing as the Bot's greeting, not as a bubble of the person's.
  *
@@ -54,12 +64,14 @@ const RETIRED_FRAMES = [
   FIRST_DAY_FRAME.slice(0, 2),
   [...FIRST_DAY_FRAME.slice(0, 2), RETIRED_NO_BUTTONS],
   [...FIRST_DAY_FRAME_WITHOUT_MAIL.slice(0, 2), RETIRED_NO_BUTTONS],
+  [...FIRST_DAY_FRAME_SCHOOL.slice(0, 2), RETIRED_NO_BUTTONS],
 ];
 
 /** Each frame and the blank line under it, which is what `readFirstDay` strips. */
 const PREFIXES = [
   FIRST_DAY_FRAME,
   FIRST_DAY_FRAME_WITHOUT_MAIL,
+  FIRST_DAY_FRAME_SCHOOL,
   ...RETIRED_FRAMES,
 ].map((frame) => [...frame, "", ""].join("\n"));
 
@@ -77,10 +89,13 @@ const PREFIXES = [
  */
 export function frameFirstDay(
   request: string,
-  options: { mail?: boolean } = {},
+  options: { mail?: boolean; school?: boolean } = {},
 ): string {
-  const frame =
-    options.mail === false ? FIRST_DAY_FRAME_WITHOUT_MAIL : FIRST_DAY_FRAME;
+  const frame = options.school
+    ? FIRST_DAY_FRAME_SCHOOL
+    : options.mail === false
+      ? FIRST_DAY_FRAME_WITHOUT_MAIL
+      : FIRST_DAY_FRAME;
   return [...frame, "", request].join("\n");
 }
 
@@ -143,8 +158,15 @@ export const FIRST_DAY_REQUEST = [
 export const FIRST_DAY_REQUEST_WITHOUT_MAIL =
   "Get to know me. My Gmail and Google Calendar aren't connected yet, so don't try to read them. In a few sentences, tell me what you can do for me now. Then show me the card to connect them: it is one app, google-workspace, but don't write that id to me. Say in one line what you'll do once it's connected.";
 
-/** Which first day: the Bot can read the person's mail and calendar, or cannot yet. */
-export type FirstDayGreeting = "with_mail" | "without_mail";
+/**
+ * The first day when the school pack is already loaded. It does not mention
+ * mail or calendar, and it does not ask for a connect card.
+ */
+export const FIRST_DAY_REQUEST_SCHOOL =
+  "Get to know me from my classes and notes, which are already loaded. Do not mention Gmail, Calendar, or connecting an account. In three short sentences, say how you will help me study, name one class I can start with, and ask what I want to work on.";
+
+/** Which first day: mail is readable, mail is not connected, or the school pack is the source. */
+export type FirstDayGreeting = "with_mail" | "without_mail" | "school";
 
 /**
  * The first day's message, framed, built from the choice alone.
@@ -155,7 +177,11 @@ export type FirstDayGreeting = "with_mail" | "without_mail";
  * nothing a caller writes reaches the model as the person.
  */
 export function firstDayGreeting(which: FirstDayGreeting): string {
-  return which === "without_mail"
-    ? frameFirstDay(FIRST_DAY_REQUEST_WITHOUT_MAIL, { mail: false })
-    : frameFirstDay(FIRST_DAY_REQUEST);
+  if (which === "without_mail") {
+    return frameFirstDay(FIRST_DAY_REQUEST_WITHOUT_MAIL, { mail: false });
+  }
+  if (which === "school") {
+    return frameFirstDay(FIRST_DAY_REQUEST_SCHOOL, { school: true });
+  }
+  return frameFirstDay(FIRST_DAY_REQUEST);
 }

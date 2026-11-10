@@ -18,6 +18,7 @@ import { OfferTaskTool } from "./offer-task-tool";
 import { OpenScreenTool } from "./open-screen-tool";
 import { PageCardTool } from "./page-card-tool";
 import { ProgressCardTool } from "./progress-card-tool";
+import { PracticeCardTool } from "./practice-card-tool";
 import { QuizCardTool } from "./quiz-card-tool";
 import { StudyPlanCardTool } from "./study-plan-card-tool";
 import { TaskCardTool } from "./task-card-tool";
@@ -105,6 +106,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
           under the Bot's words like a page, and a teacher's No help drawn as whose rule it is.
         */}
         <QuizCardTool />
+        <PracticeCardTool />
         <FlashcardsCardTool />
         <ProgressCardTool />
         <StudyPlanCardTool />

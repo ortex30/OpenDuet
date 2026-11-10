@@ -9,6 +9,8 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const BATCH = "runner_event_batch_v1";
 const AUTH_PREFIX = "base64url.bearer.phx.";
@@ -57,12 +59,29 @@ export function startLocalIntelligence(options: {
   apiKey: string;
   port?: number;
   hostname?: string;
+  /** A JSON file of threads. Absent keeps them in memory for this process only. */
+  persistPath?: string;
 }): LocalIntelligence {
   const apiKey = options.apiKey.trim();
   if (!apiKey) throw new Error("A local intelligence key is required.");
   const hostname = options.hostname ?? "127.0.0.1";
   const threads = new Map<string, Thread>();
   const clients = new Set<ClientConn>();
+  const persistPath = options.persistPath?.trim() || "";
+  loadThreads(persistPath, threads);
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    saveThreads(persistPath, threads);
+  };
+  const scheduleSave = () => {
+    if (!persistPath) return;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 200);
+  };
   const partials = new Map<
     string,
     { id: string; role: string; text: string }
@@ -98,6 +117,7 @@ export function startLocalIntelligence(options: {
       joinToken: randomUUID(),
     };
     threads.set(id, created);
+    scheduleSave();
     return created;
   };
 
@@ -112,8 +132,11 @@ export function startLocalIntelligence(options: {
     const id = eventId(event);
     if (id && thread.events.some((item) => eventId(item) === id)) return;
     thread.events.push(event);
+    if (thread.events.length > 500)
+      thread.events.splice(0, thread.events.length - 500);
     thread.updatedAt = new Date().toISOString();
     absorb(thread, event);
+    scheduleSave();
   };
 
   const absorb = (thread: Thread, event: AgEvent) => {
@@ -435,10 +458,12 @@ export function startLocalIntelligence(options: {
         if (typeof body?.name === "string") thread.name = body.name;
         if (body?.archived === true) thread.archived = true;
         thread.updatedAt = new Date().toISOString();
+        scheduleSave();
         return json({ thread: summary(thread) });
       }
       if (request.method === "DELETE" && rest === "") {
         if (thread) threads.delete(threadId);
+        scheduleSave();
         return new Response(null, { status: 204 });
       }
       if (request.method === "GET" && rest === "/messages") {
@@ -528,8 +553,50 @@ export function startLocalIntelligence(options: {
     apiUrl: `http://${hostname}:${server.port}`,
     wsUrl: `ws://${hostname}:${server.port}`,
     apiKey,
-    stop: () => server.stop(true),
+    stop: () => {
+      flush();
+      server.stop(true);
+    },
   };
+}
+
+function loadThreads(path: string, threads: Map<string, Thread>) {
+  if (!path) return;
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+      version?: number;
+      threads?: Thread[];
+    };
+    if (parsed.version !== 1 || !Array.isArray(parsed.threads)) return;
+    for (const row of parsed.threads) {
+      if (!row || typeof row.id !== "string") continue;
+      threads.set(row.id, {
+        ...row,
+        messages: Array.isArray(row.messages) ? row.messages.slice(-300) : [],
+        events: Array.isArray(row.events) ? row.events.slice(-500) : [],
+        lock: null,
+      });
+    }
+  } catch {
+    // A missing file is a new install. A bad file is ignored rather than crashing chat.
+  }
+}
+
+function saveThreads(path: string, threads: Map<string, Thread>) {
+  if (!path) return;
+  const body = JSON.stringify({
+    version: 1,
+    threads: [...threads.values()].map((thread) => ({
+      ...thread,
+      messages: thread.messages.slice(-300),
+      events: thread.events.slice(-500),
+      lock: null,
+    })),
+  });
+  mkdirSync(dirname(path), { recursive: true });
+  const temporary = `${path}.tmp`;
+  writeFileSync(temporary, body);
+  renameSync(temporary, path);
 }
 
 function protocolToken(request: Request): string | null {

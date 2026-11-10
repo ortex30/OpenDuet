@@ -36,6 +36,8 @@ export type PrivateClass = {
   teacher: string | null;
   /** Block number from the pack, when one was recorded. */
   block: string | null;
+  /** The short name a student actually says, such as "Calc BC". */
+  shortName: string | null;
   help: PrivateHelp;
   /** Paths relative to the pack directory. */
   materials: string[];
@@ -412,6 +414,7 @@ function parseClass(row: Record<string, unknown>): PrivateClass | null {
     name,
     teacher: teacherLabel(teachers),
     block: text(row.block),
+    shortName: text(row.short_name),
     help: helpForClass(id, name),
     materials: asArray(row.materials ?? [], "materials")
       .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
