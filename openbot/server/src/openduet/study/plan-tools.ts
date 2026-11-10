@@ -70,6 +70,15 @@ const WEEKDAYS = [
 ] as const;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * A clock or a date the model may leave blank. `""` and null mean "left out": the tool schema is
+ * checked before `withoutBlanks` runs, and a blank used to fail that check and push the model into
+ * inventing a date.
+ */
+function optionalPattern(pattern: RegExp) {
+  return z.union([z.literal(""), z.null(), z.string().regex(pattern)]);
+}
+
 const parameters = z.object({
   minutes: z
     .number()
@@ -79,21 +88,15 @@ const parameters = z.object({
     .describe(
       "Total minutes of study to plan across all the days, from 15 to 600: the time the student says they have.",
     ),
-  startTime: z
-    .string()
-    .regex(CLOCK)
+  startTime: optionalPattern(CLOCK)
     .optional()
     .describe(
       "The earliest start on the first day, HH:mm on the student's clock, such as 16:30. Leave it out to start after school, or now.",
     ),
-  endTime: z
-    .string()
-    .regex(CLOCK)
+  endTime: optionalPattern(CLOCK)
     .optional()
     .describe("The latest end on any day, HH:mm, such as 21:30."),
-  startDate: z
-    .string()
-    .regex(DAY)
+  startDate: optionalPattern(DAY)
     .optional()
     .describe(
       "The first day to plan, YYYY-MM-DD. Leave it out for today, or give startInDays instead.",
@@ -199,6 +202,11 @@ function withoutBlanks(args: unknown): unknown {
   );
 }
 
+function filled(value: string | null | undefined): string | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  return value;
+}
+
 function refused(sentence: string): string {
   return `${REFUSAL_MARKER} ${sentence}`;
 }
@@ -217,28 +225,35 @@ function fixFor(
   return `${fix} ${AGAIN}`;
 }
 
-/** A one-day plan that starts today uses the same evening planner as Tonight. */
+/**
+ * A one-day plan that starts today uses the same evening planner as Tonight.
+ *
+ * `startDay` wins over `startInDays` and `startDate`, which is how the planner reads them. A model
+ * that also sends a guessed date, or `startInDays: 0`, is still planning today.
+ */
 export function usesSharedEvening(
   request: {
     days?: number;
-    startDate?: string;
-    startDay?: string;
-    startInDays?: number;
+    startDate?: string | null;
+    startDay?: string | null;
+    startInDays?: number | null;
   },
   today: string,
   weekdayName: string,
 ): boolean {
   if ((request.days ?? 1) !== 1) return false;
-  if ((request.startInDays ?? 0) > 0) return false;
+  const named = request.startDay ?? undefined;
+  if (named === "today" || named === weekdayName) return true;
   if (
-    request.startDay !== undefined &&
-    request.startDay !== "today" &&
-    request.startDay !== weekdayName
+    named !== undefined &&
+    (named === "tomorrow" || (WEEKDAYS as readonly string[]).includes(named))
   ) {
-    return false;
+    return dayNamed(named as NonNullable<Request["startDay"]>, today) === today;
   }
-  if (request.startDate !== undefined && request.startDate !== today)
-    return false;
+  if (named !== undefined) return false;
+  if ((request.startInDays ?? 0) > 0) return false;
+  const startDate = filled(request.startDate);
+  if (startDate !== undefined) return startDate === today;
   return true;
 }
 
@@ -339,11 +354,11 @@ async function propose(deps: StudyToolDeps, args: unknown): Promise<string> {
       request.startDay !== undefined
         ? dayNamed(request.startDay, today)
         : request.startInDays === undefined
-          ? request.startDate
+          ? filled(request.startDate)
           : addDays(today, request.startInDays),
     days: request.days,
-    startTime: request.startTime,
-    endTime: request.endTime,
+    startTime: filled(request.startTime),
+    endTime: filled(request.endTime),
   };
   // The request alone first, so one the planner would refuse costs no calendar reads.
   let shape: PlanDraft;

@@ -1,4 +1,7 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type {
   PlanToolResult,
   SchoolAssignment,
@@ -7,6 +10,7 @@ import type {
 } from "@openbot/shared/study";
 import { z } from "zod";
 import { CALENDAR_LIST, type CallTool } from "../src/openduet/brief";
+import { loadPrivatePack } from "../src/openduet/private-pack";
 import type {
   SchoolRead,
   SchoolService,
@@ -15,6 +19,7 @@ import type {
   StudyStore,
   StudyToolDeps,
 } from "../src/openduet/study/contracts";
+import { planTonight } from "../src/openduet/study/craft";
 import { guardTeacherRules } from "../src/openduet/study/guard";
 import { createMemoryStudyStore } from "../src/openduet/study/memory-store";
 import { PLAN_TOOL_REF, planTools } from "../src/openduet/study/plan-tools";
@@ -40,6 +45,22 @@ import {
  * saved as a plan waiting for Apply, and answered in a few small numbers. Then the refusals, and the
  * glue (plans.ts) it is made of.
  */
+
+// These cases plan the demo student's notices. A private school pack in the
+// environment is a different student, and must not replace that plan.
+const savedPrivateDemo = process.env.ACADEMIC_OS_PRIVATE_DEMO;
+const savedDataDir = process.env.ACADEMIC_OS_DATA_DIR;
+beforeAll(() => {
+  delete process.env.ACADEMIC_OS_PRIVATE_DEMO;
+  delete process.env.ACADEMIC_OS_DATA_DIR;
+});
+afterAll(() => {
+  if (savedPrivateDemo === undefined)
+    delete process.env.ACADEMIC_OS_PRIVATE_DEMO;
+  else process.env.ACADEMIC_OS_PRIVATE_DEMO = savedPrivateDemo;
+  if (savedDataDir === undefined) delete process.env.ACADEMIC_OS_DATA_DIR;
+  else process.env.ACADEMIC_OS_DATA_DIR = savedDataDir;
+});
 
 const TZ = "America/Chicago";
 const TODAY = "2026-11-04"; // a Wednesday
@@ -385,6 +406,86 @@ const LATE_HOMEWORK =
 const TODAY_IS = "Today is Wed, Nov 4 (2026-11-04).";
 
 describe("propose_study_plan", () => {
+  test("a tonight request with a guessed date still uses the evening planner", async () => {
+    const root = mkdtempSync(join(tmpdir(), "evening-plan-"));
+    writeFileSync(
+      join(root, "classes.json"),
+      JSON.stringify({
+        timezone: "America/Chicago",
+        school: "Example",
+        classes: [
+          {
+            id: "calc",
+            name: "AP Calculus BC",
+            short_name: "Calc BC",
+            status: "Current",
+          },
+          {
+            id: "apush",
+            name: "AP United States History",
+            short_name: "APUSH",
+            status: "Current",
+          },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root, "assignments_and_tests.json"),
+      JSON.stringify({
+        current_term_2026_2027: [
+          {
+            name: "APUSH LEQ 3",
+            class_id: "apush",
+            type: "quest / test",
+            due: "2026-11-11",
+          },
+          {
+            name: "AP Calculus BC - Unit 5 Quest",
+            class_id: "calc",
+            type: "quest / test",
+            due: "2026-11-11",
+          },
+        ],
+        historical_unconfirmed_spring_2026: { items: [] },
+      }),
+    );
+    const now = new Date("2026-11-10T22:00:00.000Z");
+    process.env.ACADEMIC_OS_PRIVATE_DEMO = "1";
+    process.env.ACADEMIC_OS_DATA_DIR = root;
+    try {
+      const { tool, store, google } = setUp({ now });
+      const result = toolResultSchema.parse(
+        JSON.parse(
+          await tool.execute({
+            minutes: 120,
+            startTime: "19:00",
+            endTime: "21:00",
+            startDate: "2026-03-09",
+            startDay: "today",
+            startInDays: 0,
+            priority: [
+              "AP United States History: APUSH LEQ 3",
+              "AP Calculus BC: AP Calculus BC - Unit 5 Quest",
+            ],
+            reason:
+              "You’re fried, so prioritize APUSH LEQ 3 and Calc work due tomorrow; chemistry can wait until after those.",
+          }),
+        ),
+      );
+      const plan = await proposed(store, result.id);
+      const evening = planTonight(loadPrivatePack(root), now, { minutes: 120 });
+      expect(plan.blocks.map((block) => block.title)).toEqual(
+        evening.blocks.map((block) => block.title),
+      );
+      expect(plan.blocks[0]?.title).toBe("Calc BC: Review for Unit 5 Quest");
+      expect(google.state.calls).toEqual([]);
+      expect(result.warnings).toEqual([]);
+    } finally {
+      delete process.env.ACADEMIC_OS_PRIVATE_DEMO;
+      delete process.env.ACADEMIC_OS_DATA_DIR;
+    }
+  });
+
   test("is held as the plan tool, with minutes and a reason required", () => {
     const { tool } = setUp();
     expect(tool.name).toBe("propose_study_plan");

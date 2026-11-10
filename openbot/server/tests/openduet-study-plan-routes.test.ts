@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type {
   CalendarView,
   SchoolAssignment,
@@ -36,6 +36,22 @@ import {
  */
 
 const PATH = "/api/openduet/study";
+// These cases plan the demo student's notices. A private school pack in the
+// environment is a different student, and must not replace that plan.
+const savedPrivateDemo = process.env.ACADEMIC_OS_PRIVATE_DEMO;
+const savedDataDir = process.env.ACADEMIC_OS_DATA_DIR;
+beforeAll(() => {
+  delete process.env.ACADEMIC_OS_PRIVATE_DEMO;
+  delete process.env.ACADEMIC_OS_DATA_DIR;
+});
+afterAll(() => {
+  if (savedPrivateDemo === undefined)
+    delete process.env.ACADEMIC_OS_PRIVATE_DEMO;
+  else process.env.ACADEMIC_OS_PRIVATE_DEMO = savedPrivateDemo;
+  if (savedDataDir === undefined) delete process.env.ACADEMIC_OS_DATA_DIR;
+  else process.env.ACADEMIC_OS_DATA_DIR = savedDataDir;
+});
+
 const TZ = "America/Chicago";
 const TODAY = "2026-11-04"; // a Wednesday
 const NOW = zonedInstant(TODAY, "14:10", TZ);

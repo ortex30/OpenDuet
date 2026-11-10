@@ -5,10 +5,6 @@ import { join } from "node:path";
 import { pageBlockSchema } from "../src/openduet/page-content";
 import { loadPrivatePack } from "../src/openduet/private-pack";
 import {
-  statedMinutes,
-  usesSharedEvening,
-} from "../src/openduet/study/plan-tools";
-import {
   checkTeachBack,
   craftGuide,
   craftQuiz,
@@ -27,6 +23,10 @@ import {
   prepareNotes,
   scrubGuideText,
 } from "../src/openduet/study/guide-write";
+import {
+  statedMinutes,
+  usesSharedEvening,
+} from "../src/openduet/study/plan-tools";
 
 const NOTES = `# Period 5
 
@@ -650,6 +650,33 @@ test("chat's one-day plan is the same evening planner, and two hours means 120",
       "tuesday",
     ),
   ).toBe(true);
+  // A guessed date does not opt out when the day was also named as today.
+  expect(
+    usesSharedEvening(
+      {
+        days: 1,
+        startDate: "2026-03-09",
+        startDay: "today",
+        startInDays: 0,
+      },
+      "2026-11-10",
+      "tuesday",
+    ),
+  ).toBe(true);
+  expect(
+    usesSharedEvening(
+      { days: 1, startDay: "tomorrow", startDate: "2026-11-10" },
+      "2026-11-10",
+      "tuesday",
+    ),
+  ).toBe(false);
+  expect(
+    usesSharedEvening(
+      { days: 1, startDate: "2026-03-09" },
+      "2026-11-10",
+      "tuesday",
+    ),
+  ).toBe(false);
   expect(
     usesSharedEvening(
       { days: 3, startDay: "saturday" },
