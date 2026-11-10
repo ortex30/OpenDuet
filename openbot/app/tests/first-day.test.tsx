@@ -9,14 +9,9 @@ import {
 } from "bun:test";
 import type { Message } from "@ag-ui/core";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { FIRST_DAY_FRAME } from "@openbot/shared/first-day";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { type ReactNode, StrictMode } from "react";
 import * as ChannelChatModule from "@/components/channels/channel-chat";
 import { ChatTranscript } from "@/components/channels/chat-transcript";
@@ -38,16 +33,14 @@ import {
 import { agentKeys } from "@/lib/agents/queries";
 import { type AuthenticatedUser, authKeys } from "@/lib/auth/queries";
 import { frameFirstDay } from "@/lib/channels/first-day";
-import { firstDayClaimKey } from "@/lib/channels/first-day-claim";
 import { type ChannelSummary, channelKeys } from "@/lib/channels/queries";
 import { updateChannelEventCache } from "@/lib/channels/use-channel-events";
 import { queryClient as appQueryClient } from "@/query-client";
-import { FIRST_DAY_FRAME } from "@openbot/shared/first-day";
 import { settleReactWork } from "./settle-react-work";
 
 /**
- * On the first day the Bot speaks first: Chat opened on nothing sends the first-day request itself,
- * once, and the transcript draws the Bot's greeting where that message sits.
+ * Chat waits for the student. An empty conversation shows the study home and sends nothing until
+ * they tap or type. A first-day greeting that is already in the thread is still drawn as the Bot's.
  */
 
 /*
@@ -222,25 +215,6 @@ function held() {
   return { promise, settle };
 }
 
-/**
- * Storage refused outright, as a private window or blocked site data refuses it. On the window
- * itself rather than on `Storage.prototype`: happy-dom hands out its own copies of the methods once
- * they have been read, so a prototype spy stops reaching them after the first test that stores.
- */
-function withoutStorage(): () => void {
-  const own = Object.getOwnPropertyDescriptor(window, "localStorage");
-  Object.defineProperty(window, "localStorage", {
-    configurable: true,
-    get() {
-      throw new Error("Storage is disabled.");
-    },
-  });
-  return () => {
-    if (own) Object.defineProperty(window, "localStorage", own);
-    else delete (window as { localStorage?: Storage }).localStorage;
-  };
-}
-
 /** Type into the composer the way its own tests do: a text paste at the caret. */
 function typeInto(container: HTMLElement, words: string) {
   const editor = container.querySelector("[contenteditable]") as HTMLElement;
@@ -316,12 +290,12 @@ describe("the greeting's words", () => {
     expect(firstNameOf(undefined)).toBeNull();
   });
 
-  test("the welcome says it is the first day, and that it will learn how they work", () => {
+  test("the welcome says it is the first day, and that it will learn their classes", () => {
     expect(firstDayWelcome("Maya")).toMatch(/^Welcome, Maya\. /);
     expect(firstDayWelcome(null)).toMatch(/^Welcome\. /);
     for (const welcome of [firstDayWelcome("Maya"), firstDayWelcome(null)]) {
       expect(welcome).toContain("first day");
-      expect(welcome).toContain("learn how you work");
+      expect(welcome).toContain("learn your classes");
     }
   });
 });
@@ -343,7 +317,7 @@ describe("the transcript on the first day", () => {
 
     expect(
       view.getByText(
-        "Welcome, Maya. It's our first day together, and I'll learn how you work as we go.",
+        "Welcome, Maya. It's our first day together, and I'll learn your classes as we go.",
       ),
     ).toBeTruthy();
     expect(view.getByText(FIRST_DAY_PLAN)).toBeTruthy();
@@ -483,73 +457,74 @@ describe("Chat on the first day", () => {
     }
   });
 
-  test("the greeting owns startup from routing through the channel handoff", async () => {
-    const routing = held();
-    const creating = held();
-    answerRoute = () => routing.promise;
-    answerCreate = () => creating.promise;
-    const view = openChat([], { user: userNamed("routing-greeting", "Maya") });
+  test("with no conversation yet, Chat shows the study home and sends nothing", async () => {
+    const view = openChat([], {
+      user: userNamed("waits", "Maya"),
+      strict: true,
+    });
 
-    await waitFor(() => expect(routed()).toHaveLength(1));
+    expect(
+      await view.findByRole("heading", { name: "What should we work on?" }),
+    ).toBeTruthy();
+    await settleReactWork();
+    expect(routed()).toHaveLength(0);
     expect(created()).toHaveLength(0);
-    const words = "Please send this first message";
-    await act(async () => typeInto(view.container, words));
-    const send = view.getByRole("button", {
-      name: "Send message",
-    });
-    if (!(send instanceof HTMLButtonElement))
-      throw new Error("The Send message control is not a button.");
-    expect(send.disabled).toBe(true);
-    const form = send.closest("form");
-    if (!form) throw new Error("The composer form is missing.");
-    await act(async () => {
-      send.click();
-      fireEvent.submit(form);
-    });
-    // Both the button and the submit handler refuse the draft: nothing was accepted or cleared.
-    expect(view.container.querySelector("[contenteditable]")?.textContent).toBe(
-      words,
-    );
-    expect(routed()).toHaveLength(1);
+    expect(view.queryByText(FIRST_DAY_PLAN)).toBeNull();
+    expect(view.queryByTestId("ongoing-chat")).toBeNull();
+  });
 
-    await act(async () => routing.settle(routeAnswer()));
-    await waitFor(() => expect(created()).toHaveLength(1));
-    expect(send.disabled).toBe(true);
-    await act(async () => {
-      fireEvent.submit(form);
+  test("a study tap starts one conversation with those words, and no greeting", async () => {
+    answerCreate = async () => Response.json({ channel: CREATED });
+    const view = openChat([], {
+      user: userNamed("study-tap", "Maya"),
+      strict: true,
     });
-    expect(routed()).toHaveLength(1);
-    await act(async () => creating.settle(Response.json({ channel: CREATED })));
+
+    await act(async () => {
+      view.getByRole("button", { name: /What to work on/ }).click();
+    });
     const ongoing = await view.findByTestId("ongoing-chat");
     expect(ongoing.getAttribute("data-channel")).toBe(CREATED.id);
     expect(created()).toHaveLength(1);
     expect(created()[0]?.body).toMatchObject({
-      greeting: "with_mail",
+      agentId: BOT.id,
+      date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     });
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
+    expect(created()[0]?.body).not.toHaveProperty("greeting");
+    expect(routed()).toHaveLength(1);
+    expect(routed()[0]?.body).toMatchObject({
+      text: "What should I work on now?",
+      agentId: BOT.id,
+    });
+    expect(takeFirstMessage(CREATED.id)).toBe("What should I work on now?");
+    await settleReactWork();
+    expect(created()).toHaveLength(1);
+    expect(routed()).toHaveLength(1);
   });
 
-  test("a failed greeting releases startup for an explicit first message", async () => {
-    const routing = held();
-    const creating = held();
-    answerRoute = () => routing.promise;
-    answerCreate = () => creating.promise;
-    const view = openChat([], { user: userNamed("routing-recovery", "Maya") });
+  test("a conversation that has never had a message stays on the study home", async () => {
+    const quiet = summary("quiet-channel", null);
+    const view = openChat([quiet], { user: userNamed("quiet", "Maya") });
 
-    await waitFor(() => expect(routed()).toHaveLength(1));
+    expect(
+      await view.findByRole("heading", { name: "What should we work on?" }),
+    ).toBeTruthy();
+    await settleReactWork();
+    expect(view.queryByTestId("ongoing-chat")).toBeNull();
+    expect(created()).toHaveLength(0);
+    expect(routed()).toHaveLength(0);
+  });
+
+  test("a failed start releases the composer for another try", async () => {
+    const creating = held();
+    answerCreate = () => creating.promise;
+    const view = openChat([], { user: userNamed("retry", "Maya") });
+
     await act(async () => typeInto(view.container, "Try this message"));
-    const send = view.getByRole("button", {
-      name: "Send message",
-    });
+    const send = view.getByRole("button", { name: "Send message" });
     if (!(send instanceof HTMLButtonElement))
       throw new Error("The Send message control is not a button.");
-    expect(send.disabled).toBe(true);
-    // Routing records are advisory: rejection continues to creation, still owning startup.
-    await act(async () =>
-      routing.settle(
-        Response.json({ error: "Routing unavailable" }, { status: 503 }),
-      ),
-    );
+    await act(async () => send.click());
     await waitFor(() => expect(created()).toHaveLength(1));
     expect(send.disabled).toBe(true);
     await act(async () =>
@@ -564,297 +539,22 @@ describe("Chat on the first day", () => {
       "Couldn't start the conversation.",
     );
     expect(send.disabled).toBe(false);
-    expect(routed()).toHaveLength(1);
 
-    answerRoute = async () => routeAnswer();
     answerCreate = async () => Response.json({ channel: CREATED });
     await act(async () => send.click());
     await view.findByTestId("ongoing-chat");
-    expect(routed()).toHaveLength(2);
-    expect(routed()[1]?.body).toMatchObject({ text: "Try this message" });
-    expect(created()).toHaveLength(2);
-    // Both carry the person's local date, which the first day takes as its morning brief.
-    const date = expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/);
-    expect(created().map((request) => request.body)).toEqual([
-      { agentId: BOT.id, greeting: "with_mail", date },
-      { agentId: BOT.id, date },
-    ]);
     expect(takeFirstMessage(CREATED.id)).toBe("Try this message");
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-  });
-
-  test("with no conversation yet, it sends the first-day message once, StrictMode and all", async () => {
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], {
-      user: userNamed("strict", "Maya"),
-      strict: true,
-    });
-
-    const ongoing = await view.findByTestId("ongoing-chat");
-    expect(ongoing.getAttribute("data-channel")).toBe(CREATED.id);
-    expect(created()).toHaveLength(1);
-    expect(routed()).toHaveLength(1);
-    expect(routed()[0]?.body).toMatchObject({
-      text: frameFirstDay(FIRST_DAY_REQUEST),
-      agentId: BOT.id,
-    });
-    // The server owns greeting delivery; a browser remount cannot send it again.
-    expect(created()[0]?.body).toMatchObject({
-      greeting: "with_mail",
-    });
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-    await settleReactWork();
-    expect(routed()).toHaveLength(1);
-  });
-
-  test("with Gmail and Calendar not connected, it asks for what it can do, not for mail", async () => {
-    answerGmail = async () =>
-      Response.json({
-        app: { key: "google-workspace", state: "not_connected" },
-      });
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: userNamed("no-mail", "Maya") });
-
-    await view.findByTestId("ongoing-chat");
-    expect(routed()).toHaveLength(1);
-    expect(routed()[0]?.body).toMatchObject({
-      text: frameFirstDay(FIRST_DAY_REQUEST_WITHOUT_MAIL, { mail: false }),
-    });
-    expect(created()[0]?.body).toMatchObject({
-      greeting: "without_mail",
-    });
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-  });
-
-  test("draws the plan without mail while that conversation is being made", async () => {
-    answerGmail = async () =>
-      Response.json({ app: { key: "google-workspace", state: "not_granted" } });
-    const creating = held();
-    answerCreate = () => creating.promise;
-    const view = openChat([], { user: userNamed("no-mail-drawing", "Maya") });
-
-    await waitFor(() => expect(created()).toHaveLength(1));
-    expect(view.getByText(FIRST_DAY_PLAN_WITHOUT_MAIL)).toBeTruthy();
-    expect(view.queryByText(FIRST_DAY_PLAN)).toBeNull();
-
-    await act(async () => creating.settle(Response.json({ channel: CREATED })));
-    await view.findByTestId("ongoing-chat");
-    takeFirstMessage(CREATED.id);
-  });
-
-  test("a Gmail state that could not be read promises no mail either", async () => {
-    answerGmail = async () => Response.json({ error: "nope" }, { status: 503 });
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: userNamed("gmail-unread", "Maya") });
-
-    await view.findByTestId("ongoing-chat");
-    expect(created()[0]?.body).toMatchObject({
-      greeting: "without_mail",
-    });
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-  });
-
-  test("waits for whether it can read mail before it greets", async () => {
-    const gmail = held();
-    answerGmail = () => gmail.promise;
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: userNamed("waits-for-gmail", "Maya") });
-
-    await settleReactWork();
-    expect(routed()).toHaveLength(0);
-    await act(async () =>
-      gmail.settle(
-        Response.json({ app: { key: "google-workspace", state: "ready" } }),
-      ),
-    );
-    await view.findByTestId("ongoing-chat");
-    expect(created()[0]?.body).toMatchObject({
-      greeting: "with_mail",
-    });
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-  });
-
-  test("draws the greeting while the conversation is being made, with no Get to know me button", async () => {
-    const creating = held();
-    answerCreate = () => creating.promise;
-    const view = openChat([], { user: userNamed("drawing", "Maya") });
-
-    await waitFor(() => expect(created()).toHaveLength(1));
-    expect(view.getByText(FIRST_DAY_PLAN)).toBeTruthy();
-    expect(view.queryByRole("button", { name: "Get to know me" })).toBeNull();
-    expect(view.queryByText("Let's get to know each other")).toBeNull();
-
-    await act(async () => creating.settle(Response.json({ channel: CREATED })));
-    await view.findByTestId("ongoing-chat");
-    takeFirstMessage(CREATED.id);
-  });
-
-  test("with a conversation that has never had a message, it greets into that one", async () => {
-    const quiet = summary("quiet-channel", null);
-    answerCreate = async () => Response.json({ channel: quiet });
-    const view = openChat([quiet], { user: userNamed("quiet", "Maya") });
-
-    const ongoing = await view.findByTestId("ongoing-chat");
-    expect(ongoing.getAttribute("data-channel")).toBe(quiet.id);
-    expect(created()).toHaveLength(1);
-    expect(routed()).toHaveLength(1);
-    expect(created()[0]?.body).toMatchObject({
-      greeting: "with_mail",
-    });
-    expect(takeFirstMessage(quiet.id)).toBeNull();
-  });
-
-  test("another device's server claim opens its conversation without seeding a second greeting", async () => {
-    answerCreate = async () =>
-      Response.json({ start: { channel: CREATED, claimed: false } });
-    const view = openChat([], { user: userNamed("second-device", "Maya") });
-    const ongoing = await view.findByTestId("ongoing-chat");
-    expect(ongoing.getAttribute("data-channel")).toBe(CREATED.id);
-    expect(takeFirstMessage(CREATED.id)).toBeNull();
-  });
-
-  test("with a conversation that already has a message, it sends nothing", async () => {
-    const used = summary("used-channel", "2026-10-22T10:00:00.000Z");
-    const view = openChat([used], { user: userNamed("used", "Maya") });
-
-    const ongoing = await view.findByTestId("ongoing-chat");
-    expect(ongoing.getAttribute("data-channel")).toBe(used.id);
-    await settleReactWork();
-    expect(routed()).toHaveLength(0);
-    expect(created()).toHaveLength(0);
-    expect(takeFirstMessage(used.id)).toBeNull();
-  });
-
-  test("opened again while the first greeting is still going, it does not send a second", async () => {
-    const creating = held();
-    answerCreate = () => creating.promise;
-    const user = userNamed("remount", "Maya");
-    const first = openChat([], { user });
-    await waitFor(() => expect(created()).toHaveLength(1));
-    first.unmount();
-
-    openChat([], { user });
-    await settleReactWork();
-    expect(created()).toHaveLength(1);
-    expect(routed()).toHaveLength(1);
-    await act(async () => creating.settle(Response.json({ channel: CREATED })));
-    takeFirstMessage(CREATED.id);
-  });
-
-  test("without storage, opening Chat again after the greeting went does not send another", async () => {
-    const restoreStorage = withoutStorage();
-    try {
-      answerCreate = async () => Response.json({ channel: CREATED });
-      const user = userNamed("no-storage", "Maya");
-      const first = openChat([], { user, strict: true });
-      await first.findByTestId("ongoing-chat");
-      takeFirstMessage(CREATED.id);
-      first.unmount();
-
-      // The roster has not caught up yet, so Chat opens on nothing again.
-      openChat([], { user, strict: true });
-      await settleReactWork();
-      expect(routed()).toHaveLength(1);
-      expect(created()).toHaveLength(1);
-    } finally {
-      restoreStorage();
+    expect(created()).toHaveLength(2);
+    for (const request of created()) {
+      expect(request.body).not.toHaveProperty("greeting");
     }
   });
 
-  test("another tab that just greeted holds this one off", async () => {
-    window.localStorage.setItem(
-      firstDayClaimKey(`other-tab:${BOT.id}`),
-      String(Date.now()),
-    );
+  test("typing sends the student's own words", async () => {
     answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: userNamed("other-tab", "Maya") });
-    await settleReactWork();
-
-    expect(routed()).toHaveLength(0);
-    expect(created()).toHaveLength(0);
-    expect(view.queryByText(FIRST_DAY_PLAN)).toBeNull();
-  });
-
-  test("another tab in the middle of greeting holds this one off", async () => {
-    // happy-dom has no Web Locks, so this stands in for the browser's: one holder per name, and
-    // `ifAvailable` handing the callback null rather than waiting.
-    const holders = new Set<string>();
-    const locks = {
-      async request(
-        name: string,
-        options: { ifAvailable?: boolean },
-        callback: (lock: { name: string } | null) => Promise<unknown>,
-      ) {
-        if (holders.has(name)) {
-          if (options.ifAvailable) return callback(null);
-          throw new Error("Only ifAvailable is used here.");
-        }
-        holders.add(name);
-        try {
-          return await callback({ name });
-        } finally {
-          holders.delete(name);
-        }
-      },
-    };
-    const own = Object.getOwnPropertyDescriptor(navigator, "locks");
-    Object.defineProperty(navigator, "locks", {
-      configurable: true,
-      value: locks,
-    });
-    let release: () => void = () => {};
-    const otherTab = locks.request(
-      firstDayClaimKey(`mid-send:${BOT.id}`),
-      {},
-      () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        }),
-    );
-    try {
-      answerCreate = async () => Response.json({ channel: CREATED });
-      const view = openChat([], { user: userNamed("mid-send", "Maya") });
-      await settleReactWork();
-
-      expect(routed()).toHaveLength(0);
-      expect(created()).toHaveLength(0);
-      expect(view.queryByText(FIRST_DAY_PLAN)).toBeNull();
-    } finally {
-      release();
-      await otherTab;
-      if (own) Object.defineProperty(navigator, "locks", own);
-      else delete (navigator as { locks?: unknown }).locks;
-    }
-  });
-
-  test("a greeting another tab sent long ago does not hold this one off", async () => {
-    window.localStorage.setItem(
-      firstDayClaimKey(`stale-tab:${BOT.id}`),
-      String(Date.now() - 60 * 60_000),
-    );
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: userNamed("stale-tab", "Maya") });
-
-    await view.findByTestId("ongoing-chat");
-    expect(routed()).toHaveLength(1);
-    takeFirstMessage(CREATED.id);
-  });
-
-  test("typing first wins: what the person sends goes, and no greeting does", async () => {
-    // The account is still loading, so the greeting is waiting when the person starts typing.
-    const me = held();
-    answerMe = () => me.promise;
-    answerCreate = async () => Response.json({ channel: CREATED });
-    const view = openChat([], { user: "loading" });
+    const view = openChat([], { user: userNamed("typist", "Maya") });
 
     await act(async () => typeInto(view.container, "What's on today?"));
-    await act(async () =>
-      me.settle(Response.json({ user: userNamed("typist", "Maya") })),
-    );
-    // The account has arrived, so the greeting has had its chance and declined it.
-    await waitFor(() =>
-      expect(view.client.getQueryData(authKeys.currentUser())).toBeTruthy(),
-    );
     await settleReactWork();
     expect(routed()).toHaveLength(0);
     expect(created()).toHaveLength(0);

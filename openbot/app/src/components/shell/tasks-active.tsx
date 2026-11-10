@@ -248,9 +248,9 @@ function EmptyActive({ query }: { query: string }) {
     );
   return (
     <div className="px-1">
-      <p className="type-row font-semibold">Nothing active right now.</p>
+      <p className="type-row font-semibold">Nothing in progress.</p>
       <p className="type-sub mt-0.5 text-duet-ink-2">
-        Add a task with +, or start one from Up next.
+        Add homework with +, or start one from Up next.
       </p>
     </div>
   );

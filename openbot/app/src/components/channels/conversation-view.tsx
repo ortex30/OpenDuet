@@ -33,6 +33,11 @@ import {
   useReportChatPresence,
 } from "@/components/shell/chat-presence";
 import { ChatSuggestionCard } from "@/components/shell/chat-suggestion";
+import {
+  StudyHome,
+  StudyStrip,
+  studyDraft,
+} from "@/components/shell/study-actions";
 import type { ApprovalRequest } from "@/lib/approvals";
 import { attachmentUrl } from "@/lib/channels/attachments";
 import { isThreadBusyError } from "@/lib/channels/run-lifecycle";
@@ -470,6 +475,25 @@ export function ConversationView({
       ? []
       : latestTurnToolCalls(messages),
   );
+  const pickStudy = useCallback(
+    (action: Parameters<typeof studyDraft>[0]) => {
+      const draft = studyDraft(action, commands);
+      if (draft.isEmpty || disabled) return;
+      void submit(draft, inFlight)?.catch(() => undefined);
+    },
+    [commands, disabled, inFlight, submit],
+  );
+  const showStudyHome =
+    inShell &&
+    messages.length === 0 &&
+    queued.length === 0 &&
+    serverQueued.length === 0 &&
+    !restoring;
+  // A turn that can park a follow-up keeps the study controls live. One that cannot (the first
+  // message, while its channel is still being made) locks them, so a second tap is not left
+  // behind on a screen that is about to go away.
+  const studyLocked = disabled || (inFlight && !queueWhileBusy);
+
   const conversationSend = useMemo<ConversationSend>(() => {
     const current = new Set<string>(JSON.parse(latestTurn));
     return {
@@ -572,7 +596,7 @@ export function ConversationView({
       }
       ref={root}
     >
-      <div className="flex flex-1 min-h-0">
+      <div className="relative flex min-h-0 flex-1">
         {/* What the transcript draws can send as the person. See `conversation-send.tsx`. */}
         <ConversationSendContext.Provider value={conversationSend}>
           {/*
@@ -624,6 +648,13 @@ export function ConversationView({
           {/* A page the Bot made, opened from its card over this conversation. */}
           <PageSheetHost />
         </ConversationSendContext.Provider>
+        {showStudyHome ? (
+          <div className="pointer-events-none absolute inset-0 z-[1] flex items-start overflow-y-auto px-5 pt-[92px] pb-[calc(var(--duet-dock,0px)+12px)]">
+            <div className="pointer-events-auto w-full">
+              <StudyHome disabled={studyLocked} onPick={pickStudy} />
+            </div>
+          </div>
+        ) : null}
       </div>
       <div
         className={
@@ -635,6 +666,9 @@ export function ConversationView({
       >
         {/* Chat's Bot's newest suggestion; nothing in any other conversation. */}
         {inShell ? <ChatSuggestionCard /> : null}
+        {inShell && !showStudyHome && !restoring ? (
+          <StudyStrip disabled={studyLocked} onPick={pickStudy} />
+        ) : null}
         {queuedNotice && queued.length > 0 ? (
           <p className="pb-2 text-sm text-muted-foreground" role="status">
             {queuedNotice}

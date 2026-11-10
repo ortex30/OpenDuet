@@ -9,12 +9,12 @@ import { PageCard, previewKind } from "@/components/duet/page-card";
 import { TaskStatusPill } from "@/components/duet/task-card";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { agentListQueryOptions } from "@/lib/agents/queries";
+import { DURATION, EASE_OUT } from "@/lib/motion";
 import {
   type PageSummary,
   pageKeys,
   pageListQueryOptions,
 } from "@/lib/pages/queries";
-import { DURATION, EASE_OUT } from "@/lib/motion";
 import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { type TaskRecord, taskListQueryOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
@@ -38,34 +38,34 @@ export const MAKE_KINDS: readonly {
 }[] = [
   {
     id: "design-system",
-    label: "Design System",
+    label: "Study guide",
     icon: "sparkle",
-    starter: "Make a design system for …",
+    starter: "Make a study guide for …",
   },
   {
     id: "design",
-    label: "Design",
+    label: "Diagram",
     icon: "layout",
-    starter: "Make a design for …",
+    starter: "Make a diagram of …",
   },
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Progress",
     icon: "dashboard",
-    starter: "Make a dashboard of …",
+    starter: "Make a progress tracker of …",
   },
   {
     id: "slides",
     label: "Slides",
     icon: "deck",
-    starter: "Make a deck about …",
+    starter: "Make slides about …",
   },
-  { id: "doc", label: "Docs", icon: "page", starter: "Write a doc about …" },
+  { id: "doc", label: "Notes", icon: "page", starter: "Write notes about …" },
   {
     id: "page",
-    label: "Web page",
+    label: "Reference sheet",
     icon: "globe",
-    starter: "Make a web page about …",
+    starter: "Make a reference sheet about …",
   },
 ];
 export type MakeKind = (typeof MAKE_KINDS)[number];
@@ -310,7 +310,9 @@ export function MakeScreen() {
       }
     >
       <ScreenTitle title="Make">
-        {name ? `What ${name} made for you.` : "What your Bots made for you."}
+        {name
+          ? `Study tools ${name} made for you.`
+          : "Study tools your coach made for you."}
       </ScreenTitle>
       {saved ? (
         <p className="type-sub mb-3 px-1 text-duet-ink-2" role="status">
@@ -323,10 +325,10 @@ export function MakeScreen() {
         </p>
       ) : pages.data.length === 0 && making.length === 0 ? (
         <DuetCard className="px-4 py-4">
-          <p className="type-row font-semibold">Nothing made yet.</p>
+          <p className="type-row font-semibold">No study materials yet.</p>
           <p className="type-sub mt-0.5 text-duet-ink-2">
-            Tap + to choose what to make. What {name ?? "your Bot"} makes shows
-            up here.
+            Tap + to make a study guide, notes, or slides. What{" "}
+            {name ?? "your coach"} makes shows up here.
           </p>
         </DuetCard>
       ) : (
@@ -597,7 +599,7 @@ function MakeFan({
                     }
                   >
                     <button
-                      aria-label={`Make a ${kind.label.toLowerCase()}`}
+                      aria-label={`Make ${kind.label.toLowerCase()}`}
                       className="type-row flex min-h-11 max-w-full items-center gap-2.5 rounded-full py-1.5 pr-5 pl-1.5 text-left font-semibold text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
                       data-kind={kind.id}
                       style={{

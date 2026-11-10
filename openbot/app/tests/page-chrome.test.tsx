@@ -358,7 +358,7 @@ describe("what a conversation is called", () => {
   test("app frames never leak through the last-message fallback", () => {
     for (const [lastMessage, expected] of [
       [task, taskAsk],
-      [hello, "New channel: Launch"],
+      [hello, "New class: Launch"],
       [checkIn, "Checked mail and calendar and found: Draft the launch email"],
       [frameFiring("Check release notes"), "Check release notes"],
     ]) {

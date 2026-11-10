@@ -139,7 +139,7 @@ export function NewTaskSheet({
                     startNow();
                   }
                 }}
-                placeholder="Draft a reply, find a time, chase a payment…"
+                placeholder="Outline my essay, quiz me on chapter 4, make flashcards…"
                 ref={field}
                 value={draft}
               />

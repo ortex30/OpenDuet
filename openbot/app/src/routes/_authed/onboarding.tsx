@@ -160,7 +160,7 @@ function WelcomeStep() {
       <div className="h-8" />
       <IllustrationFrame
         className="flex min-w-0 flex-col items-center px-4 pt-12 pb-8"
-        label="A message box where you hand off tasks to your Bots"
+        label="A message box where you ask your study coach for help"
       >
         <MicOrb size={72} />
         {/*
@@ -184,7 +184,7 @@ function WelcomeStep() {
             compact
             className="min-w-0"
             editorClassName="text-base"
-            initialValue="Hand off tasks to your team of Bots"
+            initialValue="Quiz me on trig identities"
           />
         </div>
       </IllustrationFrame>
@@ -196,7 +196,7 @@ function ComputerUseStep() {
   return (
     <div className="w-full flex flex-col items-center justify-center">
       <h1 className="text-3xl font-semibold tracking-tight max-w-md text-center [overflow-wrap:anywhere]">
-        Each Bot has its own computer
+        Your coach can look things up
       </h1>
       <div className="h-8" />
       <CapabilityDemo kind="search" />
@@ -214,13 +214,13 @@ type RosterCard = Pick<AgentProfile, "id" | "name" | "avatarSeed">;
 const AGENTS_PLACEHOLDER: RosterCard[] = [
   {
     id: "placeholder-research",
-    name: "Research Analyst",
+    name: "Chemistry tutor",
     avatarSeed: "research-analyst",
   },
-  { id: "placeholder-data", name: "Data Analyst", avatarSeed: "data-analyst" },
+  { id: "placeholder-data", name: "Essay coach", avatarSeed: "data-analyst" },
   {
     id: "placeholder-support",
-    name: "Support Desk",
+    name: "Schedule helper",
     avatarSeed: "support-agent",
   },
 ];
@@ -248,7 +248,7 @@ function RosterStep() {
   return (
     <div className="w-full flex flex-col items-center justify-center">
       <h1 className="text-3xl font-semibold tracking-tight max-w-md text-center [overflow-wrap:anywhere]">
-        Pick a Bot or make your own
+        This is your study coach
       </h1>
       <div className="h-8" />
       <IllustrationFrame

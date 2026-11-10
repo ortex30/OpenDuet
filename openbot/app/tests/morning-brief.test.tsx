@@ -334,7 +334,7 @@ describe("Chat on a later day", () => {
 });
 
 describe("Chat on the first day", () => {
-  test("a conversation with nothing said yet gets the greeting, with today's date for the server, and no brief", async () => {
+  test("a conversation with nothing said yet stays on the study home, with no greeting and no brief", async () => {
     const quiet = summary("quiet-channel", null);
     answerCreate = async () =>
       Response.json({ start: { channel: quiet, claimed: true } });
@@ -342,18 +342,16 @@ describe("Chat on the first day", () => {
       Response.json({ brief: { channel: quiet, claimed: true } });
     const view = openChat([quiet], { user: userNamed("first-day") });
 
-    await view.findByTestId("ongoing-chat");
+    expect(
+      await view.findByRole("heading", { name: "What should we work on?" }),
+    ).toBeTruthy();
     await settleReactWork();
     const created = requests.filter(
       (r) => r.path === "/api/channels/first-day" && r.method === "POST",
     );
-    expect(created).toHaveLength(1);
-    // The first day takes today's brief on the server, so a later open today posts none under it.
-    expect(created[0]?.body).toMatchObject({
-      greeting: "with_mail",
-      date: localDateOf(new Date()),
-    });
+    expect(created).toHaveLength(0);
     expect(briefs()).toHaveLength(0);
+    expect(view.queryByTestId("ongoing-chat")).toBeNull();
   });
 });
 

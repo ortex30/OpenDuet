@@ -21,7 +21,7 @@ import { queryClient } from "@/query-client";
 import { settleReactWork } from "./settle-react-work";
 
 /**
- * New channel: Cancel, the title and Create along the top; a big preview of the channel's icon in
+ * New class: Cancel, the title and Create along the top; a big preview of the channel's icon in
  * its colour that changes the moment a person taps; Change icon with three rows of eight line icons,
  * stroked in the chosen colour, and nine dots; then a name and an optional purpose. The same sheet
  * edits a channel, with Archive at its foot.
@@ -104,7 +104,7 @@ test("the preview follows every icon and colour tapped, live", async () => {
   serving(() => Response.json({}));
   const user = userEvent.setup({ document });
   const { view } = draw();
-  const dialog = await view.findByRole("dialog", { name: "New channel" });
+  const dialog = await view.findByRole("dialog", { name: "New class" });
   expect(preview(dialog)?.getAttribute("data-channel-icon")).toBe(
     NEW_CHANNEL_LOOK.icon,
   );
@@ -149,7 +149,7 @@ test("Create waits for a name, then makes the channel with its look and purpose"
   );
   const user = userEvent.setup({ document });
   const { view, saved } = draw();
-  const dialog = await view.findByRole("dialog", { name: "New channel" });
+  const dialog = await view.findByRole("dialog", { name: "New class" });
   // Cancel, the title and Create along the top.
   expect(
     within(dialog)
@@ -161,7 +161,7 @@ test("Create waits for a name, then makes the channel with its look and purpose"
   expect((create as HTMLButtonElement).disabled).toBe(true);
   expect(
     (within(dialog).getByLabelText("Name") as HTMLInputElement).placeholder,
-  ).toBe("Q4 planning");
+  ).toBe("AP Chemistry");
   expect(
     (within(dialog).getByLabelText("Purpose") as HTMLTextAreaElement)
       .placeholder,
@@ -212,7 +212,7 @@ test("a refusal from the server is said in the sheet, and the draft stays", asyn
   );
   const user = userEvent.setup({ document });
   const { view, saved } = draw();
-  const dialog = await view.findByRole("dialog", { name: "New channel" });
+  const dialog = await view.findByRole("dialog", { name: "New class" });
   await user.type(within(dialog).getByLabelText("Name"), "Kiln move");
   await user.type(within(dialog).getByLabelText("Purpose"), "Moving the kiln.");
   await user.click(within(dialog).getByRole("button", { name: "Create" }));
@@ -237,7 +237,7 @@ test("editing a channel starts from it, saves only what changed, and can archive
   });
   const user = userEvent.setup({ document });
   const { view, saved, archived } = draw({ channel: kiln });
-  const dialog = await view.findByRole("dialog", { name: "Edit channel" });
+  const dialog = await view.findByRole("dialog", { name: "Edit class" });
   expect(preview(dialog)?.getAttribute("data-channel-icon")).toBe("home");
   expect(
     (within(dialog).getByLabelText("Name") as HTMLInputElement).value,
@@ -257,7 +257,7 @@ test("editing a channel starts from it, saves only what changed, and can archive
 
   const again = draw({ channel: kiln });
   const reopened = await again.view.findByRole("dialog", {
-    name: "Edit channel",
+    name: "Edit class",
   });
   await user.click(
     within(reopened).getByRole("button", { name: "Archive channel" }),
@@ -276,7 +276,7 @@ describe("Escape closes only the innermost thing, and never drops what was typed
     const user = userEvent.setup({ document });
     let closed = 0;
     const { view } = draw({ onClose: () => closed++ });
-    const dialog = await view.findByRole("dialog", { name: "New channel" });
+    const dialog = await view.findByRole("dialog", { name: "New class" });
     await user.type(within(dialog).getByLabelText("Name"), "Kiln move");
     const change = within(dialog).getByRole("button", { name: "Change icon" });
     await user.click(change);
@@ -303,7 +303,7 @@ describe("Escape closes only the innermost thing, and never drops what was typed
     const user = userEvent.setup({ document });
     let closed = 0;
     const { view } = draw({ onClose: () => closed++ });
-    const dialog = await view.findByRole("dialog", { name: "New channel" });
+    const dialog = await view.findByRole("dialog", { name: "New class" });
     await user.type(
       within(dialog).getByLabelText("Purpose"),
       "Moving the kiln by March.",
@@ -333,7 +333,7 @@ describe("Escape closes only the innermost thing, and never drops what was typed
     const user = userEvent.setup({ document });
     let closed = 0;
     const { view } = draw({ onClose: () => closed++ });
-    await view.findByRole("dialog", { name: "New channel" });
+    await view.findByRole("dialog", { name: "New class" });
 
     await user.keyboard("{Escape}");
     expect(closed).toBe(1);
@@ -344,7 +344,7 @@ describe("Escape closes only the innermost thing, and never drops what was typed
     const user = userEvent.setup({ document });
     let closed = 0;
     const { view } = draw({ channel: kiln, onClose: () => closed++ });
-    const dialog = await view.findByRole("dialog", { name: "Edit channel" });
+    const dialog = await view.findByRole("dialog", { name: "Edit class" });
 
     await user.click(within(dialog).getByLabelText("Name"));
     await user.keyboard("{Escape}");
@@ -353,7 +353,7 @@ describe("Escape closes only the innermost thing, and never drops what was typed
     cleanup();
     const again = draw({ channel: kiln, onClose: () => closed++ });
     const edited = await again.view.findByRole("dialog", {
-      name: "Edit channel",
+      name: "Edit class",
     });
     await user.type(within(edited).getByLabelText("Name"), " soon");
     await user.keyboard("{Escape}");

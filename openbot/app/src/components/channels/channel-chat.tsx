@@ -21,6 +21,7 @@ import { ConversationView } from "@/components/channels/conversation-view";
 import {
   seedMessage,
   takeFirstMessage,
+  takeFirstSkills,
   transcriptMessages,
 } from "@/components/channels/transcript-messages";
 import { VoiceCallWidget } from "@/components/channels/voice-call-widget";
@@ -475,8 +476,10 @@ export function ChannelChat({
    * First-message seed from the compose screen. It is taken once per mount and retained until the
    * agent has its own messages because joining a fresh thread can temporarily empty the agent.
    */
+  const seedSkills = useRef<string[]>([]);
   const [seed] = useState<Message | null>(() => {
     const pending = takeFirstMessage(channel.id);
+    seedSkills.current = takeFirstSkills(channel.id);
     return pending ? seedMessage(pending, newId()) : null;
   });
 
@@ -887,6 +890,8 @@ export function ChannelChat({
   useActiveBot(runtimeAgentId);
 
   const skillCommands = useSkillCommands(runtimeAgentId);
+  const skillCommandsRef = useRef(skillCommands);
+  skillCommandsRef.current = skillCommands;
   const historyNotice = channelHistoryNotice({
     restoring,
     messageCount: agent.messages.length,
@@ -1603,11 +1608,31 @@ export function ChannelChat({
     // Decided against the thread as `say` finds it once joined, which is where another device's
     // greeting shows up.
     const skipIf = () => !seedStillNeeded(text, agentRef.current.messages);
+    const wanted = seedSkills.current;
     void (async () => {
+      // The `/` chips on a study tap name skills. Their instructions load with the Bot's
+      // grants, which can arrive a moment after this screen. Wait briefly, then send with
+      // whatever is here so a slow list never holds the message.
+      if (wanted.length > 0) {
+        const deadline = Date.now() + 1200;
+        while (
+          skillCommandsRef.current.length === 0 &&
+          Date.now() < deadline &&
+          alive.current
+        ) {
+          await afterMs(40);
+        }
+      }
+      const skillInstructions = wanted.flatMap((id) => {
+        const prompt = skillCommandsRef.current.find(
+          (command) => command.id === id,
+        )?.prompt;
+        return prompt ? [prompt] : [];
+      });
       // A busy thread is waited out, a few times at most: each wait is a whole turn.
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          await sayRef.current(text, [], [], { skipIf });
+          await sayRef.current(text, skillInstructions, [], { skipIf });
           return;
         } catch (error) {
           if (!isThreadBusyError(error)) return;
@@ -1671,7 +1696,9 @@ export function ChannelChat({
             serverQueued={task?.queued}
             inShell={inShell}
             lead={lead ?? (topic ? <Topic>{topic}</Topic> : null)}
-            placeholder={task ? `Reply to ${botName}` : `Message ${botName}`}
+            placeholder={
+              task ? `Reply to ${botName}` : "Ask about a class or assignment"
+            }
             queuedNotice={
               following && followQuiet
                 ? `${botName} is still finishing something. I'll send this next.`

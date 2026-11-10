@@ -601,7 +601,7 @@ test("Make lists everything made as thumbnail cards, in the server's order, and 
     "/make/deck",
     "/make/prep",
   ]);
-  expect(view.getByText("What OpenDuet made for you.")).toBeTruthy();
+  expect(view.getByText("Study tools OpenDuet made for you.")).toBeTruthy();
 
   fireEvent.click(links[0] as HTMLElement);
   const sheet = await view.findByRole("dialog", { name: "Marlo Pulse" });

@@ -17,12 +17,12 @@ export const PAGE_THEMES = [
 ] as const;
 export type PageTheme = (typeof PAGE_THEMES)[number];
 export const PAGE_KIND_LABELS: Record<PageKind, string> = {
-  page: "Web page",
+  page: "Reference sheet",
   slides: "Slides",
-  dashboard: "Dashboard",
-  doc: "Docs",
-  design: "Design",
-  "design-system": "Design System",
+  dashboard: "Progress",
+  doc: "Notes",
+  design: "Diagram",
+  "design-system": "Study guide",
 };
 export const PAGE_KIND_COLOURS: Record<PageKind, string> = {
   page: "var(--duet-red)",

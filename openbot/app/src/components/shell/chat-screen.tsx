@@ -8,27 +8,21 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ChannelChat } from "@/components/channels/channel-chat";
 import { ConversationView } from "@/components/channels/conversation-view";
-import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
-import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
-import { DraftWatch, useFirstDayGreeting } from "@/components/shell/first-day";
-import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import {
   seedMessage,
   stashFirstMessage,
 } from "@/components/channels/transcript-messages";
+import { ChatSuggestionProvider } from "@/components/shell/chat-suggestion";
+import { useCheckInNotifications } from "@/components/shell/check-in-notifier";
+import { PersonWatch, useMorningBrief } from "@/components/shell/morning-brief";
 import { primaryBot } from "@/lib/agents/primary-bot";
 import { type AgentProfile, agentListQueryOptions } from "@/lib/agents/queries";
-import { botAppQueryOptions } from "@/lib/app-access/queries";
 import { currentUserQueryOptions } from "@/lib/auth/queries";
 import { botAttentionQueryOptions } from "@/lib/bot-lifecycle/queries";
 import { CheckInArrivalContext } from "@/lib/channels/check-in";
-import {
-  type FirstDayGreeting,
-  firstDayGreeting,
-} from "@/lib/channels/first-day";
+import type { FirstDayGreeting } from "@/lib/channels/first-day";
 import { useMarkOpenChannelRead } from "@/lib/channels/mark-read";
 import { localDateOf } from "@/lib/channels/morning-brief";
-import { client } from "@/lib/client";
 import { ONGOING_SEARCH_LIMIT, ongoingChannel } from "@/lib/channels/ongoing";
 import {
   type AgentChannel,
@@ -37,7 +31,9 @@ import {
 } from "@/lib/channels/queries";
 import { routeMessage } from "@/lib/channels/route";
 import { startWithChosen } from "@/lib/channels/start";
+import { client } from "@/lib/client";
 import { newId } from "@/lib/new-id";
+import { useSkillCommands } from "@/lib/plugins/skill-commands";
 
 /**
  * The Chat tab: the person's one ongoing conversation with the product's own Bot.
@@ -84,8 +80,8 @@ export function ChatScreen() {
     );
   /*
    * A conversation that has never had a message is still the first day: one made only to hold the
-   * Bot's background research, say. The greeting then goes into it rather than into a second
-   * conversation.
+   * Bot's background research, say. The study home stays up, and the student's first message goes
+   * into that conversation rather than into a second one.
    */
   if (channel && !started && channel.lastMessageAt === null)
     return <FirstMessage bot={bot} onStarted={setStarted} />;
@@ -215,30 +211,29 @@ function FirstMessage({
         },
       ),
   });
-  const me = useQuery(currentUserQueryOptions());
   const [sent, setSent] = useState<Message | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   /** Held before the first await, including until the handoff unmounts this composer. */
   const startingRef = useRef(false);
-  /** A first message has gone from this screen: the greeting, or the person's own. */
-  const begun = useRef(false);
-  /** The person has typed into the composer. */
-  const typed = useRef(false);
 
   /**
-   * Sends the first message, from the composer or as the greeting, which names which first day it
-   * is. The server writes the greeting's message from that alone (`firstDayGreeting`); `text` is
-   * the same message, drawn here until the conversation takes over. Throws when it fails.
+   * Sends the student's first message. `greeting` is only for a caller that explicitly asks the
+   * server to write the first day; this screen does not. The server still claims the day and its
+   * date, so a later open does not post a morning brief under a conversation that just started.
+   * Throws when it fails.
    */
-  const start = async (text: string, greeting?: FirstDayGreeting) => {
+  const start = async (
+    text: string,
+    greeting?: FirstDayGreeting,
+    skillIds: readonly string[] = [],
+  ) => {
     if (startingRef.current)
       throw new Error(
         "The conversation is still starting. Try again in a moment.",
       );
     startingRef.current = true;
     setStarting(true);
-    begun.current = true;
     setError(null);
     setSent(seedMessage(text, newId()));
     try {
@@ -262,7 +257,7 @@ function FirstMessage({
             return;
           }
           queryClient.setQueryData(channelKeys.detail(channel.id), channel);
-          stashFirstMessage(channel.id, first);
+          stashFirstMessage(channel.id, first, skillIds);
           onStarted(channel);
         },
       });
@@ -279,47 +274,27 @@ function FirstMessage({
     }
   };
 
-  const gmail = useQuery(botAppQueryOptions(bot.id, GOOGLE_WORKSPACE));
-  const canReadMail = gmail.data?.state === "ready";
-
-  useFirstDayGreeting({
-    // Whose first day, with which Bot. Waits for the account and for whether the Bot can read their
-    // mail; an account that failed to load still greets, and a state that failed reads as no mail.
-    claimKey:
-      me.isPending || gmail.isPending
-        ? null
-        : `${me.data?.id ?? "unknown"}:${bot.id}`,
-    clear: () => !begun.current && !typed.current,
-    greet: () => {
-      const which = canReadMail ? "with_mail" : "without_mail";
-      return start(firstDayGreeting(which), which);
-    },
-  });
+  const skillCommands = useSkillCommands(bot.id);
 
   return (
-    <>
-      <DraftWatch into={typed} />
-      <ConversationView
-        inShell
-        messages={sent ? [sent] : []}
-        notice={
-          error ? (
-            <p className="type-label pb-2 text-duet-red" role="alert">
-              {error}
-            </p>
-          ) : null
-        }
-        // The composer keeps the draft for another try when this throws.
-        onSubmit={(draft) => start(draft.text)}
-        pending={starting}
-        placeholder={`Message ${bot.name}`}
-      />
-    </>
+    <ConversationView
+      inShell
+      messages={sent ? [sent] : []}
+      notice={
+        error ? (
+          <p className="type-label pb-2 text-duet-red" role="alert">
+            {error}
+          </p>
+        ) : null
+      }
+      // The composer keeps the draft for another try when this throws.
+      commands={skillCommands}
+      onSubmit={(draft) => start(draft.text, undefined, draft.commandIds)}
+      pending={starting}
+      placeholder="Ask about a class or assignment"
+    />
   );
 }
-
-/** The app the first day reads: Gmail and Google Calendar, one connection for both. */
-const GOOGLE_WORKSPACE = "google-workspace";
 
 /** A sentence in place of a screen that could not be drawn. */
 export function ScreenNotice({

@@ -95,7 +95,7 @@ describe("readChannelHello", () => {
 
 describe("describeChannelHello", () => {
   test("names the channel, for a reader that titles the conversation", () => {
-    expect(describeChannelHello(CHANNEL)).toBe("New channel: Kiln move");
-    expect(describeChannelHello({ name: "", purpose: "" })).toBe("New channel");
+    expect(describeChannelHello(CHANNEL)).toBe("New class: Kiln move");
+    expect(describeChannelHello({ name: "", purpose: "" })).toBe("New class");
   });
 });

@@ -17,8 +17,8 @@ import {
 import type { DuetChannel } from "@/lib/duet-channels/queries";
 import { useDuetChannels } from "@/lib/duet-channels/use-channel";
 import { queryClient } from "@/query-client";
-import { ScreenNotice } from "./chat-screen";
 import { ChannelSheet } from "./channel-sheet";
+import { ScreenNotice } from "./chat-screen";
 
 /**
  * One channel, opened from the drawer: its own thread with the Bot, drawn by the same chat Chat
@@ -119,7 +119,7 @@ function ChannelHeader({
           ) : null}
         </div>
         <button
-          aria-label="Edit channel"
+          aria-label="Edit class"
           className="duet-glass grid size-10 shrink-0 place-items-center rounded-full text-duet-ink shadow-duet-glass transition-transform focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-duet-violet/40 active:scale-95"
           onClick={() => setEditing(true)}
           type="button"

@@ -77,8 +77,8 @@ export function ConnectAppsStep({
         Connect your apps
       </h1>
       <p className="type-sub mt-2.5 max-w-sm text-center text-duet-ink-2">
-        This way {PRODUCT} can read what's new in your mail and calendar, and
-        take care of things for you. You can connect more apps later.
+        This way {PRODUCT} can see assignments, due dates, and school mail. You
+        can connect more apps later.
       </p>
       <ul aria-label="Apps" className="mt-8 flex w-full flex-col gap-3">
         <AppRow

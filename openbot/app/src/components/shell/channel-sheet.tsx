@@ -16,7 +16,6 @@ import {
   channelColour,
 } from "@/components/duet/channel-look";
 import { useSheetPresence } from "@/hooks/use-sheet-presence";
-import { appConfig } from "@/lib/generated/application-config";
 import {
   archiveDuetChannelMutationOptions,
   createDuetChannelMutationOptions,
@@ -34,6 +33,7 @@ import {
   NEW_CHANNEL_COLOUR,
   NEW_CHANNEL_ICON,
 } from "@/lib/duet-channels/queries";
+import { appConfig } from "@/lib/generated/application-config";
 import { cn } from "@/lib/utils";
 import { queryClient } from "@/query-client";
 
@@ -44,7 +44,7 @@ export const NEW_CHANNEL_LOOK: { icon: ChannelIcon; colour: ChannelColour } = {
 };
 
 /** The purpose field's placeholder, with the product's own name in it. */
-export const PURPOSE_QUESTION = `What should ${appConfig.brand.productName} know about this channel?`;
+export const PURPOSE_QUESTION = `What should ${appConfig.brand.productName} know about this class?`;
 
 /** A name is needed; a purpose is not. Each within its length. */
 export function channelDraftReady(draft: { name: string; purpose: string }) {
@@ -131,7 +131,7 @@ export function ChannelSheet({
   const pickerId = useId();
   const nameId = useId();
   const purposeId = useId();
-  const title = editing ? "Edit channel" : "New channel";
+  const title = editing ? "Edit class" : "New class";
   /*
    * Whether there is anything typed or chosen that leaving would lose: for a new channel, a name
    * or a purpose; for one being edited, anything that differs from what it is now.
@@ -378,7 +378,7 @@ export function ChannelSheet({
                     purposeField.current?.focus();
                   }
                 }}
-                placeholder="Q4 planning"
+                placeholder="AP Chemistry"
                 ref={nameField}
                 value={name}
               />

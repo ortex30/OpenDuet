@@ -124,7 +124,7 @@ export function readFirstDay(text: string): string | null {
  */
 export const FIRST_DAY_REQUEST = [
   "Get to know me. Look through my recent mail and this week's calendar, then answer in three parts, with a blank line between them.",
-  "First, in plain sentences with no bold or headings, say who you think I am and what I do, in at most 450 characters.",
+  "First, in plain sentences with no bold or headings, say who you think I am, which classes I'm in, and what's due, in at most 450 characters.",
   'Second, write "How I\'ll help:" and then three bullets, one line each and under 60 characters, each tied to something you saw.',
   'Third, end with this sentence on its own: "If any of these sound off, just let me know and I\'ll learn."',
 ].join(" ");
